@@ -53,10 +53,19 @@ const Index = () => {
               Turn your direct messages into a revenue stream. Get paid for every conversation.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button size="lg" className="gradient-primary text-primary-foreground text-lg px-8">
+              <Button 
+                size="lg" 
+                className="gradient-primary text-primary-foreground text-lg px-8"
+                onClick={() => navigate('/auth')}
+              >
                 Become a Creator
               </Button>
-              <Button size="lg" variant="outline" className="text-lg px-8">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8"
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 How It Works
               </Button>
             </div>
@@ -148,8 +157,53 @@ const Index = () => {
         </div>
       </section>
 
+      {/* How It Works */}
+      <section id="how-it-works" className="py-20 px-4 bg-card">
+        <div className="container mx-auto max-w-6xl">
+          <h2 className="text-4xl font-bold text-center mb-12">How It Works</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <Card className="p-6 text-center">
+              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
+                1
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Create Your Profile</h3>
+              <p className="text-muted-foreground">
+                Sign up as a creator and set up your message packs with custom pricing.
+              </p>
+            </Card>
+            <Card className="p-6 text-center">
+              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
+                2
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Share Your Link</h3>
+              <p className="text-muted-foreground">
+                Share your unique creator link with your audience on social media.
+              </p>
+            </Card>
+            <Card className="p-6 text-center">
+              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
+                3
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Get Paid</h3>
+              <p className="text-muted-foreground">
+                Fans purchase credits, you respond, and earn money from every conversation.
+              </p>
+            </Card>
+          </div>
+          <div className="text-center mt-12">
+            <Button 
+              size="lg" 
+              className="gradient-primary text-primary-foreground"
+              onClick={() => navigate('/creators')}
+            >
+              Browse Creators
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Stats Section */}
-      <section className="py-20 px-4 bg-card">
+      <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
@@ -175,7 +229,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 gradient-hero">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="text-4xl font-bold mb-6">
             Ready to turn DMs into dollars?
@@ -183,7 +237,11 @@ const Index = () => {
           <p className="text-xl text-muted-foreground mb-8">
             Join thousands of creators already earning from their conversations.
           </p>
-          <Button size="lg" className="gradient-primary text-primary-foreground text-lg px-8">
+          <Button 
+            size="lg" 
+            className="gradient-primary text-primary-foreground text-lg px-8"
+            onClick={() => navigate('/auth')}
+          >
             Start Earning Today
           </Button>
         </div>
