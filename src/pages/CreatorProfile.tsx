@@ -12,7 +12,7 @@ const CreatorProfile = () => {
         <div className="container mx-auto max-w-4xl px-4 py-4">
           <div className="flex items-center gap-3">
             <MessageCircle className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">DM.Link</span>
+            <span className="text-xl font-bold">DM.me</span>
           </div>
         </div>
       </header>
@@ -134,7 +134,7 @@ const CreatorProfile = () => {
       {/* Footer */}
       <footer className="border-t py-6 px-4 mt-12">
         <div className="container mx-auto max-w-4xl text-center text-sm text-muted-foreground">
-          <p>Powered by DM.Link • Privacy Guaranteed • Secure Payments</p>
+          <p>Powered by DM.me • Privacy Guaranteed • Secure Payments</p>
         </div>
       </footer>
     </div>

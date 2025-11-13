@@ -13,7 +13,7 @@ const CreatorDashboard = () => {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
               <MessageCircle className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">DM.Link</span>
+              <span className="text-xl font-bold">DM.me</span>
             </div>
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon">
@@ -39,7 +39,7 @@ const CreatorDashboard = () => {
               </Avatar>
               <div>
                 <h1 className="text-2xl font-bold">Jane Doe</h1>
-                <p className="text-muted-foreground">dm.link/janedoe</p>
+                <p className="text-muted-foreground">dm.me/janedoe</p>
               </div>
             </div>
             <div className="flex gap-3">
