@@ -1,0 +1,94 @@
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Loader2, ShoppingCart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface MessagePack {
+  id: string;
+  quantity: number;
+  price: number;
+  discount_percentage: number;
+}
+
+interface MessagePackPurchaseProps {
+  creatorId: string;
+  packs: MessagePack[];
+}
+
+export const MessagePackPurchase = ({ creatorId, packs }: MessagePackPurchaseProps) => {
+  const [purchasing, setPurchasing] = useState(false);
+  const { toast } = useToast();
+
+  const handlePurchase = async (packId: string) => {
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { packId, creatorId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({
+          title: "Opening checkout",
+          description: "Complete your purchase in the new tab",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Purchase failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
+  if (!packs || packs.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Purchase Message Credits</h3>
+      <div className="grid gap-4 md:grid-cols-3">
+        {packs.map((pack) => (
+          <Card key={pack.id} className="p-4">
+            <div className="space-y-3">
+              <div>
+                <div className="text-2xl font-bold">{pack.quantity}</div>
+                <div className="text-sm text-muted-foreground">Messages</div>
+              </div>
+              <div className="text-xl font-semibold">
+                ${pack.price.toFixed(2)}
+              </div>
+              {pack.discount_percentage > 0 && (
+                <div className="text-sm text-green-600 font-medium">
+                  Save {pack.discount_percentage}%
+                </div>
+              )}
+              <Button
+                onClick={() => handlePurchase(pack.id)}
+                disabled={purchasing}
+                className="w-full"
+              >
+                {purchasing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Buy Now
+                  </>
+                )}
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+};
