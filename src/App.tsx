@@ -33,5 +33,5 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
-src / App.tsx;
+
 export default App;
