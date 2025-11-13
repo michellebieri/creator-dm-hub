@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import MessagingInterface from "./pages/MessagingInterface";
 import CreatorProfile from "./pages/CreatorProfile";
+import Creators from "./pages/Creators";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import NotFound from "./pages/NotFound";
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<CreatorDashboard />} />
           <Route path="/messages" element={<MessagingInterface />} />
+          <Route path="/creators" element={<Creators />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
