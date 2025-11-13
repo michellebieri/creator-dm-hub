@@ -1,9 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -15,8 +19,28 @@ const Index = () => {
               <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
-              <Button variant="ghost">Sign In</Button>
-              <Button className="gradient-primary text-primary-foreground">Get Started</Button>
+              {user ? (
+                <>
+                  <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                    Dashboard
+                  </Button>
+                  <Button variant="ghost" onClick={signOut}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" onClick={() => navigate('/auth')}>
+                    Sign In
+                  </Button>
+                  <Button 
+                    className="gradient-primary text-primary-foreground"
+                    onClick={() => navigate('/auth')}
+                  >
+                    Get Started
+                  </Button>
+                </>
+              )}
             </div>
           </nav>
 
