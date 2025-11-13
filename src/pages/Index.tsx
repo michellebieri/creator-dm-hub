@@ -12,7 +12,7 @@ const Index = () => {
           <nav className="flex justify-between items-center mb-16">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-bold">DM.Link</span>
+              <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
               <Button variant="ghost">Sign In</Button>
@@ -171,7 +171,7 @@ const Index = () => {
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-6 w-6 text-primary" />
-              <span className="font-semibold">DM.Link</span>
+              <span className="font-semibold">DM.me</span>
             </div>
             <div className="flex gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Terms</a>
