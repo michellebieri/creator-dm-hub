@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Shield, Zap, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
@@ -119,6 +119,7 @@ const CreatorProfile = () => {
       <section className="gradient-hero py-12 px-4">
         <div className="container mx-auto max-w-4xl text-center">
           <Avatar className="h-32 w-32 mx-auto mb-6 shadow-large">
+            <AvatarImage src={profile.avatar_url || undefined} />
             <AvatarFallback className="text-4xl gradient-primary text-primary-foreground">
               {initials}
             </AvatarFallback>

@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ArrowLeft, Loader2, User, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,10 +18,12 @@ const ProfileSettings = () => {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState({
     username: '',
     display_name: '',
     bio: '',
+    avatar_url: '',
   });
 
   useEffect(() => {
@@ -47,6 +50,7 @@ const ProfileSettings = () => {
             username: data.username || '',
             display_name: data.display_name || '',
             bio: data.bio || '',
+            avatar_url: data.avatar_url || '',
           });
         }
       } catch (error) {
@@ -64,6 +68,43 @@ const ProfileSettings = () => {
     fetchProfile();
   }, [user, toast]);
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !user) return;
+
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+
+    setUploading(true);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      setProfile({ ...profile, avatar_url: publicUrl });
+
+      toast({
+        title: "Success",
+        description: "Avatar uploaded successfully",
+      });
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload avatar",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -75,6 +116,7 @@ const ProfileSettings = () => {
           username: profile.username,
           display_name: profile.display_name,
           bio: profile.bio,
+          avatar_url: profile.avatar_url,
         })
         .eq('id', user.id);
 
@@ -124,6 +166,48 @@ const ProfileSettings = () => {
       <div className="container mx-auto max-w-2xl px-4 py-8">
         <Card className="p-6">
           <div className="space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              <Avatar className="h-24 w-24">
+                <AvatarImage src={profile.avatar_url} />
+                <AvatarFallback className="text-2xl">
+                  {profile.display_name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col items-center gap-2">
+                <Label htmlFor="avatar-upload" className="cursor-pointer">
+                  <Button
+                    variant="outline"
+                    disabled={uploading}
+                    asChild
+                  >
+                    <span>
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Upload Avatar
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </Label>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                />
+                <p className="text-xs text-muted-foreground">
+                  PNG, JPG or WEBP (max 5MB)
+                </p>
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="username">Username</Label>
               <Input

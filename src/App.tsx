@@ -11,6 +11,7 @@ import CreatorProfile from "./pages/CreatorProfile";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import Creators from "./pages/Creators";
 import ProfileSettings from "./pages/ProfileSettings";
+import Conversations from "./pages/Conversations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<CreatorDashboard />} />
           <Route path="/messages" element={<MessagingInterface />} />
+          <Route path="/conversations" element={<Conversations />} />
           <Route path="/creators" element={<Creators />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/profile-settings" element={<ProfileSettings />} />
