@@ -334,6 +334,8 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          edit_count: number | null
+          edited_at: string | null
           forwarded_from_id: string | null
           id: string
           is_forwarded: boolean
@@ -352,6 +354,8 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          edit_count?: number | null
+          edited_at?: string | null
           forwarded_from_id?: string | null
           id?: string
           is_forwarded?: boolean
@@ -370,6 +374,8 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          edit_count?: number | null
+          edited_at?: string | null
           forwarded_from_id?: string | null
           id?: string
           is_forwarded?: boolean

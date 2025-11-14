@@ -18,6 +18,8 @@ interface Message {
   pinned_by?: string | null;
   read_at?: string | null;
   read_by?: string | null;
+  edited_at?: string | null;
+  edit_count?: number;
   unlockables?: any;
 }
 
