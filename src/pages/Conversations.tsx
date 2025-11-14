@@ -13,7 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare } from 'lucide-react';
+import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
@@ -23,6 +23,7 @@ import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
 import { ConversationLabelFilter } from '@/components/ConversationLabelFilter';
 import { DraftsManager } from '@/components/DraftsManager';
 import { BulkActionsBar } from '@/components/BulkActionsBar';
+import { ConversationStats } from '@/components/ConversationStats';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
@@ -467,6 +468,17 @@ const Conversations = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {user?.id && (
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                            }}
+                          >
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <ConversationStats conversationId={conversation.id} userId={user.id} />
+                            </div>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem onClick={(e) => handleArchive(e, conversation.id)}>
                           {showArchived ? (
                             <>
