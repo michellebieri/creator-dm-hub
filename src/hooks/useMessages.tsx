@@ -15,28 +15,30 @@ export const useMessages = (conversationId: string | null) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchMessages = async () => {
     if (!conversationId) {
       setLoading(false);
       return;
     }
 
-    const fetchMessages = async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('conversation_id', conversationId)
+      .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-      } else {
-        setMessages(data || []);
-      }
-      setLoading(false);
-    };
+    if (error) {
+      console.error('Error fetching messages:', error);
+    } else {
+      setMessages(data || []);
+    }
+    setLoading(false);
+  };
 
+  useEffect(() => {
     fetchMessages();
+
+    if (!conversationId) return;
 
     // Subscribe to new messages
     const channel = supabase
@@ -60,5 +62,5 @@ export const useMessages = (conversationId: string | null) => {
     };
   }, [conversationId]);
 
-  return { messages, loading };
+  return { messages, loading, refetch: fetchMessages };
 };

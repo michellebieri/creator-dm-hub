@@ -25,7 +25,7 @@ const MessagingInterface = () => {
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   
-  const { messages, loading: messagesLoading } = useMessages(conversationId);
+  const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
 
   useEffect(() => {
