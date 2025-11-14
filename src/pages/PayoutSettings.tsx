@@ -99,14 +99,9 @@ const PayoutSettings = () => {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Payout Settings</h1>
-          <Button variant="outline" onClick={() => navigate('/dashboard')}>
-            Back to Dashboard
-          </Button>
-        </div>
+        <h1 className="text-4xl font-bold mb-8">Payout Settings</h1>
 
         <div className="grid gap-6">
           <Card className="p-6">

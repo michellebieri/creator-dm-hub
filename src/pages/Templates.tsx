@@ -18,14 +18,8 @@ const Templates = () => {
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted p-8">
+    <div className="p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
-          </Button>
-        </div>
         {user && (
           <MessageTemplateManager
             creatorId={user.id}

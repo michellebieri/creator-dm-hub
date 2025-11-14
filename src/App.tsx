@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreatorDashboard from "./pages/CreatorDashboard";
@@ -29,17 +30,22 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<CreatorDashboard />} />
-          <Route path="/messages" element={<MessagingInterface />} />
-          <Route path="/conversations" element={<Conversations />} />
-          <Route path="/creators" element={<Creators />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
-          <Route path="/profile-settings" element={<ProfileSettings />} />
-          <Route path="/payout-settings" element={<PayoutSettings />} />
-          <Route path="/earnings" element={<EarningsDashboard />} />
-          <Route path="/analytics" element={<AnalyticsDashboard />} />
-          <Route path="/templates" element={<Templates />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
+          
+          {/* Protected routes with sidebar */}
+          <Route element={<AppLayout />}>
+            <Route path="/dashboard" element={<CreatorDashboard />} />
+            <Route path="/messages" element={<MessagingInterface />} />
+            <Route path="/conversations" element={<Conversations />} />
+            <Route path="/creators" element={<Creators />} />
+            <Route path="/profile-settings" element={<ProfileSettings />} />
+            <Route path="/payout-settings" element={<PayoutSettings />} />
+            <Route path="/earnings" element={<EarningsDashboard />} />
+            <Route path="/analytics" element={<AnalyticsDashboard />} />
+            <Route path="/templates" element={<Templates />} />
+          </Route>
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
