@@ -9,6 +9,7 @@ import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
 import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
+import { MessageReactions } from '@/components/MessageReactions';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -306,6 +307,7 @@ const MessagingInterface = () => {
                         ))}
                       </div>
                     )}
+                    <MessageReactions messageId={msg.id} userId={user?.id || null} />
                   </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
