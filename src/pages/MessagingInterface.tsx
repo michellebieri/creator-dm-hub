@@ -19,6 +19,7 @@ import { PinnedMessages } from '@/components/PinnedMessages';
 import { MessagePinButton } from '@/components/MessagePinButton';
 import { ConversationStats } from '@/components/ConversationStats';
 import { MessageEditDialog } from '@/components/MessageEditDialog';
+import { ConversationExport } from '@/components/ConversationExport';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -350,7 +351,10 @@ const MessagingInterface = () => {
           </div>
           <div className="flex items-center gap-2">
             {conversationId && user?.id && (
-              <ConversationStats conversationId={conversationId} userId={user.id} />
+              <>
+                <ConversationExport conversationId={conversationId} />
+                <ConversationStats conversationId={conversationId} userId={user.id} />
+              </>
             )}
             <Button 
               variant="ghost" 
