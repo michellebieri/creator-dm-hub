@@ -17,6 +17,7 @@ import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
 import { MessageForward } from '@/components/MessageForward';
 import { PinnedMessages } from '@/components/PinnedMessages';
 import { MessagePinButton } from '@/components/MessagePinButton';
+import { ConversationStats } from '@/components/ConversationStats';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -342,13 +343,18 @@ const MessagingInterface = () => {
             </Button>
             <h2 className="font-semibold">Messages</h2>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setShowSearch(!showSearch)}
-          >
-            <Search className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {conversationId && user?.id && (
+              <ConversationStats conversationId={conversationId} userId={user.id} />
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setShowSearch(!showSearch)}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
         {showSearch && (
           <div className="max-w-4xl mx-auto mt-4">
