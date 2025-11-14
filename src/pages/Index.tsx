@@ -1,12 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Footer } from "@/components/Footer";
+import { Badge } from "@/components/ui/badge";
 import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadCount } from "@/hooks/useUnreadCount";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const unreadCount = useUnreadCount();
 
   return (
     <div className="min-h-screen">
@@ -24,8 +28,13 @@ const Index = () => {
               </Button>
               {user ? (
                 <>
-                  <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                  <Button variant="ghost" onClick={() => navigate('/dashboard')} className="relative">
                     Dashboard
+                    {unreadCount > 0 && (
+                      <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-white text-xs">
+                        {unreadCount}
+                      </Badge>
+                    )}
                   </Button>
                   <Button variant="ghost" onClick={signOut}>
                     Sign Out
@@ -250,23 +259,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t py-8 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-6 w-6 text-primary" />
-              <span className="font-semibold">DM.me</span>
-            </div>
-            <div className="flex gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Guidelines</a>
-              <a href="#" className="hover:text-foreground transition-colors">Support</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EmptyState } from '@/components/EmptyState';
 import { MessageCircle, ArrowLeft, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
@@ -133,8 +135,8 @@ const Conversations = () => {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <LoadingSpinner size="lg" text="Loading conversations..." />
       </div>
     );
   }
@@ -148,9 +150,9 @@ const Conversations = () => {
               <MessageCircle className="h-6 w-6 text-primary" />
               <span className="text-xl font-bold">Conversations</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Home
+              Dashboard
             </Button>
           </div>
         </div>
@@ -158,16 +160,15 @@ const Conversations = () => {
 
       <div className="container mx-auto max-w-4xl px-4 py-8">
         {conversations.length === 0 ? (
-          <Card className="p-8 text-center">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">No conversations yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Start messaging creators to see your conversations here
-            </p>
-            <Button onClick={() => navigate('/creators')}>
-              Browse Creators
-            </Button>
-          </Card>
+          <EmptyState
+            icon={MessageCircle}
+            title="No conversations yet"
+            description="Start messaging creators to see your conversations here"
+            action={{
+              label: 'Browse Creators',
+              onClick: () => navigate('/creators'),
+            }}
+          />
         ) : (
           <div className="space-y-3">
             {conversations.map((conversation) => {
