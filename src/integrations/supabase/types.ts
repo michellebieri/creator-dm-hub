@@ -64,6 +64,92 @@ export type Database = {
           },
         ]
       }
+      bundle_contents: {
+        Row: {
+          bundle_id: string
+          created_at: string
+          id: string
+          sort_order: number | null
+          unlockable_id: string
+        }
+        Insert: {
+          bundle_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number | null
+          unlockable_id: string
+        }
+        Update: {
+          bundle_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number | null
+          unlockable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_contents_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "content_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bundle_contents_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_bundles: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          discount_percentage: number | null
+          id: string
+          is_active: boolean | null
+          price: number
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          price: number
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          discount_percentage?: number | null
+          id?: string
+          is_active?: boolean | null
+          price?: number
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_bundles_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_label_assignments: {
         Row: {
           conversation_id: string
