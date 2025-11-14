@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import React from 'npm:react@18.3.1';
+import { renderAsync } from 'npm:@react-email/components@0.0.22';
+import { NewMessageEmail } from './_templates/new-message.tsx';
+import { NewUnlockableEmail } from './_templates/new-unlockable.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,75 +59,23 @@ serve(async (req) => {
 
     if (type === 'new_message') {
       subject = `New message from ${senderName}`;
-      html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-              <div style="background: linear-gradient(135deg, #0EA5E9, #14B8A6); padding: 40px 20px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">💬 New Message</h1>
-              </div>
-              <div style="padding: 40px 30px;">
-                <p style="font-size: 16px; color: #333333; margin-bottom: 10px;">Hi ${profile.display_name},</p>
-                <p style="font-size: 16px; color: #333333; margin-bottom: 20px;">
-                  <strong>${senderName}</strong> sent you a message:
-                </p>
-                <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 30px 0; border-left: 4px solid #0EA5E9;">
-                  <p style="margin: 0; color: #374151; font-size: 15px; line-height: 1.6;">
-                    ${messagePreview}
-                  </p>
-                </div>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${appUrl}/conversations" 
-                     style="background-color: #0EA5E9; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
-                    View Message
-                  </a>
-                </div>
-                <p style="color: #6b7280; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                  You're receiving this because someone sent you a message on DM.me
-                </p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
+      html = await renderAsync(
+        React.createElement(NewMessageEmail, {
+          recipientName: profile.display_name,
+          senderName,
+          messagePreview,
+          appUrl,
+        })
+      );
     } else if (type === 'new_unlockable') {
       subject = `${senderName} sent you exclusive content`;
-      html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          </head>
-          <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-              <div style="background: linear-gradient(135deg, #0EA5E9, #14B8A6); padding: 40px 20px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 28px;">🔒 Exclusive Content</h1>
-              </div>
-              <div style="padding: 40px 30px;">
-                <p style="font-size: 16px; color: #333333; margin-bottom: 10px;">Hi ${profile.display_name},</p>
-                <p style="font-size: 16px; color: #333333; margin-bottom: 30px;">
-                  <strong>${senderName}</strong> sent you exclusive unlockable content!
-                </p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <a href="${appUrl}/conversations" 
-                     style="background-color: #0EA5E9; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
-                    View & Unlock Content
-                  </a>
-                </div>
-                <p style="color: #6b7280; font-size: 14px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                  You're receiving this because someone sent you premium content on DM.me
-                </p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
+      html = await renderAsync(
+        React.createElement(NewUnlockableEmail, {
+          recipientName: profile.display_name,
+          senderName,
+          appUrl,
+        })
+      );
     }
 
     // Send email using Resend API
