@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { useCredits } from '@/hooks/useCredits';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -29,16 +30,36 @@ const MessagingInterface = () => {
   const [isCreator, setIsCreator] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [userDisplayName, setUserDisplayName] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
+  const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
 
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchUserProfile = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+      
+      if (data) {
+        setUserDisplayName(data.display_name);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
 
   useEffect(() => {
     if (!creatorId || !user) return;
@@ -147,6 +168,7 @@ const MessagingInterface = () => {
       }
 
       setMessage('');
+      stopTyping();
       toast({
         title: "Message sent",
         description: isCreator ? "Message sent successfully" : `${credits - 1} credits remaining`,
@@ -278,6 +300,19 @@ const MessagingInterface = () => {
               ))
             )}
           </div>
+
+          {typingUsers.length > 0 && (
+            <div className="mt-4 px-3 py-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <span className="flex gap-1">
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                {typingUsers.map(u => u.displayName).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'} typing...
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -296,8 +331,21 @@ const MessagingInterface = () => {
             <Input
               placeholder="Type your message..."
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                if (e.target.value && userDisplayName) {
+                  startTyping(userDisplayName);
+                } else {
+                  stopTyping();
+                }
+              }}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  handleSend();
+                  stopTyping();
+                }
+              }}
+              onBlur={() => stopTyping()}
             />
             <Button 
               onClick={handleSend} 
