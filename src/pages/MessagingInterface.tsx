@@ -21,7 +21,8 @@ import { ConversationStats } from '@/components/ConversationStats';
 import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ConversationExport } from '@/components/ConversationExport';
 import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
-import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward, Pencil } from 'lucide-react';
+import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
+import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -438,15 +439,10 @@ const MessagingInterface = () => {
                                <span className="text-xs opacity-70 italic">(edited)</span>
                              )}
                            </div>
-                           {msg.sender_id === user?.id && (
-                             <span className="text-xs opacity-70 flex items-center gap-1">
-                               {msg.read_at ? (
-                                 <CheckCheck className="h-3 w-3" />
-                               ) : (
-                                 <Check className="h-3 w-3" />
-                               )}
-                             </span>
-                           )}
+                           <ReadReceiptIndicator 
+                             readAt={msg.read_at}
+                             isSender={msg.sender_id === user?.id}
+                           />
                          </div>
                       </Card>
                     )}
