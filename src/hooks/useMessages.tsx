@@ -176,6 +176,19 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
             status: 'completed',
           });
 
+        // Check for auto-reply from creator
+        try {
+          await supabase.functions.invoke('check-auto-reply', {
+            body: {
+              conversationId,
+              senderId: user.id,
+              recipientId: creatorId,
+            },
+          });
+        } catch (autoReplyError) {
+          console.error('Auto-reply check failed:', autoReplyError);
+        }
+
         toast.success("Message sent");
         setSending(false);
         return messageData;
