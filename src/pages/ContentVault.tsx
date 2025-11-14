@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Image, Video, Music, FileText, Trash2, DollarSign, Users } from 'lucide-react';
+import { Upload, Image, Video, Music, FileText, Trash2, DollarSign, Users, Edit } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ContentBundleManager } from '@/components/ContentBundleManager';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface Unlockable {
   id: string;
@@ -31,6 +33,8 @@ export default function ContentVault() {
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [bulkMode, setBulkMode] = useState(false);
 
   // Upload form state
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -181,6 +185,93 @@ export default function ContentVault() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    if (!confirm(`Delete ${selectedItems.size} items?`)) return;
+
+    let successCount = 0;
+    for (const id of Array.from(selectedItems)) {
+      const item = unlockables.find(u => u.id === id);
+      if (!item) continue;
+
+      try {
+        const urlParts = item.media_url.split('/unlockables/');
+        if (urlParts[1]) {
+          const filePath = urlParts[1].split('?')[0];
+          await supabase.storage.from('unlockables').remove([filePath]);
+        }
+
+        const { error } = await supabase
+          .from('unlockables')
+          .delete()
+          .eq('id', id);
+
+        if (!error) successCount++;
+      } catch (error) {
+        console.error('Delete error:', error);
+      }
+    }
+
+    toast({
+      title: 'Deleted',
+      description: `${successCount} items removed`,
+    });
+
+    setSelectedItems(new Set());
+    setBulkMode(false);
+    fetchUnlockables();
+  };
+
+  const handleBulkPriceUpdate = async () => {
+    const newPrice = prompt('Enter new price for selected items:');
+    if (!newPrice || isNaN(parseFloat(newPrice))) return;
+
+    const price = parseFloat(newPrice);
+    const ids = Array.from(selectedItems);
+
+    const { error } = await supabase
+      .from('unlockables')
+      .update({ price })
+      .in('id', ids);
+
+    if (error) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    toast({
+      title: 'Updated',
+      description: `Price updated for ${ids.length} items`,
+    });
+
+    setSelectedItems(new Set());
+    setBulkMode(false);
+    fetchUnlockables();
+  };
+
+  const toggleItemSelection = (id: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedItems.size === filteredUnlockables.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(filteredUnlockables.map(u => u.id)));
+    }
+  };
+
   const getMediaIcon = (type: string) => {
     switch (type) {
       case 'image': return <Image className="h-5 w-5" />;
@@ -313,16 +404,62 @@ export default function ContentVault() {
           </Card>
         </div>
 
-        <Tabs value={filterType} onValueChange={setFilterType}>
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="image">Images</TabsTrigger>
-            <TabsTrigger value="video">Videos</TabsTrigger>
-            <TabsTrigger value="audio">Audio</TabsTrigger>
-            <TabsTrigger value="document">Documents</TabsTrigger>
-          </TabsList>
+        {user?.id && (
+          <ContentBundleManager creatorId={user.id} unlockables={unlockables} />
+        )}
 
-          <TabsContent value={filterType} className="mt-6">
+        <Tabs value={filterType} onValueChange={setFilterType} className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="image">Images</TabsTrigger>
+              <TabsTrigger value="video">Videos</TabsTrigger>
+              <TabsTrigger value="audio">Audio</TabsTrigger>
+              <TabsTrigger value="document">Documents</TabsTrigger>
+            </TabsList>
+
+            <div className="flex gap-2">
+              <Button
+                variant={bulkMode ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  setBulkMode(!bulkMode);
+                  if (bulkMode) setSelectedItems(new Set());
+                }}
+              >
+                {bulkMode ? `Cancel (${selectedItems.size})` : 'Bulk Actions'}
+              </Button>
+              {bulkMode && selectedItems.size > 0 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={toggleSelectAll}
+                  >
+                    {selectedItems.size === filteredUnlockables.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleBulkPriceUpdate}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Update Price
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete ({selectedItems.size})
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          <TabsContent value={filterType}>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredUnlockables.length === 0 ? (
                 <Card className="p-8 col-span-full">
@@ -333,7 +470,16 @@ export default function ContentVault() {
                 </Card>
               ) : (
                 filteredUnlockables.map((item) => (
-                  <Card key={item.id} className="overflow-hidden">
+                  <Card key={item.id} className="overflow-hidden relative">
+                    {bulkMode && (
+                      <div className="absolute top-2 left-2 z-10">
+                        <Checkbox
+                          checked={selectedItems.has(item.id)}
+                          onCheckedChange={() => toggleItemSelection(item.id)}
+                          className="bg-background"
+                        />
+                      </div>
+                    )}
                     <div className="aspect-video bg-muted flex items-center justify-center">
                       {item.media_type === 'image' ? (
                         <img 
@@ -365,15 +511,17 @@ export default function ContentVault() {
                         </span>
                       </div>
 
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="w-full"
-                        onClick={() => handleDelete(item.id, item.media_url)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
+                      {!bulkMode && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => handleDelete(item.id, item.media_url)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 ))
