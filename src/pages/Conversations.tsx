@@ -13,15 +13,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox } from 'lucide-react';
+import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
+import { useConversationLabels } from '@/hooks/useConversationLabels';
 import { ConversationLabelManager } from '@/components/ConversationLabelManager';
 import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
 import { ConversationLabelFilter } from '@/components/ConversationLabelFilter';
 import { DraftsManager } from '@/components/DraftsManager';
+import { BulkActionsBar } from '@/components/BulkActionsBar';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/use-toast';
 
 interface Conversation {
   id: string;
@@ -57,7 +61,11 @@ const Conversations = () => {
   const [showArchived, setShowArchived] = useState(false);
   const [selectedLabelFilter, setSelectedLabelFilter] = useState<string | null>(null);
   const [conversationLabels, setConversationLabels] = useState<Record<string, string[]>>({});
+  const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
+  const [bulkActionMode, setBulkActionMode] = useState(false);
   const { archiveConversation, unarchiveConversation } = useConversationArchive();
+  const { assignLabel } = useConversationLabels(user?.id || null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -192,6 +200,69 @@ const Conversations = () => {
     }
   };
 
+  const toggleConversationSelection = (conversationId: string) => {
+    setSelectedConversations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(conversationId)) {
+        newSet.delete(conversationId);
+      } else {
+        newSet.add(conversationId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedConversations.size === filteredConversations.length) {
+      setSelectedConversations(new Set());
+    } else {
+      setSelectedConversations(new Set(filteredConversations.map(c => c.id)));
+    }
+  };
+
+  const handleBulkArchive = async () => {
+    const conversationIds = Array.from(selectedConversations);
+    let successCount = 0;
+
+    for (const id of conversationIds) {
+      const success = showArchived 
+        ? await unarchiveConversation(id)
+        : await archiveConversation(id);
+      if (success) successCount++;
+    }
+
+    if (successCount > 0) {
+      setConversations(prev => prev.filter(c => !selectedConversations.has(c.id)));
+      toast({
+        title: showArchived ? 'Conversations restored' : 'Conversations archived',
+        description: `${successCount} conversation(s) ${showArchived ? 'restored' : 'archived'} successfully`,
+      });
+    }
+
+    setSelectedConversations(new Set());
+    setBulkActionMode(false);
+  };
+
+  const handleBulkAssignLabel = async (labelId: string) => {
+    const conversationIds = Array.from(selectedConversations);
+    let successCount = 0;
+
+    for (const id of conversationIds) {
+      const success = await assignLabel(id, labelId);
+      if (success) successCount++;
+    }
+
+    if (successCount > 0) {
+      toast({
+        title: 'Label assigned',
+        description: `Label assigned to ${successCount} conversation(s)`,
+      });
+    }
+
+    setSelectedConversations(new Set());
+    setBulkActionMode(false);
+  };
+
   const filteredConversations = conversations.filter(conv => {
     const otherUser = user?.id === conv.customer_id ? conv.creator : conv.customer;
     const searchLower = searchQuery.toLowerCase();
@@ -257,6 +328,28 @@ const Conversations = () => {
             {user?.id && <ConversationLabelManager userId={user.id} />}
             {user?.id && <DraftsManager userId={user.id} />}
             {user?.id && <AdvancedSearch userId={user.id} />}
+            <Button
+              variant={bulkActionMode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setBulkActionMode(!bulkActionMode);
+                if (bulkActionMode) {
+                  setSelectedConversations(new Set());
+                }
+              }}
+            >
+              <CheckSquare className="h-4 w-4 mr-2" />
+              {bulkActionMode ? 'Cancel Selection' : 'Select'}
+            </Button>
+            {bulkActionMode && filteredConversations.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleSelectAll}
+              >
+                {selectedConversations.size === filteredConversations.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            )}
           </div>
           
           {user?.id && (
@@ -300,16 +393,26 @@ const Conversations = () => {
               const otherUser = user?.id === conversation.creator_id 
                 ? conversation.customer 
                 : conversation.creator;
+              const isSelected = selectedConversations.has(conversation.id);
 
               return (
                 <Card
                   key={conversation.id}
-                  className="p-4 hover:shadow-medium transition-all"
+                  className={`p-4 hover:shadow-medium transition-all ${
+                    isSelected ? 'ring-2 ring-primary' : ''
+                  }`}
                 >
                   <div className="flex items-center gap-4">
+                    {bulkActionMode && (
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleConversationSelection(conversation.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    )}
                     <div 
                       className="flex items-center gap-4 flex-1 cursor-pointer"
-                      onClick={() => handleOpenConversation(conversation)}
+                      onClick={() => !bulkActionMode && handleOpenConversation(conversation)}
                     >
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={otherUser?.avatar_url} />
@@ -386,6 +489,21 @@ const Conversations = () => {
           </div>
         )}
       </div>
+
+      {user?.id && (
+        <BulkActionsBar
+          selectedCount={selectedConversations.size}
+          showArchived={showArchived}
+          userId={user.id}
+          onArchive={handleBulkArchive}
+          onUnarchive={handleBulkArchive}
+          onAssignLabel={handleBulkAssignLabel}
+          onClear={() => {
+            setSelectedConversations(new Set());
+            setBulkActionMode(false);
+          }}
+        />
+      )}
     </div>
   );
 };
