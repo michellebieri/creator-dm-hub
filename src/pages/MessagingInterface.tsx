@@ -10,6 +10,8 @@ import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
 import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
 import { MessageReactions } from '@/components/MessageReactions';
+import { VoiceRecorder } from '@/components/VoiceRecorder';
+import { VoiceMessage } from '@/components/VoiceMessage';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -190,6 +192,107 @@ const MessagingInterface = () => {
     }
   };
 
+  const handleSendVoice = async (audioBlob: Blob, duration: number) => {
+    if (!creatorId || !user) return;
+
+    // Creators don't need credits to send messages
+    if (!isCreator && !hasCredits) {
+      toast({
+        title: "No credits",
+        description: "Purchase message credits to continue",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSending(true);
+    try {
+      // Create conversation if doesn't exist
+      let convId = conversationId;
+      if (!convId) {
+        const { data: newConv, error: convError } = await supabase
+          .from('conversations')
+          .insert({
+            customer_id: user.id,
+            creator_id: creatorId,
+          })
+          .select('id')
+          .single();
+
+        if (convError) throw convError;
+        convId = newConv.id;
+        setConversationId(convId);
+      }
+
+      // Upload audio file to storage
+      const fileName = `${convId}/${Date.now()}.webm`;
+      const { error: uploadError, data: uploadData } = await supabase.storage
+        .from('unlockables')
+        .upload(fileName, audioBlob, {
+          contentType: 'audio/webm',
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('unlockables')
+        .getPublicUrl(fileName);
+
+      // Deduct credit for customers only
+      if (!isCreator) {
+        const credited = await deductCredit();
+        if (!credited) {
+          throw new Error('Failed to deduct credit');
+        }
+      }
+
+      // Send message with voice
+      const { error: msgError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: convId,
+          sender_id: user.id,
+          content: 'Voice message',
+          message_type: 'voice',
+          voice_url: publicUrl,
+          voice_duration: duration,
+          is_paid: isCreator || true,
+        });
+
+      if (msgError) throw msgError;
+
+      // Send notification
+      const recipientId = isCreator ? 
+        (await supabase.from('conversations').select('customer_id').eq('id', convId).single()).data?.customer_id :
+        creatorId;
+      
+      if (recipientId) {
+        supabase.functions.invoke('send-notification', {
+          body: {
+            type: 'new_message',
+            recipientId,
+            senderName: user.user_metadata?.display_name || 'Someone',
+            messagePreview: '🎤 Voice message',
+          },
+        }).catch(err => console.log('Notification error:', err));
+      }
+
+      toast({
+        title: "Voice message sent",
+        description: isCreator ? "Voice message sent successfully" : `${credits - 1} credits remaining`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to send voice message",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const filteredMessages = messages.filter(msg => 
     searchQuery ? msg.content.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
@@ -277,29 +380,37 @@ const MessagingInterface = () => {
                     </Avatar>
                   )}
                   <div className="space-y-2 max-w-md">
-                    <Card
-                      className={`p-3 ${
-                        msg.sender_id === user?.id
-                          ? 'bg-primary text-primary-foreground'
-                          : ''
-                      }`}
-                    >
-                      <p className="text-sm">{msg.content}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-xs opacity-70">
-                          {new Date(msg.created_at).toLocaleTimeString()}
-                        </p>
-                        {msg.sender_id === user?.id && (
-                          <span className="text-xs opacity-70 flex items-center gap-1">
-                            {msg.read_at ? (
-                              <CheckCheck className="h-3 w-3" />
-                            ) : (
-                              <Check className="h-3 w-3" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    </Card>
+                    {msg.message_type === 'voice' && msg.voice_url ? (
+                      <VoiceMessage 
+                        voiceUrl={msg.voice_url}
+                        duration={msg.voice_duration || 0}
+                        isSender={msg.sender_id === user?.id}
+                      />
+                    ) : (
+                      <Card
+                        className={`p-3 ${
+                          msg.sender_id === user?.id
+                            ? 'bg-primary text-primary-foreground'
+                            : ''
+                        }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-xs opacity-70">
+                            {new Date(msg.created_at).toLocaleTimeString()}
+                          </p>
+                          {msg.sender_id === user?.id && (
+                            <span className="text-xs opacity-70 flex items-center gap-1">
+                              {msg.read_at ? (
+                                <CheckCheck className="h-3 w-3" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </Card>
+                    )}
                     {msg.unlockables && msg.unlockables.length > 0 && (
                       <div className="space-y-2">
                         {msg.unlockables.map((unlockable) => (
@@ -352,6 +463,10 @@ const MessagingInterface = () => {
                 onSelectTemplate={(content) => setMessage(content)}
               />
             )}
+            <VoiceRecorder 
+              onSendVoice={handleSendVoice}
+              disabled={sending || (!hasCredits && !isCreator)}
+            />
             <Input
               placeholder="Type your message..."
               value={message}

@@ -272,6 +272,8 @@ export type Database = {
           read_at: string | null
           read_by: string | null
           sender_id: string
+          voice_duration: number | null
+          voice_url: string | null
         }
         Insert: {
           content: string
@@ -283,6 +285,8 @@ export type Database = {
           read_at?: string | null
           read_by?: string | null
           sender_id: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Update: {
           content?: string
@@ -294,6 +298,8 @@ export type Database = {
           read_at?: string | null
           read_by?: string | null
           sender_id?: string
+          voice_duration?: number | null
+          voice_url?: string | null
         }
         Relationships: [
           {
@@ -528,7 +534,7 @@ export type Database = {
     Enums: {
       conversation_status: "active" | "archived"
       media_type: "image" | "video" | "audio" | "document"
-      message_type: "text" | "unlockable"
+      message_type: "text" | "unlockable" | "voice"
       payout_status: "pending" | "processing" | "completed" | "failed"
       transaction_status: "pending" | "completed" | "failed" | "refunded"
       transaction_type: "message" | "pack" | "unlockable"
@@ -663,7 +669,7 @@ export const Constants = {
     Enums: {
       conversation_status: ["active", "archived"],
       media_type: ["image", "video", "audio", "document"],
-      message_type: ["text", "unlockable"],
+      message_type: ["text", "unlockable", "voice"],
       payout_status: ["pending", "processing", "completed", "failed"],
       transaction_status: ["pending", "completed", "failed", "refunded"],
       transaction_type: ["message", "pack", "unlockable"],
