@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -43,14 +44,31 @@ serve(async (req) => {
       throw new Error("Stripe account not connected");
     }
 
-    // Create payout request
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+      apiVersion: "2025-08-27.basil",
+    });
+
+    // Create Stripe transfer
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      destination: settings.stripe_account_id,
+      description: `Payout for creator ${user.id}`,
+    });
+
+    console.log("Stripe transfer created:", transfer.id);
+
+    // Create payout record
     const { data: payout, error: payoutError } = await supabaseClient
       .from('payouts')
       .insert({
         creator_id: user.id,
         amount,
-        scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-        status: 'pending',
+        scheduled_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+        status: 'completed',
+        stripe_transfer_id: transfer.id,
       })
       .select()
       .single();

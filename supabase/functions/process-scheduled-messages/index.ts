@@ -100,12 +100,14 @@ serve(async (req) => {
         results.failed++;
         console.error(`Failed to send scheduled message ${scheduledMsg.id}:`, error);
         
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        
         // Update scheduled message with error
         await supabase
           .from('scheduled_messages')
           .update({
             status: 'failed',
-            error_message: error.message,
+            error_message: errorMessage,
           })
           .eq('id', scheduledMsg.id);
       }
@@ -124,10 +126,11 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error processing scheduled messages:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: errorMessage,
       }),
       {
         status: 500,
