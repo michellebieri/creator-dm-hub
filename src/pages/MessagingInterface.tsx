@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
+import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -342,7 +343,13 @@ const MessagingInterface = () => {
               />
             </div>
           )}
-          <div className="flex gap-3">
+          <div className="flex gap-2">
+            {isCreator && user?.id && (
+              <MessageTemplateSelector
+                creatorId={user.id}
+                onSelectTemplate={(content) => setMessage(content)}
+              />
+            )}
             <Input
               placeholder="Type your message..."
               value={message}
