@@ -19,6 +19,9 @@ const Index = () => {
               <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
+              <Button variant="ghost" onClick={() => navigate('/creators')}>
+                Browse Creators
+              </Button>
               {user ? (
                 <>
                   <Button variant="ghost" onClick={() => navigate('/dashboard')}>

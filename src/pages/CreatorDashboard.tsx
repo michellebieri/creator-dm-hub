@@ -20,7 +20,12 @@ const CreatorDashboard = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold">Creator Dashboard</h1>
-          <Button onClick={signOut}>Sign Out</Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => navigate('/profile-settings')}>
+              Profile Settings
+            </Button>
+            <Button onClick={signOut}>Sign Out</Button>
+          </div>
         </div>
         <MessagePackSettings />
       </div>
