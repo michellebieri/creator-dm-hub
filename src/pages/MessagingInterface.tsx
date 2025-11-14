@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
-import { Send, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Send, ArrowLeft, AlertCircle, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -27,6 +27,9 @@ const MessagingInterface = () => {
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
@@ -159,6 +162,10 @@ const MessagingInterface = () => {
     }
   };
 
+  const filteredMessages = messages.filter(msg => 
+    searchQuery ? msg.content.toLowerCase().includes(searchQuery.toLowerCase()) : true
+  );
+
   if (loading) return null;
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -170,7 +177,25 @@ const MessagingInterface = () => {
             </Button>
             <h2 className="font-semibold">Messages</h2>
           </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setShowSearch(!showSearch)}
+          >
+            <Search className="h-5 w-5" />
+          </Button>
         </div>
+        {showSearch && (
+          <div className="max-w-4xl mx-auto mt-4">
+            <input
+              type="text"
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -211,7 +236,7 @@ const MessagingInterface = () => {
                 </p>
               </Card>
             ) : (
-              messages.map((msg) => (
+              filteredMessages.map((msg) => (
                 <div
                   key={msg.id}
                   className={`flex gap-3 ${
