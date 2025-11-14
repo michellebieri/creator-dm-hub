@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 import { MessageCircle, Shield, Zap, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
@@ -118,13 +119,21 @@ const CreatorProfile = () => {
 
       <section className="gradient-hero py-12 px-4">
         <div className="container mx-auto max-w-4xl text-center">
-          <Avatar className="h-32 w-32 mx-auto mb-6 shadow-large">
-            <AvatarImage src={profile.avatar_url || undefined} />
-            <AvatarFallback className="text-4xl gradient-primary text-primary-foreground">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <h1 className="text-4xl font-bold mb-3">{profile.display_name}</h1>
+          <div className="relative inline-block mb-6">
+            <Avatar className="h-32 w-32 shadow-large">
+              <AvatarImage src={profile.avatar_url || undefined} />
+              <AvatarFallback className="text-4xl gradient-primary text-primary-foreground">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute bottom-2 right-2">
+              <OnlineStatusBadge userId={profile.id} size="lg" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold mb-1">{profile.display_name}</h1>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <OnlineStatusBadge userId={profile.id} showLabel size="md" />
+          </div>
           <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
             {profile.bio || `Connect with ${profile.display_name} through direct messages`}
           </p>

@@ -7,13 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3 } from 'lucide-react';
+import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
@@ -407,12 +408,17 @@ const Conversations = () => {
                       className="flex items-center gap-4 flex-1 cursor-pointer"
                       onClick={() => !bulkActionMode && handleOpenConversation(conversation)}
                     >
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={otherUser?.avatar_url} />
-                        <AvatarFallback>
-                          {otherUser?.display_name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={otherUser?.avatar_url} />
+                          <AvatarFallback>
+                            {otherUser?.display_name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1">
+                          <OnlineStatusBadge userId={otherUser?.id || ''} size="md" />
+                        </div>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold truncate">

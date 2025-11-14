@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 import { MessageCircle, Search, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 
@@ -132,14 +133,22 @@ const Creators = () => {
                     onClick={() => navigate(`/creator/${creator.username}`)}
                   >
                     <div className="text-center space-y-4">
-                      <Avatar className="h-20 w-20 mx-auto shadow-medium">
-                        <AvatarFallback className="text-2xl gradient-primary text-primary-foreground">
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative inline-block">
+                        <Avatar className="h-20 w-20 shadow-medium">
+                          <AvatarFallback className="text-2xl gradient-primary text-primary-foreground">
+                            {initials}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1">
+                          <OnlineStatusBadge userId={creator.id} size="md" />
+                        </div>
+                      </div>
                       <div>
                         <h3 className="font-semibold text-lg mb-1">{creator.display_name}</h3>
-                        <p className="text-sm text-muted-foreground">@{creator.username}</p>
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-sm text-muted-foreground">@{creator.username}</p>
+                          <OnlineStatusBadge userId={creator.id} size="sm" />
+                        </div>
                       </div>
                       {creator.bio && (
                         <p className="text-sm text-muted-foreground line-clamp-2">
