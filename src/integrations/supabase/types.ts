@@ -338,7 +338,10 @@ export type Database = {
           id: string
           is_forwarded: boolean
           is_paid: boolean
+          is_pinned: boolean
           message_type: Database["public"]["Enums"]["message_type"]
+          pinned_at: string | null
+          pinned_by: string | null
           read_at: string | null
           read_by: string | null
           sender_id: string
@@ -353,7 +356,10 @@ export type Database = {
           id?: string
           is_forwarded?: boolean
           is_paid?: boolean
+          is_pinned?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
+          pinned_at?: string | null
+          pinned_by?: string | null
           read_at?: string | null
           read_by?: string | null
           sender_id: string
@@ -368,7 +374,10 @@ export type Database = {
           id?: string
           is_forwarded?: boolean
           is_paid?: boolean
+          is_pinned?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
+          pinned_at?: string | null
+          pinned_by?: string | null
           read_at?: string | null
           read_by?: string | null
           sender_id?: string
@@ -388,6 +397,13 @@ export type Database = {
             columns: ["forwarded_from_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_pinned_by_fkey"
+            columns: ["pinned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {

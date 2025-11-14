@@ -15,6 +15,8 @@ import { VoiceMessage } from '@/components/VoiceMessage';
 import { MessageScheduler } from '@/components/MessageScheduler';
 import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
 import { MessageForward } from '@/components/MessageForward';
+import { PinnedMessages } from '@/components/PinnedMessages';
+import { MessagePinButton } from '@/components/MessagePinButton';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -23,6 +25,7 @@ import { useCredits } from '@/hooks/useCredits';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
+import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -46,6 +49,7 @@ const MessagingInterface = () => {
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
+  const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
@@ -377,6 +381,14 @@ const MessagingInterface = () => {
           {isCreator && user?.id && (
             <ScheduledMessagesList senderId={user.id} />
           )}
+
+          {conversationId && user?.id && (
+            <PinnedMessages
+              conversationId={conversationId}
+              userId={user.id}
+              onUnpin={unpinMessage}
+            />
+          )}
           
           <div className="space-y-4">
             {messagesLoading ? (
@@ -447,14 +459,21 @@ const MessagingInterface = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <MessageReactions messageId={msg.id} userId={user?.id || null} />
                       {user?.id && (
-                        <MessageForward
-                          messageId={msg.id}
-                          messageContent={msg.content}
-                          currentUserId={user.id}
-                        />
+                        <>
+                          <MessagePinButton
+                            isPinned={msg.is_pinned || false}
+                            onPin={() => pinMessage(msg.id)}
+                            onUnpin={() => unpinMessage(msg.id)}
+                          />
+                          <MessageForward
+                            messageId={msg.id}
+                            messageContent={msg.content}
+                            currentUserId={user.id}
+                          />
+                        </>
                       )}
                     </div>
                   </div>

@@ -13,6 +13,9 @@ interface Message {
   voice_duration?: number | null;
   is_forwarded?: boolean;
   forwarded_from_id?: string | null;
+  is_pinned?: boolean;
+  pinned_at?: string | null;
+  pinned_by?: string | null;
   read_at?: string | null;
   read_by?: string | null;
   unlockables?: any;
