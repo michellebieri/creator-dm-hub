@@ -1,9 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import React from 'npm:react@18.3.1';
-import { renderAsync } from 'npm:@react-email/components@0.0.22';
-import { NewMessageEmail } from './_templates/new-message.tsx';
-import { NewUnlockableEmail } from './_templates/new-unlockable.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,23 +55,27 @@ serve(async (req) => {
 
     if (type === 'new_message') {
       subject = `New message from ${senderName}`;
-      html = await renderAsync(
-        React.createElement(NewMessageEmail, {
-          recipientName: profile.display_name,
-          senderName,
-          messagePreview,
-          appUrl,
-        })
-      );
+      html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>New Message from ${senderName}</h2>
+          <p>Hi ${profile.display_name},</p>
+          <p>You have a new message from ${senderName}:</p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="margin: 0;">${messagePreview}</p>
+          </div>
+          <a href="${appUrl}/messages" style="display: inline-block; background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View Message</a>
+        </div>
+      `;
     } else if (type === 'new_unlockable') {
       subject = `${senderName} sent you exclusive content`;
-      html = await renderAsync(
-        React.createElement(NewUnlockableEmail, {
-          recipientName: profile.display_name,
-          senderName,
-          appUrl,
-        })
-      );
+      html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>New Exclusive Content from ${senderName}</h2>
+          <p>Hi ${profile.display_name},</p>
+          <p>${senderName} has sent you exclusive content!</p>
+          <a href="${appUrl}/messages" style="display: inline-block; background-color: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">View Content</a>
+        </div>
+      `;
     }
 
     // Send email using Resend API
