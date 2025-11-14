@@ -22,6 +22,7 @@ import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ConversationExport } from '@/components/ConversationExport';
 import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
+import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -47,9 +48,9 @@ const MessagingInterface = () => {
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearchDialog, setShowSearchDialog] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState('');
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -302,9 +303,14 @@ const MessagingInterface = () => {
     }
   };
 
-  const filteredMessages = messages.filter(msg => 
-    searchQuery ? msg.content.toLowerCase().includes(searchQuery.toLowerCase()) : true
-  );
+  const scrollToMessage = (messageId: string) => {
+    setHighlightedMessageId(messageId);
+    setTimeout(() => {
+      const element = document.getElementById(`message-${messageId}`);
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => setHighlightedMessageId(null), 2000);
+    }, 100);
+  };
 
   if (loading) return null;
   return (
@@ -327,23 +333,12 @@ const MessagingInterface = () => {
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => setShowSearch(!showSearch)}
+              onClick={() => setShowSearchDialog(true)}
             >
               <Search className="h-5 w-5" />
             </Button>
           </div>
         </div>
-        {showSearch && (
-          <div className="max-w-4xl mx-auto mt-4">
-            <input
-              type="text"
-              placeholder="Search messages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-        )}
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
@@ -396,12 +391,13 @@ const MessagingInterface = () => {
                 </p>
               </Card>
             ) : (
-              filteredMessages.map((msg) => (
+              messages.map((msg) => (
                 <div
                   key={msg.id}
+                  id={`message-${msg.id}`}
                   className={`flex gap-3 ${
                     msg.sender_id === user?.id ? 'justify-end' : ''
-                  }`}
+                  } ${highlightedMessageId === msg.id ? 'bg-accent/20 rounded-lg p-2 transition-colors' : ''}`}
                 >
                   {msg.sender_id !== user?.id && (
                     <Avatar className="h-8 w-8">
@@ -593,6 +589,13 @@ const MessagingInterface = () => {
           onSuccess={refetch}
         />
       )}
+
+      <MessageSearchDialog
+        open={showSearchDialog}
+        onOpenChange={setShowSearchDialog}
+        messages={messages}
+        onSelectMessage={scrollToMessage}
+      />
     </div>
   );
 };
