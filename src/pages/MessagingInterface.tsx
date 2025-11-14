@@ -127,6 +127,22 @@ const MessagingInterface = () => {
 
       if (msgError) throw msgError;
 
+      // Send notification to recipient (async, don't wait)
+      const recipientId = isCreator ? 
+        (await supabase.from('conversations').select('customer_id').eq('id', convId).single()).data?.customer_id :
+        creatorId;
+      
+      if (recipientId) {
+        supabase.functions.invoke('send-notification', {
+          body: {
+            type: 'new_message',
+            recipientId,
+            senderName: user.user_metadata?.display_name || 'Someone',
+            messagePreview: message.substring(0, 100),
+          },
+        }).catch(err => console.log('Notification error:', err));
+      }
+
       setMessage('');
       toast({
         title: "Message sent",
