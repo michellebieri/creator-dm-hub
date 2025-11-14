@@ -75,6 +75,17 @@ serve(async (req) => {
 
     if (payoutError) throw payoutError;
 
+    // Create notification for creator
+    await supabaseClient.functions.invoke('create-notification', {
+      body: {
+        userId: user.id,
+        type: 'payout_completed',
+        title: 'Payout Completed',
+        message: `Your payout of $${amount.toFixed(2)} has been transferred to your account!`,
+        link: '/payout-settings',
+      },
+    });
+
     return new Response(JSON.stringify({ success: true, payout }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

@@ -174,6 +174,7 @@ const MessagingInterface = () => {
         creatorId;
       
       if (recipientId) {
+        // Send email notification
         supabase.functions.invoke('send-notification', {
           body: {
             type: 'new_message',
@@ -181,7 +182,18 @@ const MessagingInterface = () => {
             senderName: user.user_metadata?.display_name || 'Someone',
             messagePreview: message.substring(0, 100),
           },
-        }).catch(err => console.log('Notification error:', err));
+        }).catch(err => console.log('Email notification error:', err));
+
+        // Create in-app notification
+        supabase.functions.invoke('create-notification', {
+          body: {
+            userId: recipientId,
+            type: 'new_message',
+            title: 'New Message',
+            message: `${user.user_metadata?.display_name || 'Someone'} sent you a message`,
+            link: '/messages',
+          },
+        }).catch(err => console.log('In-app notification error:', err));
       }
 
       setMessage('');

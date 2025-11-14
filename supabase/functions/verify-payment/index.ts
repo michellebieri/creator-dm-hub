@@ -99,6 +99,28 @@ serve(async (req) => {
       console.error("Error recording transaction:", transactionError);
     }
 
+    // Create notification for customer
+    await supabaseClient.functions.invoke('create-notification', {
+      body: {
+        userId: customer_id,
+        type: 'payment_success',
+        title: 'Credits Purchased',
+        message: `You successfully purchased ${quantity} message credits!`,
+        link: '/messages',
+      },
+    });
+
+    // Create notification for creator
+    await supabaseClient.functions.invoke('create-notification', {
+      body: {
+        userId: creator_id,
+        type: 'new_sale',
+        title: 'New Sale',
+        message: `You earned $${((session.amount_total! / 100) * 0.85).toFixed(2)} from a message pack purchase!`,
+        link: '/earnings',
+      },
+    });
+
     console.log("Payment verified and credits added");
 
     return new Response(JSON.stringify({ success: true }), {

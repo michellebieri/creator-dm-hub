@@ -110,6 +110,17 @@ export const useUnlockables = () => {
         status: 'completed',
       });
 
+      // Create notification for creator
+      supabase.functions.invoke('create-notification', {
+        body: {
+          userId: creatorId,
+          type: 'content_unlocked',
+          title: 'Content Unlocked',
+          message: `Someone unlocked your content for $${price.toFixed(2)}`,
+          link: '/earnings',
+        },
+      }).catch(err => console.log('Notification error:', err));
+
       toast.success('Content unlocked!');
       return true;
     } catch (error) {
