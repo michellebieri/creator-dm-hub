@@ -80,20 +80,9 @@ const EarningsDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background p-8">
+    <div className="p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Earnings Dashboard</h1>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => navigate('/payout-settings')}>
-              <CreditCard className="h-4 w-4 mr-2" />
-              Payouts
-            </Button>
-            <Button variant="outline" onClick={() => navigate('/dashboard')}>
-              Back to Dashboard
-            </Button>
-          </div>
-        </div>
+        <h1 className="text-4xl font-bold mb-8">Earnings Dashboard</h1>
 
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6">

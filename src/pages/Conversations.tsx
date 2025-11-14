@@ -292,23 +292,13 @@ const Conversations = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-soft sticky top-0 z-10">
-        <div className="container mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MessageCircle className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Conversations</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-background">
       <div className="container mx-auto max-w-4xl px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
+          <MessageCircle className="h-8 w-8 text-primary" />
+          Conversations
+        </h1>
+
         <div className="mb-6 space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
             <Button
