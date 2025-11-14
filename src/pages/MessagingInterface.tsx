@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
+import { UnlockableUpload } from '@/components/UnlockableUpload';
 import { Send, ArrowLeft, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,7 @@ const MessagingInterface = () => {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
+  const [isCreator, setIsCreator] = useState(false);
   
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
@@ -39,6 +41,15 @@ const MessagingInterface = () => {
     if (!creatorId || !user) return;
 
     const fetchData = async () => {
+      // Check if current user is the creator
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      setIsCreator(profile?.role === 'creator' && user.id === creatorId);
+
       // Fetch or create conversation
       let { data: conversation } = await supabase
         .from('conversations')
@@ -67,7 +78,8 @@ const MessagingInterface = () => {
   const handleSend = async () => {
     if (!message.trim() || !creatorId || !user) return;
 
-    if (!hasCredits) {
+    // Creators don't need credits to send messages
+    if (!isCreator && !hasCredits) {
       toast({
         title: "No credits",
         description: "Purchase message credits to continue",
@@ -95,10 +107,12 @@ const MessagingInterface = () => {
         setConversationId(convId);
       }
 
-      // Deduct credit
-      const credited = await deductCredit();
-      if (!credited) {
-        throw new Error('Failed to deduct credit');
+      // Deduct credit for customers only
+      if (!isCreator) {
+        const credited = await deductCredit();
+        if (!credited) {
+          throw new Error('Failed to deduct credit');
+        }
       }
 
       // Send message
@@ -108,7 +122,7 @@ const MessagingInterface = () => {
           conversation_id: convId,
           sender_id: user.id,
           content: message,
-          is_paid: true,
+          is_paid: isCreator || true,
         });
 
       if (msgError) throw msgError;
@@ -116,7 +130,7 @@ const MessagingInterface = () => {
       setMessage('');
       toast({
         title: "Message sent",
-        description: `${credits - 1} credits remaining`,
+        description: isCreator ? "Message sent successfully" : `${credits - 1} credits remaining`,
       });
     } catch (error: any) {
       toast({
@@ -145,7 +159,7 @@ const MessagingInterface = () => {
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-4xl mx-auto space-y-6">
-          {creatorId && (
+          {creatorId && !isCreator && (
             <>
               {!hasCredits && (
                 <Alert>
@@ -227,20 +241,31 @@ const MessagingInterface = () => {
       </div>
 
       <div className="border-t bg-card px-4 py-4">
-        <div className="max-w-4xl mx-auto flex gap-3">
-          <Input
-            placeholder="Type your message..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          />
-          <Button 
-            onClick={handleSend} 
-            disabled={sending || !message.trim() || !hasCredits}
-            title={!hasCredits ? 'Purchase credits to send messages' : ''}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="max-w-4xl mx-auto">
+          {isCreator && conversationId && (
+            <div className="mb-3 flex justify-end">
+              <UnlockableUpload 
+                conversationId={conversationId}
+                creatorId={user?.id || ''}
+                onSuccess={refetch}
+              />
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Input
+              placeholder="Type your message..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            />
+            <Button 
+              onClick={handleSend} 
+              disabled={sending || !message.trim() || (!hasCredits && !isCreator)}
+              title={!hasCredits && !isCreator ? 'Purchase credits to send messages' : ''}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
