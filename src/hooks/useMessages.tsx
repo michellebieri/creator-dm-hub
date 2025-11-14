@@ -8,6 +8,7 @@ interface Message {
   sender_id: string;
   created_at: string;
   is_paid: boolean;
+  unlockables?: any;
 }
 
 export const useMessages = (conversationId: string | null) => {
@@ -23,7 +24,10 @@ export const useMessages = (conversationId: string | null) => {
 
     const { data, error } = await supabase
       .from('messages')
-      .select('*')
+      .select(`
+        *,
+        unlockables (*)
+      `)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 

@@ -12,6 +12,8 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import Creators from "./pages/Creators";
 import ProfileSettings from "./pages/ProfileSettings";
 import Conversations from "./pages/Conversations";
+import PayoutSettings from "./pages/PayoutSettings";
+import EarningsDashboard from "./pages/EarningsDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -31,6 +33,8 @@ const App = () => (
           <Route path="/creators" element={<Creators />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/profile-settings" element={<ProfileSettings />} />
+          <Route path="/payout-settings" element={<PayoutSettings />} />
+          <Route path="/earnings" element={<EarningsDashboard />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
+import { UnlockableContent } from '@/components/UnlockableContent';
 import { Send, ArrowLeft, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -192,18 +193,27 @@ const MessagingInterface = () => {
                       <AvatarFallback>C</AvatarFallback>
                     </Avatar>
                   )}
-                  <Card
-                    className={`p-3 max-w-md ${
-                      msg.sender_id === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : ''
-                    }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {new Date(msg.created_at).toLocaleTimeString()}
-                    </p>
-                  </Card>
+                  <div className="space-y-2 max-w-md">
+                    <Card
+                      className={`p-3 ${
+                        msg.sender_id === user?.id
+                          ? 'bg-primary text-primary-foreground'
+                          : ''
+                      }`}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                      <p className="text-xs opacity-70 mt-1">
+                        {new Date(msg.created_at).toLocaleTimeString()}
+                      </p>
+                    </Card>
+                    {msg.unlockables && msg.unlockables.length > 0 && (
+                      <div className="space-y-2">
+                        {msg.unlockables.map((unlockable) => (
+                          <UnlockableContent key={unlockable.id} unlockable={unlockable} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
                       <AvatarFallback>Y</AvatarFallback>

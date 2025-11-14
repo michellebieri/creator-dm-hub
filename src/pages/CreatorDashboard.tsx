@@ -24,8 +24,14 @@ const CreatorDashboard = () => {
             <Button variant="outline" onClick={() => navigate('/conversations')}>
               My Conversations
             </Button>
+            <Button variant="outline" onClick={() => navigate('/earnings')}>
+              Earnings
+            </Button>
             <Button variant="outline" onClick={() => navigate('/profile-settings')}>
               Profile Settings
+            </Button>
+            <Button variant="outline" onClick={() => navigate('/payout-settings')}>
+              Payouts
             </Button>
             <Button onClick={signOut}>Sign Out</Button>
           </div>
