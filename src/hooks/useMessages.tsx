@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCredits } from '@/hooks/useCredits';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -23,10 +25,12 @@ interface Message {
   unlockables?: any;
 }
 
-export const useMessages = (conversationId: string | null) => {
+export const useMessages = (conversationId: string | null, creatorId?: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const { credits, deductCredit } = useCredits(creatorId || null);
 
   const fetchMessages = async () => {
     if (!conversationId) {
@@ -94,5 +98,116 @@ export const useMessages = (conversationId: string | null) => {
     };
   }, [conversationId]);
 
-  return { messages, loading, refetch: fetchMessages };
+  const sendMessage = async (
+    content: string,
+    messageType: 'text' | 'voice' = 'text',
+    voiceUrl?: string,
+    voiceDuration?: number
+  ) => {
+    if (!user || !conversationId) return;
+
+    setSending(true);
+    try {
+      // Get conversation details to check role
+      const { data: conversation, error: convError } = await supabase
+        .from('conversations')
+        .select('creator_id, customer_id')
+        .eq('id', conversationId)
+        .single();
+
+      if (convError) throw convError;
+
+      const isCustomer = conversation.customer_id === user.id;
+
+      // If customer is sending, check and deduct credits
+      if (isCustomer && creatorId) {
+        if (credits === 0) {
+          toast.error("Insufficient credits. Please purchase a message pack.");
+          setSending(false);
+          return;
+        }
+
+        // Deduct credit
+        const deducted = await deductCredit();
+        if (!deducted) {
+          toast.error("Failed to deduct credit. Please try again.");
+          setSending(false);
+          return;
+        }
+
+        // Get creator's price per message
+        const { data: creatorSettings } = await supabase
+          .from('creator_settings')
+          .select('price_per_message')
+          .eq('user_id', creatorId)
+          .single();
+
+        const pricePerMessage = creatorSettings?.price_per_message || 5.00;
+
+        // Send message
+        const { data: messageData, error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content,
+            message_type: messageType,
+            voice_url: voiceUrl,
+            voice_duration: voiceDuration,
+            is_paid: true,
+          })
+          .select()
+          .single();
+
+        if (messageError) throw messageError;
+
+        // Record transaction
+        await supabase
+          .from('transactions')
+          .insert({
+            customer_id: user.id,
+            creator_id: creatorId,
+            message_id: messageData.id,
+            amount: pricePerMessage,
+            net_amount: pricePerMessage * 0.85,
+            platform_fee: pricePerMessage * 0.15,
+            processor_fee: 0,
+            transaction_type: 'message',
+            status: 'completed',
+          });
+
+        toast.success("Message sent");
+        setSending(false);
+        return messageData;
+      }
+
+      // Creator sending - no credit deduction
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content,
+          message_type: messageType,
+          voice_url: voiceUrl,
+          voice_duration: voiceDuration,
+          is_paid: false,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      toast.success("Message sent");
+      setSending(false);
+      return data;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
+      setSending(false);
+      throw error;
+    }
+  };
+
+  return { messages, loading, refetch: fetchMessages, sendMessage, sending };
 };
