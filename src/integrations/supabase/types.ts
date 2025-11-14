@@ -195,6 +195,8 @@ export type Database = {
           id: string
           is_paid: boolean
           message_type: Database["public"]["Enums"]["message_type"]
+          read_at: string | null
+          read_by: string | null
           sender_id: string
         }
         Insert: {
@@ -204,6 +206,8 @@ export type Database = {
           id?: string
           is_paid?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
+          read_at?: string | null
+          read_by?: string | null
           sender_id: string
         }
         Update: {
@@ -213,6 +217,8 @@ export type Database = {
           id?: string
           is_paid?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
+          read_at?: string | null
+          read_by?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -221,6 +227,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_read_by_fkey"
+            columns: ["read_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
