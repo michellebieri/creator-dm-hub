@@ -26,6 +26,7 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
+import { useMessageDrafts } from '@/hooks/useMessageDrafts';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -50,9 +51,17 @@ const MessagingInterface = () => {
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
+  const { draft, saveDraft, clearDraft, lastSaved } = useMessageDrafts(conversationId, user?.id || null);
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
+
+  // Sync message state with draft
+  useEffect(() => {
+    if (draft && !message) {
+      setMessage(draft);
+    }
+  }, [draft]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -185,6 +194,7 @@ const MessagingInterface = () => {
       }
 
       setMessage('');
+      clearDraft();
       stopTyping();
       toast({
         title: "Message sent",
@@ -313,6 +323,7 @@ const MessagingInterface = () => {
 
     if (success) {
       setMessage('');
+      clearDraft();
     }
   };
 
@@ -513,11 +524,20 @@ const MessagingInterface = () => {
               />
             </div>
           )}
+          {lastSaved && message && (
+            <div className="mb-2 text-xs text-muted-foreground flex items-center gap-2">
+              <div className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
+              Draft saved {new Date(lastSaved).toLocaleTimeString()}
+            </div>
+          )}
           <div className="flex gap-2">
             {isCreator && user?.id && (
               <MessageTemplateSelector
                 creatorId={user.id}
-                onSelectTemplate={(content) => setMessage(content)}
+                onSelectTemplate={(content) => {
+                  setMessage(content);
+                  saveDraft(content);
+                }}
               />
             )}
             {isCreator && conversationId && (
@@ -534,8 +554,10 @@ const MessagingInterface = () => {
               placeholder="Type your message..."
               value={message}
               onChange={(e) => {
-                setMessage(e.target.value);
-                if (e.target.value && userDisplayName) {
+                const newValue = e.target.value;
+                setMessage(newValue);
+                saveDraft(newValue);
+                if (newValue && userDisplayName) {
                   startTyping(userDisplayName);
                 } else {
                   stopTyping();
