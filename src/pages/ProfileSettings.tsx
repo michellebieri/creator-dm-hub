@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { NotificationToggle } from '@/components/NotificationToggle';
 import { ArrowLeft, Loader2, User, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -266,6 +267,8 @@ const ProfileSettings = () => {
             </Button>
           </div>
         </Card>
+
+        <NotificationToggle />
       </div>
     </div>
   );
