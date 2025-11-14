@@ -14,7 +14,8 @@ import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { VoiceMessage } from '@/components/VoiceMessage';
 import { MessageScheduler } from '@/components/MessageScheduler';
 import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
-import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
+import { MessageForward } from '@/components/MessageForward';
+import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -416,6 +417,12 @@ const MessagingInterface = () => {
                             : ''
                         }`}
                       >
+                        {msg.is_forwarded && (
+                          <div className="flex items-center gap-1 text-xs opacity-70 mb-1">
+                            <Forward className="h-3 w-3" />
+                            <span>Forwarded</span>
+                          </div>
+                        )}
                         <p className="text-sm">{msg.content}</p>
                         <div className="flex items-center justify-between mt-1">
                           <p className="text-xs opacity-70">
@@ -440,7 +447,16 @@ const MessagingInterface = () => {
                         ))}
                       </div>
                     )}
-                    <MessageReactions messageId={msg.id} userId={user?.id || null} />
+                    <div className="flex items-center gap-2">
+                      <MessageReactions messageId={msg.id} userId={user?.id || null} />
+                      {user?.id && (
+                        <MessageForward
+                          messageId={msg.id}
+                          messageContent={msg.content}
+                          currentUserId={user.id}
+                        />
+                      )}
+                    </div>
                   </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
