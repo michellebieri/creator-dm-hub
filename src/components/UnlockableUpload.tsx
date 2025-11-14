@@ -33,17 +33,17 @@ export const UnlockableUpload = ({ conversationId, creatorId, onSuccess }: Unloc
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random()}.${fileExt}`;
-      const filePath = `unlockables/${fileName}`;
+      const filePath = `${creatorId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('avatars')
+        .from('unlockables')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('unlockables')
         .getPublicUrl(filePath);
 
       // Create message
