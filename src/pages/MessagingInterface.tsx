@@ -18,7 +18,8 @@ import { MessageForward } from '@/components/MessageForward';
 import { PinnedMessages } from '@/components/PinnedMessages';
 import { MessagePinButton } from '@/components/MessagePinButton';
 import { ConversationStats } from '@/components/ConversationStats';
-import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward } from 'lucide-react';
+import { MessageEditDialog } from '@/components/MessageEditDialog';
+import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -28,6 +29,7 @@ import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { useMessageDrafts } from '@/hooks/useMessageDrafts';
+import { useMessageEdit } from '@/hooks/useMessageEdit';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -45,6 +47,8 @@ const MessagingInterface = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
@@ -53,6 +57,7 @@ const MessagingInterface = () => {
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
   const { draft, saveDraft, clearDraft, lastSaved } = useMessageDrafts(conversationId, user?.id || null);
+  const { canEdit } = useMessageEdit();
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
@@ -452,21 +457,26 @@ const MessagingInterface = () => {
                             <span>Forwarded</span>
                           </div>
                         )}
-                        <p className="text-sm">{msg.content}</p>
-                        <div className="flex items-center justify-between mt-1">
-                          <p className="text-xs opacity-70">
-                            {new Date(msg.created_at).toLocaleTimeString()}
-                          </p>
-                          {msg.sender_id === user?.id && (
-                            <span className="text-xs opacity-70 flex items-center gap-1">
-                              {msg.read_at ? (
-                                <CheckCheck className="h-3 w-3" />
-                              ) : (
-                                <Check className="h-3 w-3" />
-                              )}
-                            </span>
-                          )}
-                        </div>
+                         <p className="text-sm">{msg.content}</p>
+                         <div className="flex items-center justify-between mt-1">
+                           <div className="flex items-center gap-2">
+                             <p className="text-xs opacity-70">
+                               {new Date(msg.created_at).toLocaleTimeString()}
+                             </p>
+                             {msg.edited_at && (
+                               <span className="text-xs opacity-70 italic">(edited)</span>
+                             )}
+                           </div>
+                           {msg.sender_id === user?.id && (
+                             <span className="text-xs opacity-70 flex items-center gap-1">
+                               {msg.read_at ? (
+                                 <CheckCheck className="h-3 w-3" />
+                               ) : (
+                                 <Check className="h-3 w-3" />
+                               )}
+                             </span>
+                           )}
+                         </div>
                       </Card>
                     )}
                     {msg.unlockables && msg.unlockables.length > 0 && (
@@ -476,23 +486,40 @@ const MessagingInterface = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <MessageReactions messageId={msg.id} userId={user?.id || null} />
-                      {user?.id && (
-                        <>
-                          <MessagePinButton
-                            isPinned={msg.is_pinned || false}
-                            onPin={() => pinMessage(msg.id)}
-                            onUnpin={() => unpinMessage(msg.id)}
-                          />
-                          <MessageForward
-                            messageId={msg.id}
-                            messageContent={msg.content}
-                            currentUserId={user.id}
-                          />
-                        </>
-                      )}
-                    </div>
+                     <div className="flex items-center gap-2 flex-wrap">
+                       <MessageReactions messageId={msg.id} userId={user?.id || null} />
+                       {user?.id && (
+                         <>
+                           {msg.sender_id === user.id && 
+                            msg.message_type !== 'voice' && 
+                            canEdit(msg.created_at, msg.sender_id, user.id) && (
+                             <Button
+                               variant="ghost"
+                               size="sm"
+                               className="h-7 px-2 text-xs"
+                               onClick={() => setEditingMessage({ 
+                                 id: msg.id, 
+                                 content: msg.content, 
+                                 created_at: msg.created_at 
+                               })}
+                             >
+                               <Pencil className="h-3 w-3 mr-1" />
+                               Edit
+                             </Button>
+                           )}
+                           <MessagePinButton
+                             isPinned={msg.is_pinned || false}
+                             onPin={() => pinMessage(msg.id)}
+                             onUnpin={() => unpinMessage(msg.id)}
+                           />
+                           <MessageForward
+                             messageId={msg.id}
+                             messageContent={msg.content}
+                             currentUserId={user.id}
+                           />
+                         </>
+                       )}
+                     </div>
                   </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
@@ -587,6 +614,17 @@ const MessagingInterface = () => {
           </div>
         </div>
       </div>
+
+      {editingMessage && (
+        <MessageEditDialog
+          open={!!editingMessage}
+          onOpenChange={(open) => !open && setEditingMessage(null)}
+          messageId={editingMessage.id}
+          currentContent={editingMessage.content}
+          createdAt={editingMessage.created_at}
+          onSuccess={refetch}
+        />
+      )}
     </div>
   );
 };
