@@ -69,6 +69,9 @@ const CreatorDashboard = () => {
             <Button variant="outline" onClick={() => navigate('/conversations')}>
               Conversations
             </Button>
+            <Button variant="outline" onClick={() => navigate('/templates')}>
+              Templates
+            </Button>
             <Button variant="outline" onClick={() => navigate('/analytics')}>
               Analytics
             </Button>
