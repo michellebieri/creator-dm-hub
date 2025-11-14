@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { MessageCircle, ArrowLeft, Loader2 } from 'lucide-react';
+import { MessageCircle, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -40,6 +40,7 @@ const Conversations = () => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -133,6 +134,16 @@ const Conversations = () => {
     }
   };
 
+  const filteredConversations = conversations.filter(conv => {
+    const otherUser = user?.id === conv.customer_id ? conv.creator : conv.customer;
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      otherUser?.display_name.toLowerCase().includes(searchLower) ||
+      otherUser?.username.toLowerCase().includes(searchLower) ||
+      conv.last_message?.content.toLowerCase().includes(searchLower)
+    );
+  });
+
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -159,19 +170,37 @@ const Conversations = () => {
       </header>
 
       <div className="container mx-auto max-w-4xl px-4 py-8">
-        {conversations.length === 0 ? (
-          <EmptyState
-            icon={MessageCircle}
-            title="No conversations yet"
-            description="Start messaging creators to see your conversations here"
-            action={{
-              label: 'Browse Creators',
-              onClick: () => navigate('/creators'),
-            }}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search conversations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           />
+        </div>
+
+        {filteredConversations.length === 0 ? (
+          searchQuery ? (
+            <EmptyState
+              icon={MessageSquare}
+              title="No conversations found"
+              description="Try adjusting your search terms"
+            />
+          ) : (
+            <EmptyState
+              icon={MessageCircle}
+              title="No conversations yet"
+              description="Start messaging creators to see your conversations here"
+              action={{
+                label: 'Browse Creators',
+                onClick: () => navigate('/creators'),
+              }}
+            />
+          )
         ) : (
           <div className="space-y-3">
-            {conversations.map((conversation) => {
+            {filteredConversations.map((conversation) => {
               const otherUser = user?.id === conversation.creator_id 
                 ? conversation.customer 
                 : conversation.creator;
