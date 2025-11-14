@@ -19,6 +19,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
 import { ConversationLabelManager } from '@/components/ConversationLabelManager';
 import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
+import { AdvancedSearch } from '@/components/AdvancedSearch';
 
 interface Conversation {
   id: string;
@@ -222,6 +223,7 @@ const Conversations = () => {
               Archived
             </Button>
             {user?.id && <ConversationLabelManager userId={user.id} />}
+            {user?.id && <AdvancedSearch userId={user.id} />}
           </div>
           <input
             type="text"
