@@ -11,6 +11,8 @@ interface Message {
   message_type?: string;
   voice_url?: string | null;
   voice_duration?: number | null;
+  is_forwarded?: boolean;
+  forwarded_from_id?: string | null;
   read_at?: string | null;
   read_by?: string | null;
   unlockables?: any;

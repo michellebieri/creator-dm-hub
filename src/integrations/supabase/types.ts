@@ -266,7 +266,9 @@ export type Database = {
           content: string
           conversation_id: string
           created_at: string
+          forwarded_from_id: string | null
           id: string
+          is_forwarded: boolean
           is_paid: boolean
           message_type: Database["public"]["Enums"]["message_type"]
           read_at: string | null
@@ -279,7 +281,9 @@ export type Database = {
           content: string
           conversation_id: string
           created_at?: string
+          forwarded_from_id?: string | null
           id?: string
+          is_forwarded?: boolean
           is_paid?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
           read_at?: string | null
@@ -292,7 +296,9 @@ export type Database = {
           content?: string
           conversation_id?: string
           created_at?: string
+          forwarded_from_id?: string | null
           id?: string
+          is_forwarded?: boolean
           is_paid?: boolean
           message_type?: Database["public"]["Enums"]["message_type"]
           read_at?: string | null
@@ -307,6 +313,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_forwarded_from_id_fkey"
+            columns: ["forwarded_from_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
