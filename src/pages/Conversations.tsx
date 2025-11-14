@@ -17,6 +17,8 @@ import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, Archive
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
+import { ConversationLabelManager } from '@/components/ConversationLabelManager';
+import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
 
 interface Conversation {
   id: string;
@@ -202,7 +204,7 @@ const Conversations = () => {
 
       <div className="container mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6 space-y-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant={showArchived ? 'outline' : 'default'}
               size="sm"
@@ -219,6 +221,7 @@ const Conversations = () => {
               <Archive className="h-4 w-4 mr-2" />
               Archived
             </Button>
+            {user?.id && <ConversationLabelManager userId={user.id} />}
           </div>
           <input
             type="text"
@@ -292,6 +295,14 @@ const Conversations = () => {
                           <p className="text-sm text-muted-foreground italic">
                             No messages yet
                           </p>
+                        )}
+                        {user?.id && (
+                          <div className="mt-2">
+                            <ConversationLabelPicker
+                              conversationId={conversation.id}
+                              userId={user.id}
+                            />
+                          </div>
                         )}
                       </div>
                       {conversation.last_message && (
