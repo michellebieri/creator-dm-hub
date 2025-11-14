@@ -72,16 +72,22 @@ const PayoutSettings = () => {
 
     setRequesting(true);
     try {
-      const { error } = await supabase.from('payouts').insert({
-        creator_id: user.id,
-        amount: earnings,
-        scheduled_at: new Date(Date.now() + 86400000).toISOString(), // Next day
-        status: 'pending',
+      const { data, error } = await supabase.functions.invoke('request-payout', {
+        body: { amount: earnings },
       });
 
       if (error) throw error;
 
       toast.success('Payout requested! Funds will be transferred within 24 hours.');
+      
+      // Refresh data
+      const { data: payouts } = await supabase
+        .from('payouts')
+        .select('*')
+        .eq('creator_id', user.id)
+        .order('created_at', { ascending: false });
+
+      setPendingPayouts(payouts || []);
       setEarnings(0);
     } catch (error: any) {
       toast.error(error.message);
