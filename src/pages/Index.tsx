@@ -50,7 +50,7 @@ const Index = () => {
           <div className="text-center animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               Your DM inbox,<br />
-              but <span className="gradient-primary bg-clip-text text-transparent">✨extra✨</span>
+              but <span className="inline-block gradient-primary bg-clip-text text-transparent">✨extra✨</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Turn your direct messages into a revenue stream. Get paid for every conversation.
