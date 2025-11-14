@@ -20,6 +20,7 @@ import { MessagePinButton } from '@/components/MessagePinButton';
 import { ConversationStats } from '@/components/ConversationStats';
 import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ConversationExport } from '@/components/ConversationExport';
+import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -494,6 +495,7 @@ const MessagingInterface = () => {
                        <MessageReactions messageId={msg.id} userId={user?.id || null} />
                        {user?.id && (
                          <>
+                           <MessageBookmarkButton messageId={msg.id} userId={user.id} />
                            {msg.sender_id === user.id && 
                             msg.message_type !== 'voice' && 
                             canEdit(msg.created_at, msg.sender_id, user.id) && (
