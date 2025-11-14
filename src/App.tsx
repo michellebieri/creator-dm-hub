@@ -18,6 +18,7 @@ import EarningsDashboard from "./pages/EarningsDashboard";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import Templates from "./pages/Templates";
 import ContentVault from "./pages/ContentVault";
+import AutoReplies from "./pages/AutoReplies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const App = () => (
             <Route path="/analytics" element={<AnalyticsDashboard />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/vault" element={<ContentVault />} />
+            <Route path="/auto-replies" element={<AutoReplies />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

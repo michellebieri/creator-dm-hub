@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      auto_replies: {
+        Row: {
+          created_at: string
+          creator_id: string
+          days_active: string[] | null
+          id: string
+          is_active: boolean
+          message: string
+          schedule_end: string | null
+          schedule_start: string | null
+          title: string
+          trigger_condition: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          days_active?: string[] | null
+          id?: string
+          is_active?: boolean
+          message: string
+          schedule_end?: string | null
+          schedule_start?: string | null
+          title: string
+          trigger_condition?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          days_active?: string[] | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          schedule_end?: string | null
+          schedule_start?: string | null
+          title?: string
+          trigger_condition?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auto_replies_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_label_assignments: {
         Row: {
           conversation_id: string

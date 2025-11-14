@@ -7,7 +7,8 @@ import {
   BarChart3,
   FileText,
   CreditCard,
-  Vault
+  Vault,
+  Bot
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -38,6 +39,7 @@ export function AppSidebar() {
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Earnings", url: "/earnings", icon: DollarSign },
     { title: "Content Vault", url: "/vault", icon: Vault },
+    { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
     { title: "Settings", url: "/profile-settings", icon: Settings },
