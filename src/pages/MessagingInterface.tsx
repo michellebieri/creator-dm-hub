@@ -53,8 +53,8 @@ const MessagingInterface = () => {
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
-  const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
-  const { credits, hasCredits, deductCredit } = useCredits(creatorId);
+  const { messages, loading: messagesLoading, refetch, sendMessage, sending: messageSending } = useMessages(conversationId, creatorId);
+  const { credits, hasCredits } = useCredits(creatorId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
@@ -165,25 +165,8 @@ const MessagingInterface = () => {
         setConversationId(convId);
       }
 
-      // Deduct credit for customers only
-      if (!isCreator) {
-        const credited = await deductCredit();
-        if (!credited) {
-          throw new Error('Failed to deduct credit');
-        }
-      }
-
-      // Send message
-      const { error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: convId,
-          sender_id: user.id,
-          content: message,
-          is_paid: isCreator || true,
-        });
-
-      if (msgError) throw msgError;
+      // Send message using the hook (handles credit deduction)
+      await sendMessage(message);
 
       // Send notification to recipient (async, don't wait)
       const recipientId = isCreator ? 
@@ -204,10 +187,6 @@ const MessagingInterface = () => {
       setMessage('');
       clearDraft();
       stopTyping();
-      toast({
-        title: "Message sent",
-        description: isCreator ? "Message sent successfully" : `${credits - 1} credits remaining`,
-      });
     } catch (error: any) {
       toast({
         title: "Failed to send",
@@ -266,28 +245,8 @@ const MessagingInterface = () => {
         .from('unlockables')
         .getPublicUrl(fileName);
 
-      // Deduct credit for customers only
-      if (!isCreator) {
-        const credited = await deductCredit();
-        if (!credited) {
-          throw new Error('Failed to deduct credit');
-        }
-      }
-
-      // Send message with voice
-      const { error: msgError } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: convId,
-          sender_id: user.id,
-          content: 'Voice message',
-          message_type: 'voice',
-          voice_url: publicUrl,
-          voice_duration: duration,
-          is_paid: isCreator || true,
-        });
-
-      if (msgError) throw msgError;
+      // Send voice message using the hook (handles credit deduction)
+      await sendMessage('Voice message', 'voice', publicUrl, duration);
 
       // Send notification
       const recipientId = isCreator ? 
@@ -304,11 +263,6 @@ const MessagingInterface = () => {
           },
         }).catch(err => console.log('Notification error:', err));
       }
-
-      toast({
-        title: "Voice message sent",
-        description: isCreator ? "Voice message sent successfully" : `${credits - 1} credits remaining`,
-      });
     } catch (error: any) {
       toast({
         title: "Failed to send voice message",
