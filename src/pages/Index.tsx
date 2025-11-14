@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Footer } from "@/components/Footer";
+import { BundlePurchase } from "@/components/BundlePurchase";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -209,6 +210,27 @@ const Index = () => {
               onClick={() => navigate('/creators')}
             >
               Browse Creators
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Content Bundles */}
+      <section className="py-20 px-4 bg-muted/50">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold mb-4">Featured Content Bundles</h2>
+            <p className="text-xl text-muted-foreground">
+              Unlock exclusive content from your favorite creators
+            </p>
+          </div>
+          <BundlePurchase />
+          <div className="text-center mt-8">
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/creators')}
+            >
+              Explore All Creators
             </Button>
           </div>
         </div>

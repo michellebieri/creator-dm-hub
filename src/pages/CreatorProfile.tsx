@@ -8,6 +8,7 @@ import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 import { MessageCircle, Shield, Zap, Loader2, ArrowLeft } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
+import { BundlePurchase } from '@/components/BundlePurchase';
 import { CreditsBalance } from '@/components/CreditsBalance';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -187,6 +188,17 @@ const CreatorProfile = () => {
               </p>
             </Card>
           )}
+
+          {/* Content Bundles Section */}
+          <div className="pt-8 border-t">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold mb-2">Premium Content Bundles</h2>
+              <p className="text-muted-foreground">
+                Unlock exclusive content from {profile.display_name}
+              </p>
+            </div>
+            <BundlePurchase creatorId={profile.id} />
+          </div>
         </div>
       </section>
     </div>
