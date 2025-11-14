@@ -16,6 +16,7 @@ const PaymentSuccess = () => {
   useEffect(() => {
     const verifyPayment = async () => {
       const sessionId = searchParams.get('session_id');
+      const bundleId = searchParams.get('bundle_id');
       
       if (!sessionId) {
         toast({
@@ -28,20 +29,40 @@ const PaymentSuccess = () => {
       }
 
       try {
-        const { data, error } = await supabase.functions.invoke('verify-payment', {
-          body: { sessionId },
-        });
-
-        if (error) throw error;
-
-        if (data?.success) {
-          setVerified(true);
-          toast({
-            title: "Payment Successful!",
-            description: "Your message credits have been added",
+        // Check if this is a bundle purchase or message pack
+        if (bundleId) {
+          const { data, error } = await supabase.functions.invoke('verify-bundle-payment', {
+            body: { sessionId, bundleId },
           });
+
+          if (error) throw error;
+
+          if (data?.success) {
+            setVerified(true);
+            toast({
+              title: "Bundle Purchase Successful!",
+              description: `${data.unlockedCount} items unlocked`,
+            });
+          } else {
+            throw new Error("Bundle payment verification failed");
+          }
         } else {
-          throw new Error("Payment verification failed");
+          // Original message pack verification
+          const { data, error } = await supabase.functions.invoke('verify-payment', {
+            body: { sessionId },
+          });
+
+          if (error) throw error;
+
+          if (data?.success) {
+            setVerified(true);
+            toast({
+              title: "Payment Successful!",
+              description: "Your message credits have been added",
+            });
+          } else {
+            throw new Error("Payment verification failed");
+          }
         }
       } catch (error) {
         console.error('Payment verification error:', error);
@@ -74,10 +95,12 @@ const PaymentSuccess = () => {
             <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
             <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
             <p className="text-muted-foreground mb-6">
-              Your message credits have been added to your account.
+              {searchParams.get('bundle_id') 
+                ? 'Your content bundle has been unlocked.'
+                : 'Your message credits have been added to your account.'}
             </p>
             <Button onClick={() => navigate('/messages')} className="w-full">
-              Go to Messages
+              {searchParams.get('bundle_id') ? 'View Content' : 'Go to Messages'}
             </Button>
           </>
         ) : (
