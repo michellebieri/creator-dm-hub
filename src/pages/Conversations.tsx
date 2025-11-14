@@ -7,9 +7,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { MessageCircle, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { MessageCircle, ArrowLeft, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { useConversationArchive } from '@/hooks/useConversationArchive';
 
 interface Conversation {
   id: string;
@@ -42,6 +49,8 @@ const Conversations = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const { archiveConversation, unarchiveConversation } = useConversationArchive();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -62,6 +71,7 @@ const Conversations = () => {
             customer:profiles!conversations_customer_id_fkey(*)
           `)
           .or(`creator_id.eq.${user.id},customer_id.eq.${user.id}`)
+          .eq('status', showArchived ? 'archived' : 'active')
           .order('updated_at', { ascending: false });
 
         if (error) throw error;
@@ -134,13 +144,24 @@ const Conversations = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, showArchived]);
 
   const handleOpenConversation = (conversation: Conversation) => {
     if (user?.id === conversation.customer_id) {
       navigate(`/messages?creator=${conversation.creator_id}`);
     } else {
       navigate(`/messages?creator=${conversation.customer_id}`);
+    }
+  };
+
+  const handleArchive = async (e: React.MouseEvent, conversationId: string) => {
+    e.stopPropagation();
+    const success = showArchived 
+      ? await unarchiveConversation(conversationId)
+      : await archiveConversation(conversationId);
+    
+    if (success) {
+      setConversations(prev => prev.filter(c => c.id !== conversationId));
     }
   };
 
@@ -180,7 +201,25 @@ const Conversations = () => {
       </header>
 
       <div className="container mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-6">
+        <div className="mb-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showArchived ? 'outline' : 'default'}
+              size="sm"
+              onClick={() => setShowArchived(false)}
+            >
+              <Inbox className="h-4 w-4 mr-2" />
+              Inbox
+            </Button>
+            <Button
+              variant={showArchived ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowArchived(true)}
+            >
+              <Archive className="h-4 w-4 mr-2" />
+              Archived
+            </Button>
+          </div>
           <input
             type="text"
             placeholder="Search conversations..."
@@ -218,47 +257,73 @@ const Conversations = () => {
               return (
                 <Card
                   key={conversation.id}
-                  className="p-4 hover:shadow-medium transition-all cursor-pointer"
-                  onClick={() => handleOpenConversation(conversation)}
+                  className="p-4 hover:shadow-medium transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={otherUser?.avatar_url} />
-                      <AvatarFallback>
-                        {otherUser?.display_name.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold truncate">
-                          {otherUser?.display_name}
-                        </h3>
-                        <Badge variant="secondary" className="text-xs">
-                          @{otherUser?.username}
-                        </Badge>
-                        {conversation.unread_count && conversation.unread_count > 0 && (
-                          <Badge variant="default" className="ml-auto text-xs">
-                            {conversation.unread_count}
+                    <div 
+                      className="flex items-center gap-4 flex-1 cursor-pointer"
+                      onClick={() => handleOpenConversation(conversation)}
+                    >
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={otherUser?.avatar_url} />
+                        <AvatarFallback>
+                          {otherUser?.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold truncate">
+                            {otherUser?.display_name}
+                          </h3>
+                          <Badge variant="secondary" className="text-xs">
+                            @{otherUser?.username}
                           </Badge>
+                          {conversation.unread_count && conversation.unread_count > 0 && (
+                            <Badge variant="default" className="ml-auto text-xs">
+                              {conversation.unread_count}
+                            </Badge>
+                          )}
+                        </div>
+                        {conversation.last_message ? (
+                          <p className="text-sm text-muted-foreground truncate">
+                            {conversation.last_message.content}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">
+                            No messages yet
+                          </p>
                         )}
                       </div>
-                      {conversation.last_message ? (
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.last_message.content}
-                        </p>
-                      ) : (
-                        <p className="text-sm text-muted-foreground italic">
-                          No messages yet
-                        </p>
+                      {conversation.last_message && (
+                        <div className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(conversation.last_message.created_at), {
+                            addSuffix: true,
+                          })}
+                        </div>
                       )}
                     </div>
-                    {conversation.last_message && (
-                      <div className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(conversation.last_message.created_at), {
-                          addSuffix: true,
-                        })}
-                      </div>
-                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => handleArchive(e, conversation.id)}>
+                          {showArchived ? (
+                            <>
+                              <ArchiveRestore className="h-4 w-4 mr-2" />
+                              Restore
+                            </>
+                          ) : (
+                            <>
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </Card>
               );
