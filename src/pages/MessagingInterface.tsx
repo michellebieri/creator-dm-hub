@@ -8,12 +8,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
-import { Send, ArrowLeft, AlertCircle, Search } from 'lucide-react';
+import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { useCredits } from '@/hooks/useCredits';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -36,6 +37,9 @@ const MessagingInterface = () => {
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
+  
+  // Mark messages as read when viewing conversation
+  useReadReceipts(conversationId, user?.id || null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -279,9 +283,20 @@ const MessagingInterface = () => {
                       }`}
                     >
                       <p className="text-sm">{msg.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {new Date(msg.created_at).toLocaleTimeString()}
-                      </p>
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs opacity-70">
+                          {new Date(msg.created_at).toLocaleTimeString()}
+                        </p>
+                        {msg.sender_id === user?.id && (
+                          <span className="text-xs opacity-70 flex items-center gap-1">
+                            {msg.read_at ? (
+                              <CheckCheck className="h-3 w-3" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
+                          </span>
+                        )}
+                      </div>
                     </Card>
                     {msg.unlockables && msg.unlockables.length > 0 && (
                       <div className="space-y-2">
