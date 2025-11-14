@@ -8,7 +8,9 @@ import {
   FileText,
   CreditCard,
   Vault,
-  Bot
+  Bot,
+  Library,
+  Receipt
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -49,6 +51,8 @@ export function AppSidebar() {
   const customerItems = [
     { title: "Browse Creators", url: "/creators", icon: Users },
     { title: "Messages", url: "/messages", icon: MessageCircle },
+    { title: "My Library", url: "/library", icon: Library },
+    { title: "Purchase History", url: "/purchase-history", icon: Receipt },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
