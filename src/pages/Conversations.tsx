@@ -33,6 +33,7 @@ interface Conversation {
     content: string;
     created_at: string;
   };
+  unread_count?: number;
 }
 
 const Conversations = () => {
@@ -65,7 +66,7 @@ const Conversations = () => {
 
         if (error) throw error;
 
-        // Fetch last message for each conversation
+        // Fetch last message and unread count for each conversation
         const conversationsWithMessages = await Promise.all(
           (data || []).map(async (conv) => {
             const { data: messages } = await supabase
@@ -75,9 +76,18 @@ const Conversations = () => {
               .order('created_at', { ascending: false })
               .limit(1);
 
+            // Count unread messages (messages not sent by user and not read)
+            const { count: unreadCount } = await supabase
+              .from('messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('conversation_id', conv.id)
+              .neq('sender_id', user.id)
+              .is('read_at', null);
+
             return {
               ...conv,
               last_message: messages?.[0],
+              unread_count: unreadCount || 0,
             };
           })
         );
@@ -226,6 +236,11 @@ const Conversations = () => {
                         <Badge variant="secondary" className="text-xs">
                           @{otherUser?.username}
                         </Badge>
+                        {conversation.unread_count && conversation.unread_count > 0 && (
+                          <Badge variant="default" className="ml-auto text-xs">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
                       </div>
                       {conversation.last_message ? (
                         <p className="text-sm text-muted-foreground truncate">

@@ -8,6 +8,8 @@ interface Message {
   sender_id: string;
   created_at: string;
   is_paid: boolean;
+  read_at?: string | null;
+  read_by?: string | null;
   unlockables?: any;
 }
 
@@ -44,7 +46,7 @@ export const useMessages = (conversationId: string | null) => {
 
     if (!conversationId) return;
 
-    // Subscribe to new messages
+    // Subscribe to new messages and updates
     const channel = supabase
       .channel(`messages-${conversationId}`)
       .on(
@@ -57,6 +59,22 @@ export const useMessages = (conversationId: string | null) => {
         },
         (payload) => {
           setMessages((current) => [...current, payload.new as Message]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          setMessages((current) =>
+            current.map((msg) =>
+              msg.id === payload.new.id ? (payload.new as Message) : msg
+            )
+          );
         }
       )
       .subscribe();
