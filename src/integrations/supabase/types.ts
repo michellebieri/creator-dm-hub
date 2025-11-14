@@ -399,6 +399,66 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          message_type: string
+          scheduled_at: string
+          sender_id: string
+          sent_at: string | null
+          status: string
+          voice_duration: number | null
+          voice_url: string | null
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          scheduled_at: string
+          sender_id: string
+          sent_at?: string | null
+          status?: string
+          voice_duration?: number | null
+          voice_url?: string | null
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          message_type?: string
+          scheduled_at?: string
+          sender_id?: string
+          sent_at?: string | null
+          status?: string
+          voice_duration?: number | null
+          voice_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transactions: {
         Row: {
           amount: number

@@ -12,6 +12,8 @@ import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
 import { MessageReactions } from '@/components/MessageReactions';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { VoiceMessage } from '@/components/VoiceMessage';
+import { MessageScheduler } from '@/components/MessageScheduler';
+import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
 import { Send, ArrowLeft, AlertCircle, Search, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -19,6 +21,7 @@ import { useMessages } from '@/hooks/useMessages';
 import { useCredits } from '@/hooks/useCredits';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
+import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
@@ -41,6 +44,7 @@ const MessagingInterface = () => {
   const { messages, loading: messagesLoading, refetch } = useMessages(conversationId);
   const { credits, hasCredits, deductCredit } = useCredits(creatorId);
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
+  const { scheduleMessage } = useScheduledMessages(user?.id || null);
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
@@ -293,6 +297,20 @@ const MessagingInterface = () => {
     }
   };
 
+  const handleScheduleMessage = async (scheduledAt: Date) => {
+    if (!message.trim() || !conversationId || !user || !isCreator) return;
+
+    const success = await scheduleMessage(
+      conversationId,
+      message,
+      scheduledAt
+    );
+
+    if (success) {
+      setMessage('');
+    }
+  };
+
   const filteredMessages = messages.filter(msg => 
     searchQuery ? msg.content.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
@@ -353,6 +371,10 @@ const MessagingInterface = () => {
               
               <MessagePackPurchase creatorId={creatorId} packs={packs} />
             </>
+          )}
+
+          {isCreator && user?.id && (
+            <ScheduledMessagesList senderId={user.id} />
           )}
           
           <div className="space-y-4">
@@ -461,6 +483,12 @@ const MessagingInterface = () => {
               <MessageTemplateSelector
                 creatorId={user.id}
                 onSelectTemplate={(content) => setMessage(content)}
+              />
+            )}
+            {isCreator && conversationId && (
+              <MessageScheduler
+                onSchedule={handleScheduleMessage}
+                disabled={sending || !message.trim()}
               />
             )}
             <VoiceRecorder 
