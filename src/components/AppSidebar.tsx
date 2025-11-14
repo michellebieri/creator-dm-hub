@@ -37,6 +37,7 @@ export function AppSidebar() {
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
+    { title: "Content Analytics", url: "/content-analytics", icon: BarChart3 },
     { title: "Earnings", url: "/earnings", icon: DollarSign },
     { title: "Content Vault", url: "/vault", icon: Vault },
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
