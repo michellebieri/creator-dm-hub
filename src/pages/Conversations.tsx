@@ -24,6 +24,7 @@ import { ConversationLabelFilter } from '@/components/ConversationLabelFilter';
 import { DraftsManager } from '@/components/DraftsManager';
 import { BulkActionsBar } from '@/components/BulkActionsBar';
 import { ConversationStats } from '@/components/ConversationStats';
+import { BookmarksView } from '@/components/BookmarksView';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
@@ -328,6 +329,7 @@ const Conversations = () => {
             </Button>
             {user?.id && <ConversationLabelManager userId={user.id} />}
             {user?.id && <DraftsManager userId={user.id} />}
+            {user?.id && <BookmarksView userId={user.id} />}
             {user?.id && <AdvancedSearch userId={user.id} />}
             <Button
               variant={bulkActionMode ? 'default' : 'outline'}
