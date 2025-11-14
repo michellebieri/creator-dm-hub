@@ -8,6 +8,9 @@ interface Message {
   sender_id: string;
   created_at: string;
   is_paid: boolean;
+  message_type?: string;
+  voice_url?: string | null;
+  voice_duration?: number | null;
   read_at?: string | null;
   read_by?: string | null;
   unlockables?: any;
