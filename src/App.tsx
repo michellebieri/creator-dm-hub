@@ -19,6 +19,9 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import Templates from "./pages/Templates";
 import ContentVault from "./pages/ContentVault";
 import ContentAnalytics from "./pages/ContentAnalytics";
+import MyLibrary from "./pages/MyLibrary";
+import PurchaseHistory from "./pages/PurchaseHistory";
+import CreatorOnboarding from "./pages/CreatorOnboarding";
 import AutoReplies from "./pages/AutoReplies";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +36,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           
@@ -49,6 +53,8 @@ const App = () => (
             <Route path="/templates" element={<Templates />} />
             <Route path="/vault" element={<ContentVault />} />
             <Route path="/content-analytics" element={<ContentAnalytics />} />
+            <Route path="/library" element={<MyLibrary />} />
+            <Route path="/purchase-history" element={<PurchaseHistory />} />
             <Route path="/auto-replies" element={<AutoReplies />} />
           </Route>
           
