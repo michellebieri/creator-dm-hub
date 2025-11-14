@@ -19,6 +19,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
 import { ConversationLabelManager } from '@/components/ConversationLabelManager';
 import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
+import { ConversationLabelFilter } from '@/components/ConversationLabelFilter';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 
 interface Conversation {
@@ -53,6 +54,8 @@ const Conversations = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
+  const [selectedLabelFilter, setSelectedLabelFilter] = useState<string | null>(null);
+  const [conversationLabels, setConversationLabels] = useState<Record<string, string[]>>({});
   const { archiveConversation, unarchiveConversation } = useConversationArchive();
 
   useEffect(() => {
@@ -106,6 +109,26 @@ const Conversations = () => {
         );
 
         setConversations(conversationsWithMessages);
+
+        // Fetch label assignments for all conversations
+        if (conversationsWithMessages.length > 0) {
+          const convIds = conversationsWithMessages.map(c => c.id);
+          const { data: assignments } = await supabase
+            .from('conversation_label_assignments')
+            .select('conversation_id, label_id')
+            .in('conversation_id', convIds);
+
+          if (assignments) {
+            const labelMap: Record<string, string[]> = {};
+            assignments.forEach(assignment => {
+              if (!labelMap[assignment.conversation_id]) {
+                labelMap[assignment.conversation_id] = [];
+              }
+              labelMap[assignment.conversation_id].push(assignment.label_id);
+            });
+            setConversationLabels(labelMap);
+          }
+        }
       } catch (error) {
         console.error('Error fetching conversations:', error);
       } finally {
@@ -171,11 +194,19 @@ const Conversations = () => {
   const filteredConversations = conversations.filter(conv => {
     const otherUser = user?.id === conv.customer_id ? conv.creator : conv.customer;
     const searchLower = searchQuery.toLowerCase();
-    return (
+    
+    // Filter by search query
+    const matchesSearch = (
       otherUser?.display_name.toLowerCase().includes(searchLower) ||
       otherUser?.username.toLowerCase().includes(searchLower) ||
       conv.last_message?.content.toLowerCase().includes(searchLower)
     );
+    
+    // Filter by label if one is selected
+    const matchesLabel = !selectedLabelFilter || 
+      (conversationLabels[conv.id]?.includes(selectedLabelFilter));
+    
+    return matchesSearch && matchesLabel;
   });
 
   if (loading || authLoading) {
@@ -225,6 +256,15 @@ const Conversations = () => {
             {user?.id && <ConversationLabelManager userId={user.id} />}
             {user?.id && <AdvancedSearch userId={user.id} />}
           </div>
+          
+          {user?.id && (
+            <ConversationLabelFilter 
+              userId={user.id}
+              selectedLabelId={selectedLabelFilter}
+              onSelectLabel={setSelectedLabelFilter}
+            />
+          )}
+          
           <input
             type="text"
             placeholder="Search conversations..."
