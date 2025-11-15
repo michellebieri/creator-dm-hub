@@ -14,6 +14,85 @@ export type Database = {
   }
   public: {
     Tables: {
+      age_verifications: {
+        Row: {
+          created_at: string
+          document_type: string | null
+          id: string
+          status: string
+          user_id: string
+          verification_method: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          status?: string
+          user_id: string
+          verification_method?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string | null
+          id?: string
+          status?: string
+          user_id?: string
+          verification_method?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "age_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_replies: {
         Row: {
           created_at: string
@@ -103,6 +182,45 @@ export type Database = {
           },
         ]
       }
+      collection_items: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          sort_order: number
+          unlockable_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          unlockable_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          sort_order?: number
+          unlockable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "content_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_bundles: {
         Row: {
           created_at: string
@@ -144,6 +262,99 @@ export type Database = {
           {
             foreignKeyName: "content_bundles_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_collections: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          is_public: boolean
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          is_public?: boolean
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_collections_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          id: string
+          parent_comment_id: string | null
+          unlockable_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          unlockable_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          id?: string
+          parent_comment_id?: string | null
+          unlockable_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_comments_parent_comment_id_fkey"
+            columns: ["parent_comment_id"]
+            isOneToOne: false
+            referencedRelation: "content_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_comments_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_comments_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -306,6 +517,8 @@ export type Database = {
           updated_at: string
           user_id: string
           waitlist_status: Database["public"]["Enums"]["waitlist_status"]
+          watermark_enabled: boolean | null
+          watermark_text: string | null
         }
         Insert: {
           created_at?: string
@@ -316,6 +529,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
+          watermark_enabled?: boolean | null
+          watermark_text?: string | null
         }
         Update: {
           created_at?: string
@@ -326,6 +541,8 @@ export type Database = {
           updated_at?: string
           user_id?: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
+          watermark_enabled?: boolean | null
+          watermark_text?: string | null
         }
         Relationships: [
           {
@@ -333,6 +550,57 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          customer_id: string
+          id: string
+          status: string
+          stripe_subscription_id: string | null
+          tier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_id: string
+          id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          tier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          customer_id?: string
+          id?: string
+          status?: string
+          stripe_subscription_id?: string | null
+          tier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_subscriptions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -385,6 +653,95 @@ export type Database = {
             columns: ["pack_id"]
             isOneToOne: false
             referencedRelation: "message_packs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_segments: {
+        Row: {
+          created_at: string
+          creator_id: string
+          criteria: Json
+          customer_count: number | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          criteria: Json
+          customer_count?: number | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          criteria?: Json
+          customer_count?: number | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_segments_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dmca_claims: {
+        Row: {
+          claimant_email: string
+          claimant_name: string
+          created_at: string
+          description: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          unlockable_id: string
+        }
+        Insert: {
+          claimant_email: string
+          claimant_name: string
+          created_at?: string
+          description: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          unlockable_id: string
+        }
+        Update: {
+          claimant_email?: string
+          claimant_name?: string
+          created_at?: string
+          description?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          unlockable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dmca_claims_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmca_claims_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
             referencedColumns: ["id"]
           },
         ]
@@ -713,6 +1070,62 @@ export type Database = {
           },
         ]
       }
+      pricing_experiments: {
+        Row: {
+          content_type: string
+          created_at: string
+          creator_id: string
+          ended_at: string | null
+          id: string
+          status: string
+          variant_a_conversions: number | null
+          variant_a_price: number
+          variant_a_views: number | null
+          variant_b_conversions: number | null
+          variant_b_price: number
+          variant_b_views: number | null
+          winner: string | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string
+          creator_id: string
+          ended_at?: string | null
+          id?: string
+          status?: string
+          variant_a_conversions?: number | null
+          variant_a_price: number
+          variant_a_views?: number | null
+          variant_b_conversions?: number | null
+          variant_b_price: number
+          variant_b_views?: number | null
+          winner?: string | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string
+          creator_id?: string
+          ended_at?: string | null
+          id?: string
+          status?: string
+          variant_a_conversions?: number | null
+          variant_a_price?: number
+          variant_a_views?: number | null
+          variant_b_conversions?: number | null
+          variant_b_price?: number
+          variant_b_views?: number | null
+          winner?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_experiments_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_views: {
         Row: {
           created_at: string | null
@@ -756,7 +1169,9 @@ export type Database = {
           created_at: string
           display_name: string
           id: string
+          language_preference: string | null
           role: Database["public"]["Enums"]["user_role"]
+          theme_preference: string | null
           updated_at: string
           username: string
         }
@@ -766,7 +1181,9 @@ export type Database = {
           created_at?: string
           display_name: string
           id: string
+          language_preference?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          theme_preference?: string | null
           updated_at?: string
           username: string
         }
@@ -776,11 +1193,199 @@ export type Database = {
           created_at?: string
           display_name?: string
           id?: string
+          language_preference?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          theme_preference?: string | null
           updated_at?: string
           username?: string
         }
         Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          creator_id: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          creator_id: string
+          discount_type?: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          creator_id?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          uses_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promo_codes_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_campaigns: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          discount_percentage: number
+          end_date: string
+          id: string
+          is_active: boolean
+          start_date: string
+          target_segment: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          discount_percentage: number
+          end_date: string
+          id?: string
+          is_active?: boolean
+          start_date: string
+          target_segment?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          discount_percentage?: number
+          end_date?: string
+          id?: string
+          is_active?: boolean
+          start_date?: string
+          target_segment?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_campaigns_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referrals: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          reward_amount: number | null
+          reward_paid: boolean
+          status: string
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          reward_amount?: number | null
+          reward_paid?: boolean
+          status?: string
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
+          reward_amount?: number | null
+          reward_paid?: boolean
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referrals_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referrals_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refunds: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          processed_at: string | null
+          reason: string | null
+          status: string
+          stripe_refund_id: string | null
+          transaction_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          status?: string
+          stripe_refund_id?: string | null
+          transaction_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string | null
+          status?: string
+          stripe_refund_id?: string | null
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refunds_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scheduled_messages: {
         Row: {
@@ -836,6 +1441,142 @@ export type Database = {
           {
             foreignKeyName: "scheduled_messages_sender_id_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_tiers: {
+        Row: {
+          billing_interval: string
+          created_at: string
+          creator_id: string
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          stripe_price_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          billing_interval?: string
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          billing_interval?: string
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          stripe_price_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_tiers_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips: {
+        Row: {
+          amount: number
+          created_at: string
+          creator_id: string
+          id: string
+          message: string | null
+          stripe_payment_id: string | null
+          tipper_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          creator_id: string
+          id?: string
+          message?: string | null
+          stripe_payment_id?: string | null
+          tipper_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          creator_id?: string
+          id?: string
+          message?: string | null
+          stripe_payment_id?: string | null
+          tipper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tips_tipper_id_fkey"
+            columns: ["tipper_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      traffic_sources: {
+        Row: {
+          campaign: string | null
+          created_at: string
+          id: string
+          landing_page: string | null
+          medium: string | null
+          referrer: string | null
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          campaign?: string | null
+          created_at?: string
+          id?: string
+          landing_page?: string | null
+          medium?: string | null
+          referrer?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          campaign?: string | null
+          created_at?: string
+          id?: string
+          landing_page?: string | null
+          medium?: string | null
+          referrer?: string | null
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_sources_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -923,6 +1664,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
+          expires_at: string | null
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
@@ -933,6 +1675,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id: string
+          expires_at?: string | null
           id?: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
@@ -943,6 +1686,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string
+          expires_at?: string | null
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string
@@ -1141,6 +1885,90 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_pricing: {
+        Row: {
+          created_at: string
+          creator_id: string
+          custom_price_per_message: number | null
+          custom_unlockable_discount: number | null
+          customer_id: string
+          id: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          custom_price_per_message?: number | null
+          custom_unlockable_discount?: number | null
+          customer_id: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          custom_price_per_message?: number | null
+          custom_unlockable_discount?: number | null
+          customer_id?: string
+          id?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_pricing_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vip_pricing_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wishlists: {
+        Row: {
+          created_at: string
+          customer_id: string
+          id: string
+          unlockable_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_id: string
+          id?: string
+          unlockable_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string
+          id?: string
+          unlockable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wishlists_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wishlists_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
             referencedColumns: ["id"]
           },
         ]
