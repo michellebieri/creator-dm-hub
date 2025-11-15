@@ -5,3 +5,15 @@ verify_jwt = true
 
 [functions.verify-payment]
 verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[functions.send-notification-email]
+verify_jwt = false

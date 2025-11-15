@@ -28,6 +28,7 @@ import {
   Ban,
   Mail,
   Activity,
+  Upload
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -71,6 +72,7 @@ export function AppSidebar() {
     { title: "Refunds", url: "/refunds", icon: RefreshCw },
     { title: "VIP Customers", url: "/vip-customers", icon: Crown },
     { title: "Content Vault", url: "/vault", icon: Vault },
+    { title: "Upload Content", url: "/content-upload", icon: Upload },
     { title: "Content Tags", url: "/content-tags", icon: FileText },
     { title: "Collections", url: "/collections", icon: Library },
     { title: "Content Watermark", url: "/content-watermark", icon: Droplet },
