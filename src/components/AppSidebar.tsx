@@ -14,7 +14,10 @@ import {
   Shield,
   Bell,
   Search,
-  Monitor
+  Monitor,
+  Radio,
+  Crown,
+  RefreshCw
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -45,9 +48,13 @@ export function AppSidebar() {
   const creatorItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
+    { title: "Broadcast", url: "/broadcast", icon: Radio },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Content Analytics", url: "/content-analytics", icon: BarChart3 },
+    { title: "Revenue Analytics", url: "/revenue-analytics", icon: DollarSign },
     { title: "Earnings", url: "/earnings", icon: DollarSign },
+    { title: "Refunds", url: "/refunds", icon: RefreshCw },
+    { title: "VIP Customers", url: "/vip-customers", icon: Crown },
     { title: "Content Vault", url: "/vault", icon: Vault },
     { title: "Content Moderation", url: "/content-moderation", icon: Shield },
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },

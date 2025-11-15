@@ -23,6 +23,8 @@ import { ConversationExport } from '@/components/ConversationExport';
 import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
+import { DraftsManager } from '@/components/DraftsManager';
+import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -330,6 +332,7 @@ const MessagingInterface = () => {
                 <ConversationStats conversationId={conversationId} userId={user.id} />
               </>
             )}
+            {user?.id && <DraftsManager userId={user.id} />}
             <Button 
               variant="ghost" 
               size="icon"
@@ -513,8 +516,13 @@ const MessagingInterface = () => {
       <div className="border-t bg-card px-4 py-4">
         <div className="max-w-4xl mx-auto">
           {isCreator && conversationId && (
-            <div className="mb-3 flex justify-end">
+            <div className="mb-3 flex justify-end gap-2">
               <UnlockableUpload 
+                conversationId={conversationId}
+                creatorId={user?.id || ''}
+                onSuccess={refetch}
+              />
+              <BulkContentUpload
                 conversationId={conversationId}
                 creatorId={user?.id || ''}
                 onSuccess={refetch}
