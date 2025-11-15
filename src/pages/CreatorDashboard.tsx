@@ -1,19 +1,23 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { MessagePackSettings } from '@/components/MessagePackSettings';
-import { StatsCard } from '@/components/StatsCard';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { PieChart, Users, ChevronLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const CreatorDashboard = () => {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
-    totalMessages: 0,
-    totalCustomers: 0,
-    totalEarnings: 0,
+    newCustomers: 0,
+    revenue: 0,
+    revenuePerCustomer: 0,
+    subscriptions: 0,
+    messaging: 0,
+    messageUnlockables: 0,
+    posts: 0,
   });
 
   useEffect(() => {
@@ -26,33 +30,32 @@ const CreatorDashboard = () => {
     if (!user) return;
 
     const fetchStats = async () => {
-      // Fetch message count
-      const { count: messageCount } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .eq('sender_id', user.id);
-
-      // Fetch unique customers
-      const { data: conversations } = await supabase
+      // Fetch conversations count
+      const { count: customerCount } = await supabase
         .from('conversations')
-        .select('customer_id')
+        .select('*', { count: 'exact', head: true })
         .eq('creator_id', user.id);
-
-      const uniqueCustomers = new Set(conversations?.map(c => c.customer_id)).size;
 
       // Fetch earnings
       const { data: transactions } = await supabase
         .from('transactions')
-        .select('net_amount')
+        .select('net_amount, transaction_type')
         .eq('creator_id', user.id)
         .eq('status', 'completed');
 
-      const totalEarnings = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      const totalRevenue = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      const messagingRevenue = transactions?.filter(t => t.transaction_type === 'message').reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      const unlockablesRevenue = transactions?.filter(t => t.transaction_type === 'unlockable').reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      const packsRevenue = transactions?.filter(t => t.transaction_type === 'pack').reduce((sum, t) => sum + t.net_amount, 0) || 0;
 
       setStats({
-        totalMessages: messageCount || 0,
-        totalCustomers: uniqueCustomers,
-        totalEarnings,
+        newCustomers: customerCount || 0,
+        revenue: totalRevenue,
+        revenuePerCustomer: customerCount ? totalRevenue / customerCount : 0,
+        subscriptions: packsRevenue,
+        messaging: messagingRevenue,
+        messageUnlockables: unlockablesRevenue,
+        posts: 0,
       });
     };
 
@@ -60,34 +63,115 @@ const CreatorDashboard = () => {
   }, [user]);
 
   if (loading) return null;
+
+  const StatRow = ({ label, value }: { label: string; value: string }) => (
+    <div className="flex items-center justify-between py-1.5">
+      <span className="text-muted-foreground text-sm">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+
   return (
-    <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Creator Dashboard</h1>
-
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <StatsCard
-            title="Total Messages"
-            value={stats.totalMessages}
-            icon={MessageCircle}
-            description="Messages sent"
-          />
-          <StatsCard
-            title="Total Customers"
-            value={stats.totalCustomers}
-            icon={Users}
-            description="Unique customers"
-          />
-          <StatsCard
-            title="Total Earnings"
-            value={`$${stats.totalEarnings.toFixed(2)}`}
-            icon={DollarSign}
-            description="All-time revenue"
-            trend={{ value: 12, isPositive: true }}
-          />
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-14 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <div className="w-10" />
         </div>
+      </header>
 
-        <MessagePackSettings />
+      <div className="max-w-screen-lg mx-auto p-4 space-y-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <PieChart className="h-5 w-5 text-primary" />
+              <h2 className="text-sm font-medium text-muted-foreground uppercase">Summary</h2>
+            </div>
+            <Select defaultValue="today">
+              <SelectTrigger className="w-32 h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <div className="py-2">
+              <div className="text-2xl font-bold mb-1">{stats.newCustomers}</div>
+              <div className="text-sm text-muted-foreground">New customers</div>
+            </div>
+            
+            <div className="py-2 border-t">
+              <div className="text-2xl font-bold mb-1">${stats.revenue.toFixed(2)}</div>
+              <div className="text-sm text-muted-foreground">Revenue</div>
+            </div>
+
+            <div className="border-t pt-2">
+              <StatRow label="Revenue per customer" value={`$${stats.revenuePerCustomer.toFixed(2)}`} />
+              <StatRow label="Subscriptions" value={`$${stats.subscriptions.toFixed(2)}`} />
+              <StatRow label="Messaging" value={`$${stats.messaging.toFixed(2)}`} />
+              <StatRow label="Message unlockables" value={`$${stats.messageUnlockables.toFixed(2)}`} />
+              <StatRow label="Posts" value={`$${stats.posts.toFixed(2)}`} />
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-muted-foreground uppercase">Revenue</h2>
+            <div className="flex gap-2">
+              <Select defaultValue="total">
+                <SelectTrigger className="w-24 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="total">Total</SelectItem>
+                  <SelectItem value="net">Net</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select defaultValue="4weeks">
+                <SelectTrigger className="w-32 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="4weeks">Last 4 weeks</SelectItem>
+                  <SelectItem value="month">This month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="text-center py-12 text-muted-foreground">
+            There's no data to display
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <h2 className="text-sm font-medium text-muted-foreground uppercase">New Customers</h2>
+            </div>
+            <Select defaultValue="4weeks">
+              <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="4weeks">Last 4 weeks</SelectItem>
+                <SelectItem value="month">This month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="text-center py-12 text-muted-foreground">
+            There's no data to display
+          </div>
+        </Card>
       </div>
     </div>
   );

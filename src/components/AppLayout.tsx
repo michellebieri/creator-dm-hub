@@ -1,14 +1,12 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
+import { BottomNavigation } from "@/components/BottomNavigation";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { NotificationsDropdown } from "@/components/NotificationsDropdown";
-import { LogOut } from "lucide-react";
 
 export function AppLayout() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,27 +20,21 @@ export function AppLayout() {
   }
 
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full">
-        <AppSidebar />
-        
-        <div className="flex-1 flex flex-col">
-          <header className="h-14 border-b flex items-center justify-between px-4 bg-background sticky top-0 z-10">
-            <SidebarTrigger />
-            <div className="flex items-center gap-2">
-              <NotificationsDropdown />
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </header>
-
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
+          <h1 className="text-xl font-bold text-primary">dm.link</h1>
+          <Button variant="ghost" size="sm">
+            <Search className="h-5 w-5" />
+          </Button>
         </div>
-      </div>
-    </SidebarProvider>
+      </header>
+
+      <main className="pb-20">
+        <Outlet />
+      </main>
+
+      <BottomNavigation />
+    </div>
   );
 }
