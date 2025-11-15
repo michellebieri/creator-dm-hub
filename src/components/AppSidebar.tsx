@@ -50,7 +50,10 @@ export function AppSidebar() {
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
-    ...(isAdminEmail ? [{ title: "Admin", url: "/admin", icon: Shield }] : []),
+    ...(isAdminEmail ? [
+      { title: "Admin", url: "/admin", icon: Shield },
+      { title: "Users", url: "/users", icon: Users }
+    ] : []),
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
