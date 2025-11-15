@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { Crown, Calendar, DollarSign, X } from 'lucide-react';
+import { Crown, Calendar, DollarSign, X, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ interface Subscription {
 
 const Subscriptions = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [cancelling, setCancelling] = useState<string | null>(null);
@@ -136,10 +138,21 @@ const Subscriptions = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50/50 via-background to-rose-50/50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 pb-20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Subscriptions</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
+      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
         <h1 className="text-3xl font-bold mb-2">My Subscriptions</h1>
-        <p className="text-muted-foreground">Manage your creator subscriptions</p>
+        <p className="text-pink-50">Manage your creator subscriptions</p>
       </div>
 
       {subscriptions.length === 0 ? (
@@ -151,7 +164,7 @@ const Subscriptions = () => {
       ) : (
         <div className="space-y-4">
           {subscriptions.map((sub) => (
-            <Card key={sub.id}>
+            <Card key={sub.id} className="border-pink-200 dark:border-pink-900 bg-gradient-to-br from-pink-50/50 to-white dark:from-pink-950/30 dark:to-background shadow-md hover:shadow-lg transition-all">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-4">
@@ -228,6 +241,7 @@ const Subscriptions = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
