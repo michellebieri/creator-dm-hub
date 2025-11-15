@@ -115,55 +115,16 @@ const More = () => {
 
       <div className="max-w-screen-lg mx-auto">
         <Card className="m-4 overflow-hidden">
-          {menuItems.map((item, index) => (
+          {settingsItems.map((item) => (
             <MenuItem
               key={item.title}
               title={item.title}
               icon={item.icon}
+              iconBg={item.iconBg}
+              iconColor={item.iconColor}
               onClick={() => navigate(item.path)}
             />
           ))}
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          {contentItems.map((item) => (
-            <MenuItem
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          {analyticsItems.map((item) => (
-            <MenuItem
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          {otherItems.map((item) => (
-            <MenuItem
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          <MenuItem
-            title="Sign out"
-            icon={LogOut}
-            onClick={handleSignOut}
-          />
         </Card>
       </div>
     </div>
