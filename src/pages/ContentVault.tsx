@@ -120,27 +120,43 @@ export default function ContentVault() {
         </div>
 
         {/* Content Grid */}
-        <div className="py-12 text-center text-muted-foreground">
+        <div className="py-12">
           {unlockables.length === 0 ? (
-            'No content was found'
+            <div className="text-center text-muted-foreground">
+              No content was found
+            </div>
           ) : (
             <div className="grid grid-cols-3 gap-2">
               {unlockables.map((item) => (
                 <div 
                   key={item.id} 
-                  className="aspect-square bg-muted rounded-lg overflow-hidden"
+                  className="aspect-square bg-muted rounded-lg overflow-hidden relative"
                 >
                   {item.media_type === 'image' ? (
                     <img 
                       src={item.media_url} 
-                      alt="Content" 
+                      alt="Vault content" 
                       className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        console.error('Image load error:', item.media_url);
+                        e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3E?%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                  ) : item.media_type === 'video' ? (
+                    <video 
+                      src={item.media_url}
+                      className="w-full h-full object-cover"
+                      controls
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-xs">{item.media_type}</span>
                     </div>
                   )}
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                    ${item.price}
+                  </div>
                 </div>
               ))}
             </div>
