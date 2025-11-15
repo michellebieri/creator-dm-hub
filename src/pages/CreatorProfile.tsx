@@ -5,12 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
-import { MessageCircle, Shield, Zap, Loader2, ArrowLeft, UserPlus, UserMinus, Flag } from "lucide-react";
+import { MessageCircle, Shield, Zap, Loader2, ArrowLeft, UserPlus, UserMinus, Flag, Ban } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { BundlePurchase } from '@/components/BundlePurchase';
 import { CreditsBalance } from '@/components/CreditsBalance';
 import { ReportDialog } from '@/components/ReportDialog';
+import { BlockUserDialog } from '@/components/BlockUserDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useFollowing } from '@/hooks/useFollowing';
@@ -32,6 +33,7 @@ const CreatorProfile = () => {
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
   const { isFollowing, followersCount, toggleFollow } = useFollowing(user?.id, profile?.id || null);
 
   useEffect(() => {
@@ -191,6 +193,14 @@ const CreatorProfile = () => {
               >
                 <Flag className="h-5 w-5" />
               </Button>
+
+              <Button
+                size="lg"
+                variant="ghost"
+                onClick={() => setBlockDialogOpen(true)}
+              >
+                <Ban className="h-5 w-5" />
+              </Button>
             </div>
             <div className="text-sm text-muted-foreground">
               {followersCount} followers
@@ -265,6 +275,13 @@ const CreatorProfile = () => {
         onOpenChange={setReportDialogOpen}
         reportedUserId={profile.id}
         reporterName={profile.display_name}
+      />
+
+      <BlockUserDialog
+        open={blockDialogOpen}
+        onOpenChange={setBlockDialogOpen}
+        userId={profile.id}
+        userName={profile.display_name}
       />
     </div>
   );

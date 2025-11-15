@@ -10,12 +10,18 @@ interface BlockUserDialogProps {
   userId: string;
   userName: string;
   onBlock?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
 }
 
-export const BlockUserDialog = ({ userId, userName, onBlock }: BlockUserDialogProps) => {
+export const BlockUserDialog = ({ userId, userName, onBlock, open: controlledOpen, onOpenChange, trigger }: BlockUserDialogProps) => {
   const { user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
   const [blocking, setBlocking] = useState(false);
+
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = onOpenChange || setInternalOpen;
 
   const handleBlock = async () => {
     if (!user) return;
@@ -48,12 +54,15 @@ export const BlockUserDialog = ({ userId, userName, onBlock }: BlockUserDialogPr
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Ban className="h-4 w-4 mr-2" />
-          Block
-        </Button>
-      </DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {!trigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <Ban className="h-4 w-4 mr-2" />
+            Block
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Block {userName}?</DialogTitle>
