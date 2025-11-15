@@ -24,6 +24,7 @@ import PurchaseHistory from "./pages/PurchaseHistory";
 import CreatorOnboarding from "./pages/CreatorOnboarding";
 import AutoReplies from "./pages/AutoReplies";
 import AdminDashboard from "./pages/AdminDashboard";
+import UserManagement from "./pages/UserManagement";
 import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/purchase-history" element={<PurchaseHistory />} />
             <Route path="/auto-replies" element={<AutoReplies />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/users" element={<UserManagement />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
           </Route>
           
