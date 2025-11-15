@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { StatsCard } from '@/components/StatsCard';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { DollarSign, TrendingUp, Users, ShoppingBag } from 'lucide-react';
+import { DollarSign, TrendingUp, Users, ShoppingBag, ChevronLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
@@ -127,49 +128,78 @@ export default function RevenueAnalytics() {
   }
 
   return (
-    <div className="p-8">
+    <div className="min-h-screen bg-gradient-to-br from-lime-50/50 via-background to-yellow-50/50 dark:from-lime-950/20 dark:via-background dark:to-yellow-950/20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+        <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Revenue</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
+      <div className="p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold">Revenue Analytics</h1>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7">Last 7 days</SelectItem>
-              <SelectItem value="30">Last 30 days</SelectItem>
-              <SelectItem value="90">Last 90 days</SelectItem>
-              <SelectItem value="365">Last year</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Revenue Analytics</h1>
+              <p className="text-lime-50">Track your earnings and financial performance</p>
+            </div>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-40 bg-white/20 border-white/30 text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">Last 7 days</SelectItem>
+                <SelectItem value="30">Last 30 days</SelectItem>
+                <SelectItem value="90">Last 90 days</SelectItem>
+                <SelectItem value="365">Last year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <StatsCard
-            title="Total Revenue"
-            value={`$${stats.totalRevenue.toFixed(2)}`}
-            icon={DollarSign}
-          />
-          <StatsCard
-            title="Avg Transaction"
-            value={`$${stats.avgTransaction.toFixed(2)}`}
-            icon={TrendingUp}
-          />
-          <StatsCard
-            title="Transactions"
-            value={stats.totalTransactions}
-            icon={ShoppingBag}
-          />
-          <StatsCard
-            title="Active Customers"
-            value={stats.activeCustomers}
-            icon={Users}
-          />
+          <Card className="border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+            <StatsCard
+              title="Total Revenue"
+              value={`$${stats.totalRevenue.toFixed(2)}`}
+              icon={DollarSign}
+            />
+          </Card>
+          <Card className="border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+            <StatsCard
+              title="Avg Transaction"
+              value={`$${stats.avgTransaction.toFixed(2)}`}
+              icon={TrendingUp}
+            />
+          </Card>
+          <Card className="border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+            <StatsCard
+              title="Transactions"
+              value={stats.totalTransactions}
+              icon={ShoppingBag}
+            />
+          </Card>
+          <Card className="border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+            <StatsCard
+              title="Active Customers"
+              value={stats.activeCustomers}
+              icon={Users}
+            />
+          </Card>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Revenue Trend</h2>
+          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold">Revenue Trend</h2>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={timeSeriesData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -182,8 +212,13 @@ export default function RevenueAnalytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Transaction Volume</h2>
+          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-lime-500">
+                <ShoppingBag className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold">Transaction Volume</h2>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={timeSeriesData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -198,8 +233,13 @@ export default function RevenueAnalytics() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Revenue by Type</h2>
+          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold">Revenue by Type</h2>
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -221,8 +261,13 @@ export default function RevenueAnalytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6">
-            <h2 className="text-xl font-bold mb-4">Top Customers</h2>
+          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-lime-500">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-xl font-bold">Top Customers</h2>
+            </div>
             <div className="space-y-3">
               {topCustomers.map((customer, index) => (
                 <div key={index} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
@@ -239,6 +284,7 @@ export default function RevenueAnalytics() {
             </div>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );
