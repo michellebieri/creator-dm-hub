@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, MessageCircle, Plus, Bell, MoreHorizontal, Search } from 'lucide-react';
+import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 
@@ -43,10 +43,10 @@ export const BottomNavigation = () => {
           </div>
         )}
         
-        <Link to="/notifications" className="flex flex-col items-center justify-center flex-1">
-          <Bell className={`h-6 w-6 ${isActive('/notifications') ? 'text-lime-400' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/notifications') ? 'text-lime-400 font-medium' : 'text-muted-foreground'}`}>
-            Notifs
+        <Link to="/vault" className="flex flex-col items-center justify-center flex-1">
+          <Vault className={`h-6 w-6 ${isActive('/vault') ? 'text-primary' : 'text-muted-foreground'}`} />
+          <span className={`text-xs mt-1 ${isActive('/vault') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+            Vault
           </span>
         </Link>
         
