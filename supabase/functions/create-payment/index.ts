@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { checkRateLimit, getRateLimitHeaders } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,7 @@ serve(async (req) => {
 
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -25,6 +26,24 @@ serve(async (req) => {
     
     if (!user?.email) {
       throw new Error("User not authenticated");
+    }
+
+    // Check rate limit
+    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip");
+    const rateLimit = await checkRateLimit(supabaseClient, 'create-payment', user.id, clientIp || undefined);
+    
+    if (!rateLimit.allowed) {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        {
+          headers: {
+            ...corsHeaders,
+            ...getRateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
+            "Content-Type": "application/json",
+          },
+          status: 429,
+        }
+      );
     }
 
     const { packId, creatorId } = await req.json();
@@ -87,7 +106,11 @@ serve(async (req) => {
     console.log("Payment session created:", session.id);
 
     return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { 
+        ...corsHeaders, 
+        ...getRateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
+        "Content-Type": "application/json" 
+      },
       status: 200,
     });
   } catch (error) {

@@ -51,6 +51,8 @@ import TwoFactorAuth from "./pages/TwoFactorAuth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AgeVerification from "./pages/AgeVerification";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import Subscriptions from "./pages/Subscriptions";
 import Following from "./pages/Following";
 import Wishlist from "./pages/Wishlist";
@@ -80,6 +82,8 @@ const App = () => {
           <Route path="/auth" element={<Auth />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />

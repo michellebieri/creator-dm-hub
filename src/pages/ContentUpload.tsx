@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { Upload, ArrowLeft } from 'lucide-react';
+import { contentUploadSchema, validateFile } from '@/lib/validation';
 
 const ContentUpload = () => {
   const { user } = useAuth();
@@ -29,22 +30,11 @@ const ContentUpload = () => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       
-      // Validate file size (max 50MB)
-      if (selectedFile.size > 50 * 1024 * 1024) {
-        toast.error('File size must be less than 50MB');
-        return;
-      }
-
-      // Validate file type
-      const validTypes: Record<string, string[]> = {
-        image: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
-        video: ['video/mp4', 'video/webm', 'video/quicktime'],
-        audio: ['audio/mpeg', 'audio/wav', 'audio/mp3'],
-        document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      };
-
-      if (!validTypes[formData.mediaType].includes(selectedFile.type)) {
-        toast.error(`Invalid file type for ${formData.mediaType}`);
+      // Validate file using centralized validation
+      const validation = validateFile(selectedFile, formData.mediaType);
+      if (!validation.valid) {
+        toast.error(validation.error);
+        e.target.value = ''; // Clear input
         return;
       }
 
@@ -58,16 +48,20 @@ const ContentUpload = () => {
       return;
     }
 
-    if (!formData.title || !formData.price) {
-      toast.error('Please fill in all required fields');
+    // Validate form data with Zod
+    const validation = contentUploadSchema.safeParse({
+      title: formData.title,
+      description: formData.description,
+      price: parseFloat(formData.price),
+      mediaType: formData.mediaType,
+    });
+
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
       return;
     }
 
-    const price = parseFloat(formData.price);
-    if (isNaN(price) || price <= 0) {
-      toast.error('Please enter a valid price');
-      return;
-    }
+    const price = validation.data.price;
 
     setUploading(true);
     setProgress(0);
