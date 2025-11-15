@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Search, MessageCircle, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { CreditCheckDialog } from '@/components/CreditCheckDialog';
 
 interface Creator {
   id: string;
@@ -24,6 +25,8 @@ const Creators = () => {
   const [creators, setCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const [showCreditCheck, setShowCreditCheck] = useState(false);
 
   useEffect(() => {
     fetchCreators();
@@ -71,16 +74,23 @@ const Creators = () => {
     }
   };
 
-  const handleStartChat = async (creatorId: string) => {
+  const handleStartChat = async (creator: Creator) => {
     if (!user) {
       navigate('/auth');
       return;
     }
 
+    setSelectedCreator(creator);
+    setShowCreditCheck(true);
+  };
+
+  const proceedToChat = async () => {
+    if (!user || !selectedCreator) return;
+
     const { data: existingConv } = await supabase
       .from('conversations')
       .select('id')
-      .eq('creator_id', creatorId)
+      .eq('creator_id', selectedCreator.id)
       .eq('customer_id', user.id)
       .single();
 
@@ -90,7 +100,7 @@ const Creators = () => {
       const { data: newConv, error } = await supabase
         .from('conversations')
         .insert({
-          creator_id: creatorId,
+          creator_id: selectedCreator.id,
           customer_id: user.id,
           status: 'active'
         })
@@ -173,7 +183,7 @@ const Creators = () => {
                     </div>
                     <Button 
                       size="sm" 
-                      onClick={() => handleStartChat(creator.id)}
+                      onClick={() => handleStartChat(creator)}
                       className="gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
@@ -186,6 +196,17 @@ const Creators = () => {
           </div>
         )}
       </div>
+
+      {selectedCreator && (
+        <CreditCheckDialog
+          open={showCreditCheck}
+          onOpenChange={setShowCreditCheck}
+          creatorId={selectedCreator.id}
+          creatorName={selectedCreator.display_name}
+          pricePerMessage={selectedCreator.price_per_message || 5}
+          onProceedToChat={proceedToChat}
+        />
+      )}
     </div>
   );
 };
