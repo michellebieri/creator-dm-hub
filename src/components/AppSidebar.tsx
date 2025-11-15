@@ -21,7 +21,9 @@ import {
   Droplet,
   Clock,
   Sparkles,
-  FlaskConical
+  FlaskConical,
+  ShieldCheck,
+  KeyRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -78,6 +80,8 @@ export function AppSidebar() {
     ] : []),
     { title: "Search", url: "/search", icon: Search },
     { title: "Sessions", url: "/sessions", icon: Monitor },
+    { title: "Two-Factor Auth", url: "/two-factor-auth", icon: KeyRound },
+    { title: "Age Verification", url: "/age-verification", icon: ShieldCheck },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
@@ -90,6 +94,8 @@ export function AppSidebar() {
     { title: "Purchase History", url: "/purchase-history", icon: Receipt },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
     { title: "Sessions", url: "/sessions", icon: Monitor },
+    { title: "Two-Factor Auth", url: "/two-factor-auth", icon: KeyRound },
+    { title: "Age Verification", url: "/age-verification", icon: ShieldCheck },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
