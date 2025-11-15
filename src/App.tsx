@@ -28,6 +28,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
 import GlobalSearch from "./pages/GlobalSearch";
 import ContentModeration from "./pages/ContentModeration";
+import AdminModeration from "./pages/AdminModeration";
 import CreatorWaitlist from "./pages/CreatorWaitlist";
 import SessionManagement from "./pages/SessionManagement";
 import NotificationSettings from "./pages/NotificationSettings";
@@ -108,6 +109,7 @@ const App = () => {
             <Route path="/users" element={<UserManagement />} />
             <Route path="/search" element={<GlobalSearch />} />
             <Route path="/content-moderation" element={<ContentModeration />} />
+            <Route path="/admin-moderation" element={<AdminModeration />} />
             <Route path="/waitlist-status" element={<CreatorWaitlist />} />
             <Route path="/sessions" element={<SessionManagement />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
