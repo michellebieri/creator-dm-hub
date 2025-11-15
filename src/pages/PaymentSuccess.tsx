@@ -29,7 +29,7 @@ const PaymentSuccess = () => {
       }
 
       try {
-        // Check if this is a bundle purchase or message pack
+        // Check if this is a bundle purchase
         if (bundleId) {
           const { data, error } = await supabase.functions.invoke('verify-bundle-payment', {
             body: { sessionId, bundleId },
@@ -47,8 +47,8 @@ const PaymentSuccess = () => {
             throw new Error("Bundle payment verification failed");
           }
         } else {
-          // Original message pack verification
-          const { data, error } = await supabase.functions.invoke('verify-payment', {
+          // Wallet deposit verification
+          const { data, error } = await supabase.functions.invoke('verify-wallet-payment', {
             body: { sessionId },
           });
 
@@ -57,8 +57,8 @@ const PaymentSuccess = () => {
           if (data?.success) {
             setVerified(true);
             toast({
-              title: "Payment Successful!",
-              description: "Your message credits have been added",
+              title: "Funds Added!",
+              description: `Your wallet balance is now $${data.balance?.toFixed(2) || '0.00'}`,
             });
           } else {
             throw new Error("Payment verification failed");
@@ -97,10 +97,10 @@ const PaymentSuccess = () => {
             <p className="text-muted-foreground mb-6">
               {searchParams.get('bundle_id') 
                 ? 'Your content bundle has been unlocked.'
-                : 'Your message credits have been added to your account.'}
+                : 'Funds have been added to your wallet and can be used across all creators.'}
             </p>
             <Button onClick={() => navigate('/messages')} className="w-full">
-              {searchParams.get('bundle_id') ? 'View Content' : 'Go to Messages'}
+              {searchParams.get('bundle_id') ? 'View Content' : 'Start Chatting'}
             </Button>
           </>
         ) : (

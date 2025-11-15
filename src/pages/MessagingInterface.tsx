@@ -25,11 +25,12 @@ import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { DraftsManager } from '@/components/DraftsManager';
 import { BulkContentUpload } from '@/components/BulkContentUpload';
+import { WalletBalance } from '@/components/WalletBalance';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
-import { useCredits } from '@/hooks/useCredits';
+import { useWallet } from '@/hooks/useWallet';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
@@ -50,6 +51,7 @@ const MessagingInterface = () => {
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
+  const [pricePerMessage, setPricePerMessage] = useState(0);
   const [showSearchDialog, setShowSearchDialog] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState('');
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
@@ -58,7 +60,7 @@ const MessagingInterface = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch, sendMessage, sending: messageSending } = useMessages(conversationId, creatorId);
-  const { credits, hasCredits } = useCredits(creatorId);
+  const { balance, spend } = useWallet();
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
@@ -124,14 +126,23 @@ const MessagingInterface = () => {
         setConversationId(conversation.id);
       }
 
-      // Fetch packs
+      // Fetch packs and creator settings
       const { data: packsData } = await supabase
         .from('message_packs')
         .select('*')
         .eq('creator_id', creatorId)
         .eq('is_active', true);
-      
+
       setPacks(packsData || []);
+
+      // Fetch creator's price per message
+      const { data: creatorSettings } = await supabase
+        .from('creator_settings')
+        .select('price_per_message')
+        .eq('user_id', creatorId)
+        .single();
+
+      setPricePerMessage(creatorSettings?.price_per_message || 0);
     };
 
     fetchData();
@@ -140,11 +151,11 @@ const MessagingInterface = () => {
   const handleSend = async () => {
     if (!message.trim() || !creatorId || !user) return;
 
-    // Creators don't need credits to send messages
-    if (!isCreator && !hasCredits) {
+    // Creators don't need balance to send messages
+    if (!isCreator && balance < pricePerMessage) {
       toast({
-        title: "No credits",
-        description: "Purchase message credits to continue",
+        title: "Insufficient balance",
+        description: `You need $${pricePerMessage.toFixed(2)} to send a message`,
         variant: "destructive",
       });
       return;
@@ -217,11 +228,11 @@ const MessagingInterface = () => {
   const handleSendVoice = async (audioBlob: Blob, duration: number) => {
     if (!creatorId || !user) return;
 
-    // Creators don't need credits to send messages
-    if (!isCreator && !hasCredits) {
+    // Creators don't need balance to send messages
+    if (!isCreator && balance < pricePerMessage) {
       toast({
-        title: "No credits",
-        description: "Purchase message credits to continue",
+        title: "Insufficient balance",
+        description: `You need $${pricePerMessage.toFixed(2)} to send a message`,
         variant: "destructive",
       });
       return;
@@ -348,23 +359,16 @@ const MessagingInterface = () => {
         <div className="max-w-4xl mx-auto space-y-6">
           {creatorId && !isCreator && (
             <>
-              {!hasCredits && (
+              {balance < pricePerMessage && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    Purchase message credits below to start chatting
+                    Add funds to your wallet below to start chatting
                   </AlertDescription>
                 </Alert>
               )}
               
-              <Card className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl font-bold">{credits}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Message credits remaining
-                  </div>
-                </div>
-              </Card>
+              <WalletBalance />
               
               <MessagePackPurchase creatorId={creatorId} packs={packs} />
             </>
@@ -553,7 +557,7 @@ const MessagingInterface = () => {
             )}
             <VoiceRecorder 
               onSendVoice={handleSendVoice}
-              disabled={sending || (!hasCredits && !isCreator)}
+              disabled={sending || (balance < pricePerMessage && !isCreator)}
             />
             <Input
               placeholder="Type your message..."
@@ -578,8 +582,8 @@ const MessagingInterface = () => {
             />
             <Button 
               onClick={handleSend} 
-              disabled={sending || !message.trim() || (!hasCredits && !isCreator)}
-              title={!hasCredits && !isCreator ? 'Purchase credits to send messages' : ''}
+              disabled={sending || !message.trim() || (balance < pricePerMessage && !isCreator)}
+              title={balance < pricePerMessage && !isCreator ? 'Add funds to send messages' : ''}
             >
               <Send className="h-4 w-4" />
             </Button>
