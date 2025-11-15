@@ -12,6 +12,7 @@ import More from "./pages/More";
 import Conversations from "./pages/Conversations";
 import NotificationSettings from "./pages/NotificationSettings";
 import ContentVault from "./pages/ContentVault";
+import ContentUpload from "./pages/ContentUpload";
 import ProfileSettings from "./pages/ProfileSettings";
 import AccountSettings from "./pages/AccountSettings";
 import PrivacySettings from "./pages/PrivacySettings";
@@ -51,6 +52,7 @@ const App = () => {
             <Route path="/notifications" element={<NotificationSettings />} />
             <Route path="/more" element={<More />} />
             <Route path="/vault" element={<ContentVault />} />
+            <Route path="/content-upload" element={<ContentUpload />} />
             <Route path="/profile" element={<ProfileSettings />} />
             <Route path="/account-settings" element={<AccountSettings />} />
             <Route path="/privacy-settings" element={<PrivacySettings />} />
