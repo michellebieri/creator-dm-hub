@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Mail, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 
@@ -22,6 +24,7 @@ interface EmailPrefs {
 
 const EmailPreferences = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] = useState<EmailPrefs>({
     new_message: true,
@@ -104,16 +107,27 @@ const EmailPreferences = () => {
   const isCreator = user?.user_metadata?.role === 'creator';
 
   return (
-    <div className="container mx-auto p-6 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          <Mail className="h-8 w-8" />
-          Email Preferences
-        </h1>
-        <p className="text-muted-foreground">
-          Manage which email notifications you want to receive
-        </p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Email Preferences</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container mx-auto p-6 max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            <Mail className="h-8 w-8" />
+            Email Preferences
+          </h1>
+          <p className="text-muted-foreground">
+            Manage which email notifications you want to receive
+          </p>
+        </div>
 
       <Card>
         <CardHeader>
@@ -250,6 +264,7 @@ const EmailPreferences = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

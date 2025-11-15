@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Shield, Eye, MessageCircle, UserCheck, Download } from 'lucide-react';
+import { Shield, Eye, MessageCircle, UserCheck, Download, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PrivacySettings {
@@ -19,6 +20,7 @@ interface PrivacySettings {
 
 const PrivacySettings = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [settings, setSettings] = useState<PrivacySettings>({
@@ -60,13 +62,24 @@ const PrivacySettings = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Privacy Settings</h1>
-        <p className="text-muted-foreground">Control who can see and interact with your content</p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Privacy Settings</h1>
+          <div className="w-10" />
+        </div>
+      </header>
 
-      <div className="space-y-6">
+      <div className="container mx-auto p-6 max-w-3xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-2">Privacy Settings</h1>
+          <p className="text-muted-foreground">Control who can see and interact with your content</p>
+        </div>
+
+        <div className="space-y-6">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -187,10 +200,11 @@ const PrivacySettings = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
