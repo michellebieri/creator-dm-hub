@@ -184,16 +184,29 @@ const CreatorAuth = () => {
 
       // Check if user has creator role
       if (result.data?.user) {
-        const { data: roles } = await supabase
+        const { data: roles, error: roleError } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', result.data.user.id)
           .eq('role', 'creator');
 
+        if (roleError) {
+          console.error('Role check error:', roleError);
+          throw new Error('Failed to verify creator status');
+        }
+
         if (!roles || roles.length === 0) {
           await supabase.auth.signOut();
-          throw new Error('This account is not registered as a creator');
+          throw new Error('This account is not registered as a creator. Please sign up as a creator first.');
         }
+
+        // Successfully logged in as creator
+        toast({
+          title: "Welcome back!",
+          description: "You've successfully signed in as a creator.",
+        });
+        
+        navigate('/dashboard');
       }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
