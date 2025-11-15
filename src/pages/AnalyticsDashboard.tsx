@@ -114,53 +114,68 @@ const AnalyticsDashboard = () => {
   const maxMessages = Math.max(...dailyStats.map(d => d.messages), 1);
 
   return (
-    <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Analytics</h1>
+    <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-background to-emerald-50/50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20">
+      <div className="max-w-6xl mx-auto p-8">
+        {/* Colorful Header */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
+          <h1 className="text-4xl font-bold mb-2">Analytics Dashboard</h1>
+          <p className="text-green-50">Monitor your performance and engagement metrics</p>
+        </div>
 
+        {/* Stats Cards with Colors */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6">
+          <Card className="p-6 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <MessageCircle className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-lg bg-green-500">
+                <MessageCircle className="h-5 w-5 text-white" />
+              </div>
               <h3 className="text-sm font-medium text-muted-foreground">Total Messages</h3>
             </div>
-            <p className="text-3xl font-bold">{stats.totalMessages}</p>
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.totalMessages}</p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <Users className="h-5 w-5 text-success" />
-              <h3 className="text-sm font-medium text-muted-foreground">Total Customers</h3>
+              <div className="p-2 rounded-lg bg-emerald-500">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-sm font-medium text-muted-foreground">Customers</h3>
             </div>
-            <p className="text-3xl font-bold">{stats.totalCustomers}</p>
+            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.totalCustomers}</p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <DollarSign className="h-5 w-5 text-accent" />
-              <h3 className="text-sm font-medium text-muted-foreground">Avg. Transaction</h3>
+              <div className="p-2 rounded-lg bg-green-500">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <h3 className="text-sm font-medium text-muted-foreground">Avg Transaction</h3>
             </div>
-            <p className="text-3xl font-bold">
+            <p className="text-3xl font-bold text-green-600 dark:text-green-400">
               ${stats.totalCustomers > 0 
                 ? (dailyStats.reduce((sum, d) => sum + d.revenue, 0) / stats.totalCustomers).toFixed(2)
                 : '0.00'}
             </p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-lg bg-emerald-500">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
               <h3 className="text-sm font-medium text-muted-foreground">Growth Rate</h3>
             </div>
-            <p className="text-3xl font-bold">+12%</p>
+            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">12%</p>
           </Card>
         </div>
 
-        <Card className="p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-            <Calendar className="h-6 w-6" />
-            Last 7 Days Activity
-          </h2>
+        <Card className="p-6 mb-8 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-green-500 to-emerald-500">
+              <Calendar className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold">Last 7 Days Activity</h2>
+          </div>
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-medium text-muted-foreground mb-3">Messages</h3>
@@ -170,7 +185,7 @@ const AnalyticsDashboard = () => {
                     <div className="w-20 text-sm text-muted-foreground">{day.date}</div>
                     <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                       <div
-                        className="bg-primary h-full flex items-center justify-end px-3 text-sm font-medium text-primary-foreground transition-all"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
                         style={{ width: `${(day.messages / maxMessages) * 100}%` }}
                       >
                         {day.messages > 0 && day.messages}
@@ -189,7 +204,7 @@ const AnalyticsDashboard = () => {
                     <div className="w-20 text-sm text-muted-foreground">{day.date}</div>
                     <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                       <div
-                        className="bg-success h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
                         style={{ width: `${(day.revenue / maxRevenue) * 100}%` }}
                       >
                         {day.revenue > 0 && `$${day.revenue.toFixed(2)}`}

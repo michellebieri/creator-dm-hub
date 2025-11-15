@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
-import { PieChart, Users, ChevronLeft } from 'lucide-react';
+import { PieChart, Users, ChevronLeft, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -72,10 +72,10 @@ const CreatorDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-14 z-10 bg-background border-b border-border">
+    <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-background to-emerald-50/50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
         <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Dashboard</h1>
@@ -84,11 +84,13 @@ const CreatorDashboard = () => {
       </header>
 
       <div className="max-w-screen-lg mx-auto p-4 space-y-4">
-        <Card className="p-4">
+        <Card className="p-4 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <PieChart className="h-5 w-5 text-primary" />
-              <h2 className="text-sm font-medium text-muted-foreground uppercase">Summary</h2>
+              <div className="p-2 rounded-lg bg-green-500">
+                <PieChart className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-sm font-medium text-green-700 dark:text-green-400 uppercase">Summary</h2>
             </div>
             <Select defaultValue="today">
               <SelectTrigger className="w-32 h-9">
@@ -123,9 +125,14 @@ const CreatorDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-4 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-medium text-muted-foreground uppercase">Revenue</h2>
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-400 uppercase">Revenue</h2>
+            </div>
             <div className="flex gap-2">
               <Select defaultValue="total">
                 <SelectTrigger className="w-24 h-8 text-xs">
@@ -152,11 +159,13 @@ const CreatorDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4">
+        <Card className="p-4 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-sm font-medium text-muted-foreground uppercase">New Customers</h2>
+              <div className="p-2 rounded-lg bg-green-500">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <h2 className="text-sm font-medium text-green-700 dark:text-green-400 uppercase">New Customers</h2>
             </div>
             <Select defaultValue="4weeks">
               <SelectTrigger className="w-32 h-8 text-xs">
