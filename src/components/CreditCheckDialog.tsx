@@ -253,8 +253,7 @@ export const CreditCheckDialog = ({
               Balance can be used for messages, tips, subscriptions, and content from any creator
             </div>
           </div>
-        )
-        ) : clientSecret ? (
+        )) : clientSecret ? (
           <Elements stripe={stripePromise} options={{ clientSecret }}>
             <EmbeddedPaymentForm
               amount={selectedAmount}
