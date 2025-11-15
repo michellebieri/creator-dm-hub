@@ -37,10 +37,21 @@ export default function ContentUpload() {
     setUploading(true);
 
     try {
-      // Create vault conversation if needed
-      let vaultConversationId = localStorage.getItem(`vault_conversation_${user.id}`);
+      // Get or create vault conversation
+      let vaultConversationId: string;
       
-      if (!vaultConversationId) {
+      // First, try to find existing vault conversation
+      const { data: existingConversation } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('creator_id', user.id)
+        .eq('customer_id', user.id)
+        .single();
+
+      if (existingConversation) {
+        vaultConversationId = existingConversation.id;
+      } else {
+        // Create new vault conversation
         const { data: conversation, error: convError } = await supabase
           .from('conversations')
           .insert({
@@ -52,7 +63,6 @@ export default function ContentUpload() {
 
         if (convError) throw convError;
         vaultConversationId = conversation.id;
-        localStorage.setItem(`vault_conversation_${user.id}`, vaultConversationId);
       }
 
       // Upload each file
