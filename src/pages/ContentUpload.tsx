@@ -67,7 +67,7 @@ export default function ContentUpload() {
 
       // Upload each file
       for (const file of files) {
-        const fileName = `vault/${user.id}/${Date.now()}-${file.name}`;
+        const fileName = `${user.id}/vault/${Date.now()}-${file.name}`;
         const { error: uploadError } = await supabase.storage
           .from('unlockables')
           .upload(fileName, file);
