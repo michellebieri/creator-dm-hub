@@ -90,6 +90,10 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
         <div className="text-2xl font-bold">${amount.toFixed(2)}</div>
       </div>
 
+      <div className="text-sm text-muted-foreground mb-2">
+        💳 Card • 🍎 Apple Pay • 💚 Google Pay
+      </div>
+
       <PaymentElement />
 
       {error && (
