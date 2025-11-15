@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "settings": "Settings",
+    "back": "Back"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "createAccount": "Create Account",
+    "welcomeBack": "Welcome Back"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "messages": "Messages",
+    "conversations": "Conversations",
+    "creators": "Creators",
+    "settings": "Settings",
+    "profile": "Profile",
+    "earnings": "Earnings",
+    "analytics": "Analytics"
+  },
+  "settings": {
+    "general": "General Settings",
+    "notifications": "Notifications",
+    "language": "Language",
+    "theme": "Theme",
+    "privacy": "Privacy",
+    "security": "Security"
+  },
+  "notifications": {
+    "enablePush": "Enable Push Notifications",
+    "pushEnabled": "Push notifications enabled",
+    "pushDisabled": "Push notifications disabled",
+    "permissionDenied": "Notification permission denied",
+    "newMessage": "New Message",
+    "newFollower": "New Follower"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "search": "Rechercher",
+    "settings": "Paramètres",
+    "back": "Retour"
+  },
+  "auth": {
+    "signIn": "Se Connecter",
+    "signUp": "S'inscrire",
+    "signOut": "Se Déconnecter",
+    "email": "Email",
+    "password": "Mot de Passe",
+    "forgotPassword": "Mot de passe oublié?",
+    "resetPassword": "Réinitialiser le Mot de Passe",
+    "createAccount": "Créer un Compte",
+    "welcomeBack": "Bon Retour"
+  },
+  "navigation": {
+    "dashboard": "Tableau de Bord",
+    "messages": "Messages",
+    "conversations": "Conversations",
+    "creators": "Créateurs",
+    "settings": "Paramètres",
+    "profile": "Profil",
+    "earnings": "Revenus",
+    "analytics": "Analytique"
+  },
+  "settings": {
+    "general": "Paramètres Généraux",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "theme": "Thème",
+    "privacy": "Confidentialité",
+    "security": "Sécurité"
+  },
+  "notifications": {
+    "enablePush": "Activer les Notifications Push",
+    "pushEnabled": "Notifications push activées",
+    "pushDisabled": "Notifications push désactivées",
+    "permissionDenied": "Permission de notification refusée",
+    "newMessage": "Nouveau Message",
+    "newFollower": "Nouveau Abonné"
+  }
+}

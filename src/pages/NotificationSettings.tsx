@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Bell, Mail, MessageCircle, DollarSign, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import PushNotifications from '@/components/PushNotifications';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface NotificationPreferences {
   email_new_message: boolean;
@@ -244,6 +246,20 @@ const NotificationSettings = () => {
               onCheckedChange={() => handleToggle('in_app_all')}
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <PushNotifications />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Language Preferences</CardTitle>
+          <CardDescription>
+            Choose your preferred language for the app
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LanguageSwitcher />
         </CardContent>
       </Card>
 
