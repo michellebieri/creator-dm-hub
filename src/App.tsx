@@ -33,6 +33,10 @@ import NotificationSettings from "./pages/NotificationSettings";
 import ReferralProgram from "./pages/ReferralProgram";
 import CollectionsManager from "./pages/CollectionsManager";
 import PromotionManager from "./pages/PromotionManager";
+import RevenueAnalytics from "./pages/RevenueAnalytics";
+import RefundManagement from "./pages/RefundManagement";
+import VIPCustomers from "./pages/VIPCustomers";
+import BroadcastMessages from "./pages/BroadcastMessages";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +80,10 @@ const App = () => (
             <Route path="/referrals" element={<ReferralProgram />} />
             <Route path="/collections" element={<CollectionsManager />} />
             <Route path="/promotions" element={<PromotionManager />} />
+            <Route path="/revenue-analytics" element={<RevenueAnalytics />} />
+            <Route path="/refunds" element={<RefundManagement />} />
+            <Route path="/vip-customers" element={<VIPCustomers />} />
+            <Route path="/broadcast" element={<BroadcastMessages />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
