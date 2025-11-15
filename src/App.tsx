@@ -37,6 +37,10 @@ import RevenueAnalytics from "./pages/RevenueAnalytics";
 import RefundManagement from "./pages/RefundManagement";
 import VIPCustomers from "./pages/VIPCustomers";
 import BroadcastMessages from "./pages/BroadcastMessages";
+import CustomerSpendingAnalytics from "./pages/CustomerSpendingAnalytics";
+import ConversionTracking from "./pages/ConversionTracking";
+import TrafficSourceDashboard from "./pages/TrafficSourceDashboard";
+import PerformanceBenchmarking from "./pages/PerformanceBenchmarking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -84,6 +88,10 @@ const App = () => (
             <Route path="/refunds" element={<RefundManagement />} />
             <Route path="/vip-customers" element={<VIPCustomers />} />
             <Route path="/broadcast" element={<BroadcastMessages />} />
+            <Route path="/customer-spending" element={<CustomerSpendingAnalytics />} />
+            <Route path="/conversion-tracking" element={<ConversionTracking />} />
+            <Route path="/traffic-sources" element={<TrafficSourceDashboard />} />
+            <Route path="/benchmarking" element={<PerformanceBenchmarking />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
