@@ -63,27 +63,14 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Create PaymentIntent for embedded payment form
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'Wallet Top-Up',
-              description: `Add $${amount.toFixed(2)} to your wallet`,
-            },
-            unit_amount: Math.round(amount * 100),
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      payment_method_types: ['card'],
-      success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get("origin")}/messages`,
+      automatic_payment_methods: {
+        enabled: true,
+      },
       metadata: {
         transaction_type: 'wallet_deposit',
         user_id: user.id,
@@ -91,9 +78,9 @@ serve(async (req) => {
       },
     });
 
-    console.log("Wallet deposit session created:", session.id);
+    console.log("Wallet deposit PaymentIntent created:", paymentIntent.id);
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    return new Response(JSON.stringify({ clientSecret: paymentIntent.client_secret }), {
       headers: { 
         ...corsHeaders, 
         ...getRateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
