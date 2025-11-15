@@ -30,6 +30,9 @@ import ContentModeration from "./pages/ContentModeration";
 import CreatorWaitlist from "./pages/CreatorWaitlist";
 import SessionManagement from "./pages/SessionManagement";
 import NotificationSettings from "./pages/NotificationSettings";
+import ReferralProgram from "./pages/ReferralProgram";
+import CollectionsManager from "./pages/CollectionsManager";
+import PromotionManager from "./pages/PromotionManager";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +73,9 @@ const App = () => (
             <Route path="/waitlist-status" element={<CreatorWaitlist />} />
             <Route path="/sessions" element={<SessionManagement />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
+            <Route path="/referrals" element={<ReferralProgram />} />
+            <Route path="/collections" element={<CollectionsManager />} />
+            <Route path="/promotions" element={<PromotionManager />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
