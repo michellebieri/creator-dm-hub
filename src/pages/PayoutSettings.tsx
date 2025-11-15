@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DollarSign, CreditCard, Calendar } from 'lucide-react';
+import { DollarSign, CreditCard, Calendar, ChevronLeft } from 'lucide-react';
 
 const PayoutSettings = () => {
   const { user, loading } = useAuth();
@@ -102,9 +102,19 @@ const PayoutSettings = () => {
   if (loading) return null;
 
   return (
-    <div className="p-8">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Payout Settings</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Payout Settings</h1>
 
         <div className="grid gap-6">
           <Card className="p-6">
@@ -189,6 +199,7 @@ const PayoutSettings = () => {
             </div>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );

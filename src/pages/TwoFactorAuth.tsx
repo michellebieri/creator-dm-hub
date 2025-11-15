@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Loader2, Shield, CheckCircle, AlertTriangle, Smartphone } from 'lucide-react';
+import { Loader2, Shield, CheckCircle, AlertTriangle, Smartphone, ChevronLeft } from 'lucide-react';
 
 export default function TwoFactorAuth() {
   const { user } = useAuth();
@@ -141,13 +141,18 @@ export default function TwoFactorAuth() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-2xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Two-Factor Authentication</h1>
-        <p className="text-muted-foreground">
-          Add an extra layer of security to your account
-        </p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Two-Factor Auth</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container mx-auto py-8 px-4 max-w-2xl">
 
       <Card>
         <CardHeader>
@@ -311,6 +316,7 @@ export default function TwoFactorAuth() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

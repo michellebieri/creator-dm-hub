@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { Heart, Trash2, ShoppingCart, Image, Video, Music, FileText } from 'lucide-react';
+import { Heart, Trash2, ShoppingCart, Image, Video, Music, FileText, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -131,11 +131,18 @@ const Wishlist = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">My Wishlist</h1>
-        <p className="text-muted-foreground">Content you want to unlock</p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">My Wishlist</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container mx-auto p-6 max-w-4xl">
 
       {wishlist.length > 0 && (
         <Card className="mb-6">
@@ -202,6 +209,7 @@ const Wishlist = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
