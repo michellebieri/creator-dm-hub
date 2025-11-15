@@ -24,13 +24,13 @@ const Index = () => {
               <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
-              <Button variant="ghost" onClick={() => navigate('/creators')}>
+              <Button variant="ghost" onClick={() => navigate('/browse')}>
                 Browse Creators
               </Button>
               {user ? (
                 <>
-                  <Button variant="ghost" onClick={() => navigate('/dashboard')} className="relative">
-                    Dashboard
+                  <Button variant="ghost" onClick={() => navigate('/conversations')} className="relative">
+                    Messages
                     {unreadCount > 0 && (
                       <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-destructive text-white text-xs">
                         {unreadCount}
@@ -59,19 +59,19 @@ const Index = () => {
 
           <div className="text-center animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Your DM inbox,<br />
-              but <span className="inline-block gradient-primary bg-clip-text text-transparent">✨extra✨</span>
+              Connect with your<br />
+              favorite <span className="inline-block gradient-primary bg-clip-text text-transparent">creators</span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Turn your direct messages into a revenue stream. Get paid for every conversation.
+              Get exclusive access to premium content and direct conversations with creators you love.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Button 
                 size="lg" 
                 className="gradient-primary text-primary-foreground text-lg px-8"
-                onClick={() => navigate('/auth')}
+                onClick={() => navigate('/browse')}
               >
-                Become a Creator
+                Browse Creators
               </Button>
               <Button 
                 size="lg" 
@@ -85,15 +85,15 @@ const Index = () => {
             <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-primary" />
-                <span>Privacy Guaranteed</span>
+                <span>Secure Payments</span>
               </div>
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                <span>Next-Day Payouts</span>
+                <MessageCircle className="h-5 w-5 text-primary" />
+                <span>Direct Messaging</span>
               </div>
               <div className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <span>Set Your Price</span>
+                <Zap className="h-5 w-5 text-primary" />
+                <span>Exclusive Content</span>
               </div>
             </div>
           </div>
@@ -265,18 +265,31 @@ const Index = () => {
       {/* CTA Section */}
       <section className="py-20 px-4 gradient-hero">
         <div className="container mx-auto max-w-4xl text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            Ready to turn DMs into dollars?
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">
+            Ready to Connect?
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Join thousands of creators already earning from their conversations.
+            Join thousands of users enjoying exclusive content from their favorite creators
           </p>
           <Button 
             size="lg" 
             className="gradient-primary text-primary-foreground text-lg px-8"
-            onClick={() => navigate('/auth')}
+            onClick={() => navigate('/browse')}
           >
-            Start Earning Today
+            Start Browsing
+          </Button>
+        </div>
+      </section>
+
+      {/* Creator Link at Bottom */}
+      <section className="py-8 px-4 bg-muted/30 border-t border-border">
+        <div className="container mx-auto max-w-6xl text-center">
+          <Button 
+            variant="link" 
+            className="text-muted-foreground hover:text-primary text-sm"
+            onClick={() => navigate('/creator-auth')}
+          >
+            Are you a creator? Get paid →
           </Button>
         </div>
       </section>
