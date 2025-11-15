@@ -19,7 +19,9 @@ import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+// Get Stripe publishable key from environment or use the default test key
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51QgHIvHBEe0ePTRxTH65PFYJHZdlmgSqYfRh9i3hJHf7xv44t4dxeV94K4xyGNTgvFtWTBF3Gv8qINE1qRmLUhiJ00dMQhLbfQ';
+const stripePromise = loadStripe(STRIPE_PUBLISHABLE_KEY);
 
 export const WalletBalance = () => {
   const { balance, loading } = useWallet();
