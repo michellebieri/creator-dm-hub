@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoleCheck } from "@/hooks/useRoleCheck";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { isCreator } = useRoleCheck();
   const unreadCount = useUnreadCount();
 
   return (
@@ -24,9 +26,11 @@ const Index = () => {
               <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
-              <Button variant="ghost" onClick={() => navigate('/browse')}>
-                Browse Creators
-              </Button>
+              {!isCreator && (
+                <Button variant="ghost" onClick={() => navigate('/browse')}>
+                  Browse Creators
+                </Button>
+              )}
               {user ? (
                 <>
                   <Button variant="ghost" onClick={() => navigate('/conversations')} className="relative">
@@ -66,13 +70,15 @@ const Index = () => {
               Get exclusive access to premium content and direct conversations with creators you love.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Button 
-                size="lg" 
-                className="gradient-primary text-primary-foreground text-lg px-8"
-                onClick={() => navigate('/browse')}
-              >
-                Browse Creators
-              </Button>
+              {!isCreator && (
+                <Button 
+                  size="lg" 
+                  className="gradient-primary text-primary-foreground text-lg px-8"
+                  onClick={() => navigate('/browse')}
+                >
+                  Browse Creators
+                </Button>
+              )}
               <Button 
                 size="lg" 
                 variant="outline" 

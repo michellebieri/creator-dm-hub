@@ -2,23 +2,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   User, 
-  Vault, 
-  ArrowLeftRight, 
-  Settings, 
-  Package, 
-  Radio, 
-  Users, 
-  CreditCard, 
-  List,
-  BarChart3,
-  PieChart,
-  DollarSign,
-  Smartphone,
-  HelpCircle,
-  RefreshCw,
-  Bell,
-  Lock,
-  LogOut,
+  MessageSquare,
+  Layers,
+  Package,
+  Share2,
+  Settings as SettingsIcon,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -29,33 +17,56 @@ const More = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
 
-  const menuItems = [
-    { title: 'Profile', icon: User, path: '/profile' },
-    { title: 'Vault', icon: Vault, path: '/vault' },
-    { title: 'Requests', icon: ArrowLeftRight, path: '/requests' },
-    { title: 'Settings', icon: Settings, path: '/account-settings' },
-  ];
-
-  const contentItems = [
-    { title: 'Content', icon: Package, path: '/vault' },
-    { title: 'Nudges', icon: Radio, path: '/broadcast' },
-    { title: 'Followers', icon: Users, path: '/following' },
-    { title: 'Subscribers', icon: CreditCard, path: '/subscribers' },
-    { title: 'Lists', icon: List, path: '/lists' },
-  ];
-
-  const analyticsItems = [
-    { title: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-    { title: 'Analytics', icon: PieChart, path: '/analytics' },
-    { title: 'Revenue', icon: DollarSign, path: '/revenue' },
-  ];
-
-  const otherItems = [
-    { title: 'Get the app', icon: Smartphone, path: '/get-app' },
-    { title: 'Support', icon: HelpCircle, path: '/support' },
-    { title: 'Switch account', icon: RefreshCw, path: '/switch-account' },
-    { title: 'Notifications', icon: Bell, path: '/notification-settings' },
-    { title: 'Privacy', icon: Lock, path: '/privacy-settings' },
+  const settingsItems = [
+    { 
+      title: 'Account', 
+      icon: User, 
+      path: '/account-settings',
+      iconBg: 'bg-gray-500/20',
+      iconColor: 'text-gray-500'
+    },
+    { 
+      title: 'Profile', 
+      icon: User, 
+      path: '/profile',
+      iconBg: 'bg-blue-500/20',
+      iconColor: 'text-blue-500'
+    },
+    { 
+      title: 'Messaging', 
+      icon: MessageSquare, 
+      path: '/conversations',
+      iconBg: 'bg-green-500/20',
+      iconColor: 'text-green-500'
+    },
+    { 
+      title: 'Subscription', 
+      icon: Layers, 
+      path: '/subscriptions',
+      iconBg: 'bg-purple-500/20',
+      iconColor: 'text-purple-500'
+    },
+    { 
+      title: 'Bundle', 
+      icon: Package, 
+      path: '/vault',
+      iconBg: 'bg-pink-500/20',
+      iconColor: 'text-pink-500'
+    },
+    { 
+      title: 'Socials', 
+      icon: Share2, 
+      path: '/following',
+      iconBg: 'bg-gray-500/20',
+      iconColor: 'text-gray-500'
+    },
+    { 
+      title: 'Management', 
+      icon: SettingsIcon, 
+      path: '/dashboard',
+      iconBg: 'bg-gray-500/20',
+      iconColor: 'text-gray-500'
+    },
   ];
 
   const handleSignOut = async () => {
@@ -63,14 +74,26 @@ const More = () => {
     navigate('/auth');
   };
 
-  const MenuItem = ({ title, icon: Icon, onClick }: { title: string; icon: any; onClick: () => void }) => (
+  const MenuItem = ({ 
+    title, 
+    icon: Icon, 
+    onClick, 
+    iconBg, 
+    iconColor 
+  }: { 
+    title: string; 
+    icon: any; 
+    onClick: () => void;
+    iconBg: string;
+    iconColor: string;
+  }) => (
     <button
       onClick={onClick}
       className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
     >
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-          <Icon className="h-5 w-5 text-primary" />
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
         </div>
         <span className="text-base font-medium">{title}</span>
       </div>

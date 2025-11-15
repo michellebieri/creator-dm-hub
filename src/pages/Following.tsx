@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ interface Following {
 
 const Following = () => {
   const { user } = useAuth();
+  const { isCreator } = useRoleCheck();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [following, setFollowing] = useState<Following[]>([]);
@@ -39,36 +41,51 @@ const Following = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('user_follows')
-        .select(`
-          id,
-          following_id,
-          created_at
-        `)
-        .eq('follower_id', user.id)
-        .order('created_at', { ascending: false });
+      // If creator, fetch followers. If customer, fetch following
+      const query = isCreator
+        ? supabase
+            .from('user_follows')
+            .select(`
+              id,
+              follower_id,
+              created_at
+            `)
+            .eq('following_id', user.id)
+        : supabase
+            .from('user_follows')
+            .select(`
+              id,
+              following_id,
+              created_at
+            `)
+            .eq('follower_id', user.id);
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Get creator profiles
-      const creatorIds = data?.map(f => f.following_id) || [];
-      const { data: creators } = await supabase
+      // Get profiles - either followers or following based on user type
+      const profileIds = isCreator 
+        ? data?.map(f => f.follower_id) || []
+        : data?.map(f => f.following_id) || [];
+        
+      const { data: profiles } = await supabase
         .from('profiles')
         .select('id, display_name, username, avatar_url, bio')
-        .in('id', creatorIds);
+        .in('id', profileIds);
 
-      const creatorMap = new Map(creators?.map(c => [c.id, c]) || []);
+      const profileMap = new Map(profiles?.map(c => [c.id, c]) || []);
 
       const formatted = data?.map(follow => {
-        const creator = creatorMap.get(follow.following_id);
+        const profileId = isCreator ? follow.follower_id : follow.following_id;
+        const profile = profileMap.get(profileId);
         return {
           id: follow.id,
-          following_id: follow.following_id,
-          creator_name: creator?.display_name || 'Unknown',
-          creator_username: creator?.username || 'unknown',
-          creator_avatar: creator?.avatar_url || null,
-          creator_bio: creator?.bio || null,
+          following_id: profileId,
+          creator_name: profile?.display_name || 'Unknown',
+          creator_username: profile?.username || 'unknown',
+          creator_avatar: profile?.avatar_url || null,
+          creator_bio: profile?.bio || null,
           followed_at: follow.created_at,
         };
       }) || [];
@@ -76,7 +93,7 @@ const Following = () => {
       setFollowing(formatted);
     } catch (error) {
       console.error('Error fetching following:', error);
-      toast.error('Failed to load following list');
+      toast.error(isCreator ? 'Failed to load followers' : 'Failed to load following list');
     } finally {
       setLoading(false);
     }
@@ -114,8 +131,10 @@ const Following = () => {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Following</h1>
-        <p className="text-muted-foreground">Creators you're following</p>
+        <h1 className="text-3xl font-bold mb-2">{isCreator ? 'Followers' : 'Following'}</h1>
+        <p className="text-muted-foreground">
+          {isCreator ? 'People who follow you' : 'Creators you\'re following'}
+        </p>
       </div>
 
       {following.length > 0 && (
