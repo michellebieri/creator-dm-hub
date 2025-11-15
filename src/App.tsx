@@ -45,6 +45,10 @@ import ContentWatermark from "./pages/ContentWatermark";
 import ContentExpiration from "./pages/ContentExpiration";
 import WelcomeAutomation from "./pages/WelcomeAutomation";
 import PricingExperiments from "./pages/PricingExperiments";
+import TwoFactorAuth from "./pages/TwoFactorAuth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
+import AgeVerification from "./pages/AgeVerification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,6 +62,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
@@ -100,6 +106,8 @@ const App = () => (
             <Route path="/content-expiration" element={<ContentExpiration />} />
             <Route path="/welcome-automation" element={<WelcomeAutomation />} />
             <Route path="/pricing-experiments" element={<PricingExperiments />} />
+            <Route path="/two-factor-auth" element={<TwoFactorAuth />} />
+            <Route path="/age-verification" element={<AgeVerification />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
