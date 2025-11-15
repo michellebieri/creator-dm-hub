@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { 
   User, 
   Bell, 
@@ -20,15 +21,17 @@ import {
   Archive,
   CornerUpLeft,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Newspaper,
+  Receipt
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 
 const More = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { isCreator } = useRoleCheck();
 
   const handleSignOut = async () => {
     await signOut();
@@ -66,7 +69,7 @@ const More = () => {
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">More</h1>
@@ -76,42 +79,49 @@ const More = () => {
 
       <div className="max-w-screen-lg mx-auto">
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Profile" icon={User} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/profile')} />
-          <MenuItem title="Vault" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
-          <MenuItem title="Requests" icon={CornerUpLeft} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('#')} />
-          <MenuItem title="Settings" icon={Settings} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
+          <MenuItem title="Profile" icon={User} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/profile')} />
+          <MenuItem title="Gallery" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
+          <MenuItem title="Following" icon={Newspaper} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/following')} />
+          <MenuItem title="Subscriptions" icon={CreditCard} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/subscriptions')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/content-menu')} />
-          <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
-          <MenuItem title="Followers" icon={Users} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/following')} />
-          <MenuItem title="Subscribers" icon={CreditCard} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/subscriptions')} />
-          <MenuItem title="Lists" icon={List} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/lists')} />
+          <MenuItem title="Notifications" icon={Bell} iconBg="bg-red-500/10" iconColor="text-red-500" onClick={() => navigate('/notification-settings')} />
+          <MenuItem title="Account" icon={Settings} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
+          <MenuItem title="Payment details" icon={CreditCard} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('#')} />
+          <MenuItem title="Payment history" icon={Receipt} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/purchase-history')} />
+        </Card>
+
+        {isCreator && (
+          <>
+            <Card className="m-4 overflow-hidden">
+              <MenuItem title="Revenue" icon={DollarSign} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/earnings')} />
+            </Card>
+
+            <Card className="m-4 overflow-hidden">
+              <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/content-menu')} />
+              <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
+              <MenuItem title="Lists" icon={List} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
+            </Card>
+
+            <Card className="m-4 overflow-hidden">
+              <MenuItem title="Dashboard" icon={BarChart3} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/dashboard')} />
+              <MenuItem title="Analytics" icon={PieChart} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/analytics')} />
+            </Card>
+          </>
+        )}
+
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Get the app" icon={Smartphone} iconBg="bg-yellow-500/10" iconColor="text-yellow-500" onClick={() => navigate('#')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Dashboard" icon={BarChart3} iconBg="bg-green-500/20" iconColor="text-green-500" onClick={() => navigate('/dashboard')} />
-          <MenuItem title="Analytics" icon={PieChart} iconBg="bg-green-500/20" iconColor="text-green-500" onClick={() => navigate('/analytics')} />
-          <MenuItem title="Revenue" icon={DollarSign} iconBg="bg-lime-500/20" iconColor="text-lime-500" onClick={() => navigate('/earnings')} />
+          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('#')} />
+          <MenuItem title="Switch account" icon={RefreshCw} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('#')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Get the app" icon={Smartphone} iconBg="bg-yellow-500/20" iconColor="text-yellow-500" onClick={() => navigate('#')} />
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-orange-500/20" iconColor="text-orange-500" onClick={() => navigate('#')} />
-          <MenuItem title="Switch account" icon={RefreshCw} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('#')} />
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          <MenuItem title="Notifications" icon={Bell} iconBg="bg-red-500/20" iconColor="text-red-500" onClick={() => navigate('/notification-settings')} />
-          <MenuItem title="Privacy" icon={Lock} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('/privacy-settings')} />
-        </Card>
-
-        <Card className="m-4 overflow-hidden">
-          <MenuItem title="Sign out" icon={LogOut} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={handleSignOut} />
+          <MenuItem title="Sign out" icon={LogOut} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={handleSignOut} />
         </Card>
       </div>
     </div>
