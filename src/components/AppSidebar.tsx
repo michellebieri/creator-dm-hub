@@ -10,7 +10,9 @@ import {
   Vault,
   Bot,
   Library,
-  Receipt
+  Receipt,
+  Shield,
+  Bell
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +37,9 @@ export function AppSidebar() {
   // Determine if user is creator based on their profile
   const isCreator = user?.user_metadata?.role === 'creator';
 
+  // Check if user is admin (in production, check against user_roles table)
+  const isAdminEmail = user?.email === 'admin@dm.me';
+
   const creatorItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
@@ -45,6 +50,8 @@ export function AppSidebar() {
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
+    ...(isAdminEmail ? [{ title: "Admin", url: "/admin", icon: Shield }] : []),
+    { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
 
@@ -54,6 +61,7 @@ export function AppSidebar() {
     { title: "My Library", url: "/library", icon: Library },
     { title: "Purchase History", url: "/purchase-history", icon: Receipt },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
+    { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
 
