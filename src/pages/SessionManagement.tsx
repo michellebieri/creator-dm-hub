@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Monitor, Smartphone, Loader2, LogOut, Clock } from 'lucide-react';
+import { Monitor, Smartphone, Loader2, LogOut, Clock, ChevronLeft } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface Session {
@@ -143,20 +143,23 @@ const SessionManagement = () => {
   }
 
   return (
-    <div className="container max-w-4xl mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Session Management</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your active sessions and sign out remotely
-          </p>
-        </div>
-        {sessions.length > 0 && (
-          <Button variant="destructive" onClick={terminateAllSessions}>
-            Terminate All Sessions
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
           </Button>
-        )}
-      </div>
+          <h1 className="text-lg font-semibold">Session Management</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container max-w-4xl mx-auto p-6 space-y-6">
+      {sessions.length > 0 && (
+        <Button variant="destructive" onClick={terminateAllSessions} className="w-full sm:w-auto">
+          Terminate All Sessions
+        </Button>
+      )}
 
       <Alert>
         <Clock className="h-4 w-4" />
@@ -237,6 +240,7 @@ const SessionManagement = () => {
           <strong>Note:</strong> Session tracking is limited in this demo. In production, sessions would be automatically tracked with device fingerprinting and IP logging.
         </AlertDescription>
       </Alert>
+      </div>
     </div>
   );
 };

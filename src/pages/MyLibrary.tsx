@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Image, Video, Music, FileText, Search, Package, Unlock, Eye } from 'lucide-react';
+import { Image, Video, Music, FileText, Search, Package, Unlock, Eye, ChevronLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { format } from 'date-fns';
@@ -38,6 +39,7 @@ interface PurchasedBundle {
 
 const MyLibrary = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [unlockedContent, setUnlockedContent] = useState<UnlockedContent[]>([]);
   const [purchasedBundles, setPurchasedBundles] = useState<PurchasedBundle[]>([]);
@@ -242,11 +244,18 @@ const MyLibrary = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">My Library</h1>
-        <p className="text-muted-foreground">Access all your purchased content and bundles</p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">My Library</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container mx-auto p-6 max-w-6xl space-y-6">
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -421,6 +430,7 @@ const MyLibrary = () => {
           )}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };
