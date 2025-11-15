@@ -1,171 +1,152 @@
-import { useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Separator } from '@/components/ui/separator';
-import { Download, Trash2, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { 
+  User, 
+  Bell, 
+  Shield, 
+  CreditCard, 
+  Mail,
+  Lock,
+  Palette,
+  Globe,
+  ChevronRight,
+  ChevronLeft,
+  LogOut
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 const AccountSettings = () => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [deleting, setDeleting] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
-  const handleExportData = async () => {
-    setExporting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('export-user-data');
-      
-      if (error) throw error;
+  const settingsItems = [
+    { 
+      title: 'Account', 
+      icon: User, 
+      path: '/profile',
+      iconBg: 'bg-gray-500/20',
+      iconColor: 'text-gray-500'
+    },
+    { 
+      title: 'Notifications', 
+      icon: Bell, 
+      path: '/notification-settings',
+      iconBg: 'bg-blue-500/20',
+      iconColor: 'text-blue-500'
+    },
+    { 
+      title: 'Privacy', 
+      icon: Shield, 
+      path: '/privacy-settings',
+      iconBg: 'bg-green-500/20',
+      iconColor: 'text-green-500'
+    },
+    { 
+      title: 'Payments', 
+      icon: CreditCard, 
+      path: '/purchase-history',
+      iconBg: 'bg-purple-500/20',
+      iconColor: 'text-purple-500'
+    },
+    { 
+      title: 'Email', 
+      icon: Mail, 
+      path: '/email-preferences',
+      iconBg: 'bg-pink-500/20',
+      iconColor: 'text-pink-500'
+    },
+    { 
+      title: 'Security', 
+      icon: Lock, 
+      path: '/two-factor',
+      iconBg: 'bg-orange-500/20',
+      iconColor: 'text-orange-500'
+    },
+    { 
+      title: 'Appearance', 
+      icon: Palette, 
+      path: '#',
+      iconBg: 'bg-red-500/20',
+      iconColor: 'text-red-500'
+    },
+    { 
+      title: 'Language', 
+      icon: Globe, 
+      path: '#',
+      iconBg: 'bg-cyan-500/20',
+      iconColor: 'text-cyan-500'
+    },
+  ];
 
-      // Create and download JSON file
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `data-export-${Date.now()}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success('Data exported successfully');
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      toast.error('Failed to export data');
-    } finally {
-      setExporting(false);
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
   };
 
-  const handleDeleteAccount = async () => {
-    if (deleteConfirmation !== 'DELETE') {
-      toast.error('Please type DELETE to confirm');
-      return;
-    }
-
-    setDeleting(true);
-    try {
-      // Delete user data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', user?.id);
-
-      if (profileError) throw profileError;
-
-      // Delete auth user
-      const { error: authError } = await supabase.auth.admin.deleteUser(user?.id || '');
-      if (authError) throw authError;
-
-      toast.success('Account deleted successfully');
-      await signOut();
-      navigate('/');
-    } catch (error) {
-      console.error('Error deleting account:', error);
-      toast.error('Failed to delete account. Please contact support.');
-    } finally {
-      setDeleting(false);
-    }
-  };
+  const MenuItem = ({ 
+    title, 
+    icon: Icon, 
+    onClick, 
+    iconBg, 
+    iconColor 
+  }: { 
+    title: string; 
+    icon: any; 
+    onClick: () => void;
+    iconBg: string;
+    iconColor: string;
+  }) => (
+    <button
+      onClick={onClick}
+      className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <span className="text-base font-medium">{title}</span>
+      </div>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </button>
+  );
 
   return (
-    <div className="container mx-auto p-6 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
-        <p className="text-muted-foreground">Manage your account data and preferences</p>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Settings</h1>
+          <div className="w-10" />
+        </div>
+      </header>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Download className="h-5 w-5" />
-              <CardTitle>Export Your Data</CardTitle>
-            </div>
-            <CardDescription>
-              Download a copy of all your data in JSON format (GDPR compliant)
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              This will include your profile information, messages, transactions, and other data associated with your account.
-            </p>
-            <Button onClick={handleExportData} disabled={exporting}>
-              <Download className="h-4 w-4 mr-2" />
-              {exporting ? 'Exporting...' : 'Export My Data'}
-            </Button>
-          </CardContent>
+      <div className="max-w-screen-lg mx-auto">
+        <Card className="m-4 overflow-hidden">
+          {settingsItems.map((item) => (
+            <MenuItem
+              key={item.title}
+              title={item.title}
+              icon={item.icon}
+              iconBg={item.iconBg}
+              iconColor={item.iconColor}
+              onClick={() => item.path !== '#' && navigate(item.path)}
+            />
+          ))}
         </Card>
 
-        <Card className="border-destructive">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            </div>
-            <CardDescription>
-              Permanently delete your account and all associated data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Account
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Account Permanently?</AlertDialogTitle>
-                  <AlertDialogDescription className="space-y-3">
-                    <p>This action cannot be undone. This will permanently delete your account and remove all your data from our servers.</p>
-                    <p>All your:</p>
-                    <ul className="list-disc list-inside ml-4">
-                      <li>Messages and conversations</li>
-                      <li>Purchased content</li>
-                      <li>Transaction history</li>
-                      <li>Profile information</li>
-                    </ul>
-                    <p>will be permanently deleted.</p>
-                    <Separator />
-                    <div className="space-y-2">
-                      <Label htmlFor="delete-confirm">
-                        Type <strong>DELETE</strong> to confirm
-                      </Label>
-                      <Input
-                        id="delete-confirm"
-                        value={deleteConfirmation}
-                        onChange={(e) => setDeleteConfirmation(e.target.value)}
-                        placeholder="Type DELETE here"
-                      />
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteAccount}
-                    disabled={deleteConfirmation !== 'DELETE' || deleting}
-                    className="bg-destructive hover:bg-destructive/90"
-                  >
-                    {deleting ? 'Deleting...' : 'Delete My Account'}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardContent>
-        </Card>
+        <div className="px-4 mt-4">
+          <Button 
+            variant="destructive" 
+            className="w-full"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-5 w-5 mr-2" />
+            Sign Out
+          </Button>
+        </div>
       </div>
     </div>
   );
