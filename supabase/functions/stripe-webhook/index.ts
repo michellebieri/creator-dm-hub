@@ -36,7 +36,27 @@ serve(async (req) => {
     const body = await req.text();
     const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
 
-    console.log("Webhook event type:", event.type);
+    console.log("Webhook event type:", event.type, "ID:", event.id);
+
+    // Check if event already processed (idempotency)
+    const { data: processedEvent } = await supabaseClient
+      .from('processed_webhook_events')
+      .select('id')
+      .eq('event_id', event.id)
+      .single();
+
+    if (processedEvent) {
+      console.log("Event already processed:", event.id);
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Mark event as being processed
+    await supabaseClient
+      .from('processed_webhook_events')
+      .insert({ event_id: event.id, event_type: event.type });
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -172,6 +192,209 @@ serve(async (req) => {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.error("Payment failed:", paymentIntent.id);
         // Could send notification to customer about failed payment
+        break;
+      }
+
+      case "customer.subscription.created": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+        const priceId = subscription.items.data[0]?.price.id;
+
+        // Get customer email from metadata if available
+        const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+        const customerEmail = customer.email;
+
+        if (!customerEmail || !priceId) {
+          console.error("Missing customer email or price ID");
+          break;
+        }
+
+        // Find user ID from auth.users using service role
+        const { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers();
+        const authUser = authUsers?.users.find(u => u.email === customerEmail);
+
+        if (!authUser) {
+          console.error("User not found for email:", customerEmail);
+          break;
+        }
+
+        const userId = authUser.id;
+
+        // Find subscription tier by stripe price id
+        const { data: tier } = await supabaseClient
+          .from("subscription_tiers")
+          .select("id, creator_id, price")
+          .eq("stripe_price_id", priceId)
+          .single();
+
+        if (!tier) {
+          console.error("Subscription tier not found for price:", priceId);
+          break;
+        }
+
+        // Create subscription record
+        await supabaseClient.from("creator_subscriptions").insert({
+          customer_id: userId,
+          tier_id: tier.id,
+          stripe_subscription_id: subscription.id,
+          status: subscription.status,
+          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        });
+
+        // Record transaction
+        await supabaseClient.from("transactions").insert({
+          customer_id: userId,
+          creator_id: tier.creator_id,
+          amount: tier.price,
+          net_amount: tier.price * 0.85,
+          platform_fee: tier.price * 0.15,
+          processor_fee: 0,
+          transaction_type: "subscription",
+          status: "completed",
+          stripe_payment_id: subscription.latest_invoice as string,
+        });
+
+        // Send notifications
+        await supabaseClient.functions.invoke("create-notification", {
+          body: {
+            userId: userId,
+            type: "subscription_active",
+            title: "Subscription Active",
+            message: "Your subscription is now active!",
+            link: "/subscriptions",
+          },
+        });
+
+        await supabaseClient.functions.invoke("create-notification", {
+          body: {
+            userId: tier.creator_id,
+            type: "new_subscriber",
+            title: "New Subscriber",
+            message: `You have a new subscriber! You earned $${(tier.price * 0.85).toFixed(2)}`,
+            link: "/earnings",
+          },
+        });
+
+        console.log("Subscription created:", subscription.id);
+        break;
+      }
+
+      case "customer.subscription.updated": {
+        const subscription = event.data.object as Stripe.Subscription;
+
+        // Update subscription status
+        await supabaseClient
+          .from("creator_subscriptions")
+          .update({
+            status: subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          })
+          .eq("stripe_subscription_id", subscription.id);
+
+        console.log("Subscription updated:", subscription.id, "Status:", subscription.status);
+        break;
+      }
+
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+
+        // Update subscription to canceled
+        const { data: subData } = await supabaseClient
+          .from("creator_subscriptions")
+          .update({ status: "canceled" })
+          .eq("stripe_subscription_id", subscription.id)
+          .select("customer_id")
+          .single();
+
+        if (subData) {
+          // Send notification
+          await supabaseClient.functions.invoke("create-notification", {
+            body: {
+              userId: subData.customer_id,
+              type: "subscription_canceled",
+              title: "Subscription Canceled",
+              message: "Your subscription has been canceled. You'll still have access until the end of your billing period.",
+              link: "/subscriptions",
+            },
+          });
+        }
+
+        console.log("Subscription deleted:", subscription.id);
+        break;
+      }
+
+      case "invoice.payment_succeeded": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = invoice.subscription as string;
+
+        if (subscriptionId) {
+          // Find subscription and record transaction
+          const { data: subscription } = await supabaseClient
+            .from("creator_subscriptions")
+            .select("customer_id, tier_id, subscription_tiers(creator_id, price)")
+            .eq("stripe_subscription_id", subscriptionId)
+            .single();
+
+          if (subscription && subscription.subscription_tiers) {
+            const tier = subscription.subscription_tiers as any;
+            
+            await supabaseClient.from("transactions").insert({
+              customer_id: subscription.customer_id,
+              creator_id: tier.creator_id,
+              amount: tier.price,
+              net_amount: tier.price * 0.85,
+              platform_fee: tier.price * 0.15,
+              processor_fee: 0,
+              transaction_type: "subscription",
+              status: "completed",
+              stripe_payment_id: invoice.payment_intent as string,
+            });
+
+            // Send notification to creator
+            await supabaseClient.functions.invoke("create-notification", {
+              body: {
+                userId: tier.creator_id,
+                type: "subscription_payment",
+                title: "Subscription Payment Received",
+                message: `You earned $${(tier.price * 0.85).toFixed(2)} from a subscription renewal!`,
+                link: "/earnings",
+              },
+            });
+          }
+        }
+
+        console.log("Invoice payment succeeded:", invoice.id);
+        break;
+      }
+
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subscriptionId = invoice.subscription as string;
+
+        if (subscriptionId) {
+          // Find subscription and notify customer
+          const { data: subscription } = await supabaseClient
+            .from("creator_subscriptions")
+            .select("customer_id")
+            .eq("stripe_subscription_id", subscriptionId)
+            .single();
+
+          if (subscription) {
+            await supabaseClient.functions.invoke("create-notification", {
+              body: {
+                userId: subscription.customer_id,
+                type: "payment_failed",
+                title: "Payment Failed",
+                message: "Your subscription payment failed. Please update your payment method to avoid service interruption.",
+                link: "/subscriptions",
+              },
+            });
+          }
+        }
+
+        console.log("Invoice payment failed:", invoice.id);
         break;
       }
 

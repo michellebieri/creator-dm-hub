@@ -1,27 +1,45 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 type AppRole = 'admin' | 'moderator' | 'creator' | 'customer';
 
 export const useRoleCheck = () => {
-  const { user } = useAuth();
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Derive role from user metadata
-    if (!user) {
-      setRoles([]);
-      setLoading(false);
-      return;
-    }
+    fetchRoles();
+  }, []);
 
-    const userRole = user.user_metadata?.role as AppRole;
-    if (userRole) {
-      setRoles([userRole]);
+  const fetchRoles = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setRoles([]);
+        setLoading(false);
+        return;
+      }
+
+      // Fetch roles from user_roles table
+      const { data: userRoles, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error fetching roles:', error);
+        setRoles([]);
+      } else {
+        setRoles(userRoles?.map(r => r.role as AppRole) || []);
+      }
+    } catch (error) {
+      console.error('Error in fetchRoles:', error);
+      setRoles([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, [user]);
+  };
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = roles.includes('admin');
@@ -35,5 +53,6 @@ export const useRoleCheck = () => {
     isModerator,
     isCreator,
     loading,
+    refetch: fetchRoles,
   };
 };
