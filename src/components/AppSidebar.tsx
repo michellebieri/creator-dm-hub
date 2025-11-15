@@ -57,6 +57,7 @@ export function AppSidebar() {
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
     { title: "Broadcast", url: "/broadcast", icon: Radio },
+    { title: "Subscribers", url: "/subscribers", icon: Users },
     { title: "Analytics", url: "/analytics", icon: BarChart3 },
     { title: "Content Analytics", url: "/content-analytics", icon: BarChart3 },
     { title: "Revenue Analytics", url: "/revenue-analytics", icon: DollarSign },
@@ -68,6 +69,8 @@ export function AppSidebar() {
     { title: "Refunds", url: "/refunds", icon: RefreshCw },
     { title: "VIP Customers", url: "/vip-customers", icon: Crown },
     { title: "Content Vault", url: "/vault", icon: Vault },
+    { title: "Content Tags", url: "/content-tags", icon: FileText },
+    { title: "Collections", url: "/collections", icon: Library },
     { title: "Content Watermark", url: "/content-watermark", icon: Droplet },
     { title: "Content Expiration", url: "/content-expiration", icon: Clock },
     { title: "Welcome Messages", url: "/welcome-automation", icon: Sparkles },
@@ -75,7 +78,10 @@ export function AppSidebar() {
     { title: "Content Moderation", url: "/content-moderation", icon: Shield },
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
+    { title: "Subscription Tiers", url: "/subscription-tiers", icon: Crown },
+    { title: "Promo Codes", url: "/promo-codes", icon: Receipt },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
+    { title: "Verification", url: "/verification", icon: ShieldCheck },
     ...(isAdminEmail ? [
       { title: "Admin", url: "/admin", icon: Shield },
       { title: "Users", url: "/users", icon: Users }

@@ -397,6 +397,60 @@ export type Database = {
           },
         ]
       }
+      content_tag_assignments: {
+        Row: {
+          created_at: string | null
+          id: string
+          tag_id: string
+          unlockable_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          tag_id: string
+          unlockable_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          tag_id?: string
+          unlockable_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_tag_assignments_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "content_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_tag_assignments_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_tags: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       conversation_label_assignments: {
         Row: {
           conversation_id: string
@@ -601,6 +655,54 @@ export type Database = {
             columns: ["tier_id"]
             isOneToOne: false
             referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_verifications: {
+        Row: {
+          creator_id: string
+          documents_url: string | null
+          id: string
+          rejection_reason: string | null
+          reviewed_by: string | null
+          status: string
+          submitted_at: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          creator_id: string
+          documents_url?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          creator_id?: string
+          documents_url?: string | null
+          id?: string
+          rejection_reason?: string | null
+          reviewed_by?: string | null
+          status?: string
+          submitted_at?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_verifications_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_verifications_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

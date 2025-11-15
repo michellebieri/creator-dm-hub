@@ -56,6 +56,11 @@ import Wishlist from "./pages/Wishlist";
 import PrivacySettings from "./pages/PrivacySettings";
 import AccountSettings from "./pages/AccountSettings";
 import BlockedUsers from "./pages/BlockedUsers";
+import { PromoCodeManager } from "./components/PromoCodeManager";
+import { SubscriptionTiersManager } from "./components/SubscriptionTiersManager";
+import SubscribersList from "./pages/SubscribersList";
+import ContentTags from "./pages/ContentTags";
+import CreatorVerification from "./pages/CreatorVerification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -122,6 +127,12 @@ const App = () => {
             <Route path="/privacy-settings" element={<PrivacySettings />} />
             <Route path="/account-settings" element={<AccountSettings />} />
             <Route path="/blocked-users" element={<BlockedUsers />} />
+            <Route path="/collections" element={<CollectionsManager />} />
+            <Route path="/promo-codes" element={<PromoCodeManager />} />
+            <Route path="/subscription-tiers" element={<SubscriptionTiersManager />} />
+            <Route path="/subscribers" element={<SubscribersList />} />
+            <Route path="/content-tags" element={<ContentTags />} />
+            <Route path="/verification" element={<CreatorVerification />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
