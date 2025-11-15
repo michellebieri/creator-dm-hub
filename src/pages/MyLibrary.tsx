@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Image, Video, Music, FileText, Download, Search, Package, Unlock } from 'lucide-react';
+import { Image, Video, Music, FileText, Search, Package, Unlock, Eye } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { format } from 'date-fns';
@@ -50,6 +50,35 @@ const MyLibrary = () => {
       fetchLibraryData();
     }
   }, [user]);
+
+  // Disable right-click context menu and screenshot attempts
+  useEffect(() => {
+    const disableContextMenu = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'IMG' || target.tagName === 'VIDEO') {
+        e.preventDefault();
+        toast.error('Content downloads are disabled for protection');
+      }
+    };
+
+    const disableScreenshot = (e: KeyboardEvent) => {
+      // Detect common screenshot shortcuts
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5')) {
+        toast.error('Screenshots are disabled for content protection');
+      }
+      if (e.key === 'PrintScreen') {
+        toast.error('Screenshots are disabled for content protection');
+      }
+    };
+
+    document.addEventListener('contextmenu', disableContextMenu);
+    document.addEventListener('keydown', disableScreenshot);
+
+    return () => {
+      document.removeEventListener('contextmenu', disableContextMenu);
+      document.removeEventListener('keydown', disableScreenshot);
+    };
+  }, []);
 
   const fetchLibraryData = async () => {
     if (!user) return;
@@ -339,15 +368,7 @@ const MyLibrary = () => {
                       onClick={() => window.open(item.media_url, '_blank')}
                     >
                       {getMediaIcon(item.media_type)}
-                      <span className="ml-2">View</span>
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => handleDownload(item.media_url, `content-${item.id}`)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
+                      <span className="ml-2">View Full Size</span>
                     </Button>
                   </CardContent>
                 </Card>

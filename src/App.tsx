@@ -50,6 +50,12 @@ import TwoFactorAuth from "./pages/TwoFactorAuth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AgeVerification from "./pages/AgeVerification";
+import Subscriptions from "./pages/Subscriptions";
+import Following from "./pages/Following";
+import Wishlist from "./pages/Wishlist";
+import PrivacySettings from "./pages/PrivacySettings";
+import AccountSettings from "./pages/AccountSettings";
+import BlockedUsers from "./pages/BlockedUsers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -110,6 +116,12 @@ const App = () => {
             <Route path="/pricing-experiments" element={<PricingExperiments />} />
             <Route path="/two-factor-auth" element={<TwoFactorAuth />} />
             <Route path="/age-verification" element={<AgeVerification />} />
+            <Route path="/subscriptions" element={<Subscriptions />} />
+            <Route path="/following" element={<Following />} />
+            <Route path="/wishlist" element={<Wishlist />} />
+            <Route path="/privacy-settings" element={<PrivacySettings />} />
+            <Route path="/account-settings" element={<AccountSettings />} />
+            <Route path="/blocked-users" element={<BlockedUsers />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
