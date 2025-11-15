@@ -4,13 +4,23 @@ import {
   User, 
   Bell, 
   Shield, 
-  CreditCard, 
-  Settings, 
+  Settings,
   LogOut,
-  Mail,
   Lock,
-  Palette,
-  Globe
+  Radio,
+  Users,
+  CreditCard,
+  List,
+  BarChart3,
+  PieChart,
+  DollarSign,
+  Smartphone,
+  HelpCircle,
+  RefreshCw,
+  Archive,
+  CornerUpLeft,
+  ChevronRight,
+  ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,58 +38,81 @@ const More = () => {
   const MenuItem = ({ 
     title, 
     icon: Icon, 
-    onClick 
+    onClick,
+    iconBg,
+    iconColor
   }: { 
     title: string; 
     icon: any; 
     onClick: () => void;
+    iconBg: string;
+    iconColor: string;
   }) => (
     <button
       onClick={onClick}
-      className="flex items-center gap-3 w-full px-4 py-3 hover:bg-muted/50 transition-colors"
+      className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
     >
-      <Icon className="h-5 w-5 text-muted-foreground" />
-      <span className="text-base">{title}</span>
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <span className="text-base font-medium">{title}</span>
+      </div>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
     </button>
   );
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <div className="max-w-screen-lg mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6">More</h1>
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">More</h1>
+          <div className="w-10" />
+        </div>
+      </header>
 
-        <Card className="mb-4">
-          <div className="p-2">
-            <MenuItem title="Account Settings" icon={User} onClick={() => navigate('/account-settings')} />
-            <MenuItem title="Profile Settings" icon={Settings} onClick={() => navigate('/profile')} />
-            <MenuItem title="Privacy Settings" icon={Shield} onClick={() => navigate('/privacy-settings')} />
-            <MenuItem title="Notification Settings" icon={Bell} onClick={() => navigate('/notification-settings')} />
-          </div>
+      <div className="max-w-screen-lg mx-auto">
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Profile" icon={User} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/profile')} />
+          <MenuItem title="Vault" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
+          <MenuItem title="Requests" icon={CornerUpLeft} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('#')} />
+          <MenuItem title="Settings" icon={Settings} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
         </Card>
 
-        <Card className="mb-4">
-          <div className="p-2">
-            <MenuItem title="Payment History" icon={CreditCard} onClick={() => navigate('/purchase-history')} />
-            <MenuItem title="Email Preferences" icon={Mail} onClick={() => navigate('/email-preferences')} />
-            <MenuItem title="Two-Factor Auth" icon={Lock} onClick={() => navigate('/two-factor')} />
-          </div>
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
+          <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('#')} />
+          <MenuItem title="Followers" icon={Users} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/following')} />
+          <MenuItem title="Subscribers" icon={CreditCard} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/subscriptions')} />
+          <MenuItem title="Lists" icon={List} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('#')} />
         </Card>
 
-        <Card className="mb-4">
-          <div className="p-2">
-            <MenuItem title="Language" icon={Globe} onClick={() => {}} />
-            <MenuItem title="Theme" icon={Palette} onClick={() => {}} />
-          </div>
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Dashboard" icon={BarChart3} iconBg="bg-green-500/20" iconColor="text-green-500" onClick={() => navigate('/dashboard')} />
+          <MenuItem title="Analytics" icon={PieChart} iconBg="bg-green-500/20" iconColor="text-green-500" onClick={() => navigate('/analytics')} />
+          <MenuItem title="Revenue" icon={DollarSign} iconBg="bg-lime-500/20" iconColor="text-lime-500" onClick={() => navigate('/earnings')} />
         </Card>
 
-        <Button 
-          variant="destructive" 
-          className="w-full"
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-5 w-5 mr-2" />
-          Sign Out
-        </Button>
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Get the app" icon={Smartphone} iconBg="bg-yellow-500/20" iconColor="text-yellow-500" onClick={() => navigate('#')} />
+        </Card>
+
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-orange-500/20" iconColor="text-orange-500" onClick={() => navigate('#')} />
+          <MenuItem title="Switch account" icon={RefreshCw} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('#')} />
+        </Card>
+
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Notifications" icon={Bell} iconBg="bg-red-500/20" iconColor="text-red-500" onClick={() => navigate('/notification-settings')} />
+          <MenuItem title="Privacy" icon={Lock} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={() => navigate('/privacy-settings')} />
+        </Card>
+
+        <Card className="m-4 overflow-hidden">
+          <MenuItem title="Sign out" icon={LogOut} iconBg="bg-gray-500/20" iconColor="text-gray-500" onClick={handleSignOut} />
+        </Card>
       </div>
     </div>
   );
