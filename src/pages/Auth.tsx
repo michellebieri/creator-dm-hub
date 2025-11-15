@@ -25,7 +25,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user, loading, signUp, signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [role, setRole] = useState<'creator' | 'customer'>('customer');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Redirect if already authenticated
@@ -50,7 +49,7 @@ const Auth = () => {
 
     try {
       signUpSchema.parse(data);
-      await signUp(data.email, data.password, data.username, data.displayName, role);
+      await signUp(data.email, data.password, data.username, data.displayName, 'customer');
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -117,7 +116,7 @@ const Auth = () => {
         <Card className="animate-slide-up">
           <CardHeader>
             <CardTitle>Welcome</CardTitle>
-            <CardDescription>Sign in to your account or create a new one</CardDescription>
+            <CardDescription>Connect with your favorite creators</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin" className="w-full">
@@ -184,28 +183,6 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>I want to...</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Button
-                        type="button"
-                        variant={role === 'customer' ? 'default' : 'outline'}
-                        onClick={() => setRole('customer')}
-                        className={role === 'customer' ? 'gradient-primary' : ''}
-                      >
-                        Send Messages
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={role === 'creator' ? 'default' : 'outline'}
-                        onClick={() => setRole('creator')}
-                        className={role === 'creator' ? 'gradient-primary' : ''}
-                      >
-                        Get Paid
-                      </Button>
-                    </div>
-                  </div>
-
                   <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>
                     <Input
@@ -279,6 +256,15 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+        
+        <div className="text-center mt-6">
+          <Link 
+            to="/creator-auth" 
+            className="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            Are you a creator? Get paid →
+          </Link>
+        </div>
       </div>
     </div>
   );
