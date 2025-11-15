@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Download, Receipt, Package, Unlock, DollarSign } from 'lucide-react';
+import { Search, Download, Receipt, Package, Unlock, DollarSign, ChevronLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { format } from 'date-fns';
@@ -34,6 +35,7 @@ interface Transaction {
 
 const PurchaseHistory = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,8 +158,19 @@ const PurchaseHistory = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Purchase History</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container mx-auto p-6 space-y-6">
+        <div>
         <h1 className="text-3xl font-bold">Purchase History</h1>
         <p className="text-muted-foreground">View all your transactions and purchases</p>
       </div>
@@ -323,6 +336,7 @@ const PurchaseHistory = () => {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

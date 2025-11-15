@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Bell, Mail, MessageCircle, DollarSign, Loader2 } from 'lucide-react';
+import { Bell, Mail, MessageCircle, DollarSign, Loader2, ChevronLeft } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import PushNotifications from '@/components/PushNotifications';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -92,11 +92,22 @@ const NotificationSettings = () => {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto p-6 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Bell className="h-6 w-6 text-primary" />
-        <h1 className="text-3xl font-bold">Notification Settings</h1>
-      </div>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Notifications</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
+      <div className="container max-w-2xl mx-auto p-6 space-y-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Bell className="h-6 w-6 text-primary" />
+          <h1 className="text-3xl font-bold">Notification Settings</h1>
+        </div>
 
       <Card>
         <CardHeader>
@@ -274,6 +285,7 @@ const NotificationSettings = () => {
             'Save Preferences'
           )}
         </Button>
+      </div>
       </div>
     </div>
   );
