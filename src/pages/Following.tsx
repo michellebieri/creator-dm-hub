@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { Heart, Search, UserMinus } from 'lucide-react';
+import { Heart, Search, UserMinus, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -129,10 +129,21 @@ const Following = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <div className="mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50/50 via-background to-rose-50/50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 pb-20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">{isCreator ? 'Followers' : 'Following'}</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
+      <div className="container mx-auto p-6 max-w-4xl">
+      <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
         <h1 className="text-3xl font-bold mb-2">{isCreator ? 'Followers' : 'Following'}</h1>
-        <p className="text-muted-foreground">
+        <p className="text-pink-50">
           {isCreator ? 'People who follow you' : 'Creators you\'re following'}
         </p>
       </div>
@@ -201,6 +212,7 @@ const Following = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
