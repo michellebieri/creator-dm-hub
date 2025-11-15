@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, Users, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { MessageCircle, Users, DollarSign, TrendingUp, Calendar, ChevronLeft } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';
 
 interface DailyStats {
@@ -115,6 +115,16 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-background to-emerald-50/50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
+        <div className="flex items-center justify-between px-4 h-14 max-w-6xl mx-auto">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Analytics</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
       <div className="max-w-6xl mx-auto p-8">
         {/* Colorful Header */}
         <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { TrendingUp, DollarSign, Unlock, Package, Image, Video, FileText, Music } from 'lucide-react';
+import { TrendingUp, DollarSign, Unlock, Package, Image, Video, FileText, Music, ChevronLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { format, subDays, startOfDay } from 'date-fns';
 
@@ -35,6 +37,7 @@ interface TimeSeriesData {
 
 const ContentAnalytics = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<ContentStats>({
     totalItems: 0,
@@ -161,12 +164,19 @@ const ContentAnalytics = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Content Analytics</h1>
-          <p className="text-muted-foreground">Track your content performance</p>
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Content Analytics</h1>
+          <div className="w-10" />
         </div>
+      </header>
+      
+      <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-end mb-6">
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
@@ -376,6 +386,7 @@ const ContentAnalytics = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 };
