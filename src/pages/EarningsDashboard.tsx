@@ -80,38 +80,54 @@ const EarningsDashboard = () => {
   }
 
   return (
-    <div className="p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Earnings Dashboard</h1>
+    <div className="min-h-screen bg-gradient-to-br from-lime-50/50 via-background to-yellow-50/50 dark:from-lime-950/20 dark:via-background dark:to-yellow-950/20">
+      <div className="max-w-6xl mx-auto p-8">
+        {/* Colorful Header */}
+        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+          <h1 className="text-4xl font-bold mb-2">Revenue Dashboard</h1>
+          <p className="text-lime-50">Track your earnings and financial performance</p>
+        </div>
 
+        {/* Stats Cards with Colors */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6">
+          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <DollarSign className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-lg bg-lime-500">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
               <h3 className="text-sm font-medium text-muted-foreground">Total Earnings</h3>
             </div>
-            <p className="text-3xl font-bold">${stats.totalEarnings.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400">${stats.totalEarnings.toFixed(2)}</p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-success" />
+              <div className="p-2 rounded-lg bg-yellow-500">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
               <h3 className="text-sm font-medium text-muted-foreground">This Month</h3>
             </div>
-            <p className="text-3xl font-bold">${stats.thisMonth.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">${stats.thisMonth.toFixed(2)}</p>
           </Card>
 
-          <Card className="p-6">
+          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
-              <Calendar className="h-5 w-5 text-accent" />
+              <div className="p-2 rounded-lg bg-lime-500">
+                <Calendar className="h-5 w-5 text-white" />
+              </div>
               <h3 className="text-sm font-medium text-muted-foreground">Pending Payouts</h3>
             </div>
-            <p className="text-3xl font-bold">${stats.pendingPayouts.toFixed(2)}</p>
+            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400">${stats.pendingPayouts.toFixed(2)}</p>
           </Card>
         </div>
 
-        <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-4">Recent Transactions</h2>
+        <Card className="p-6 border-lime-200 dark:border-lime-900 shadow-lg">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
+              <CreditCard className="h-5 w-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold">Recent Transactions</h2>
+          </div>
           {transactions.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No transactions yet</p>
           ) : (
@@ -119,7 +135,7 @@ const EarningsDashboard = () => {
               {transactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex justify-between items-center p-4 border rounded hover:bg-muted/50 transition-colors"
+                  className="flex justify-between items-center p-4 border border-lime-100 dark:border-lime-900 rounded-xl hover:bg-lime-50/50 dark:hover:bg-lime-950/20 transition-colors"
                 >
                   <div>
                     <p className="font-semibold capitalize">{tx.transaction_type}</p>
@@ -128,7 +144,7 @@ const EarningsDashboard = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-success">+${tx.net_amount.toFixed(2)}</p>
+                    <p className="font-bold text-lime-600 dark:text-lime-400">+${tx.net_amount.toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground">
                       Gross: ${tx.amount.toFixed(2)}
                     </p>
