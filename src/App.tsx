@@ -41,6 +41,10 @@ import CustomerSpendingAnalytics from "./pages/CustomerSpendingAnalytics";
 import ConversionTracking from "./pages/ConversionTracking";
 import TrafficSourceDashboard from "./pages/TrafficSourceDashboard";
 import PerformanceBenchmarking from "./pages/PerformanceBenchmarking";
+import ContentWatermark from "./pages/ContentWatermark";
+import ContentExpiration from "./pages/ContentExpiration";
+import WelcomeAutomation from "./pages/WelcomeAutomation";
+import PricingExperiments from "./pages/PricingExperiments";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -92,6 +96,10 @@ const App = () => (
             <Route path="/conversion-tracking" element={<ConversionTracking />} />
             <Route path="/traffic-sources" element={<TrafficSourceDashboard />} />
             <Route path="/benchmarking" element={<PerformanceBenchmarking />} />
+            <Route path="/content-watermark" element={<ContentWatermark />} />
+            <Route path="/content-expiration" element={<ContentExpiration />} />
+            <Route path="/welcome-automation" element={<WelcomeAutomation />} />
+            <Route path="/pricing-experiments" element={<PricingExperiments />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

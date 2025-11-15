@@ -17,7 +17,11 @@ import {
   Monitor,
   Radio,
   Crown,
-  RefreshCw
+  RefreshCw,
+  Droplet,
+  Clock,
+  Sparkles,
+  FlaskConical
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,6 +64,10 @@ export function AppSidebar() {
     { title: "Refunds", url: "/refunds", icon: RefreshCw },
     { title: "VIP Customers", url: "/vip-customers", icon: Crown },
     { title: "Content Vault", url: "/vault", icon: Vault },
+    { title: "Content Watermark", url: "/content-watermark", icon: Droplet },
+    { title: "Content Expiration", url: "/content-expiration", icon: Clock },
+    { title: "Welcome Messages", url: "/welcome-automation", icon: Sparkles },
+    { title: "Pricing Tests", url: "/pricing-experiments", icon: FlaskConical },
     { title: "Content Moderation", url: "/content-moderation", icon: Shield },
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
