@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 interface Creator {
@@ -113,13 +113,19 @@ const Creators = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Discover Creators</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Discover Creators</h1>
-          <p className="text-muted-foreground mb-6">
-            Connect with creators and unlock exclusive content
-          </p>
           
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
