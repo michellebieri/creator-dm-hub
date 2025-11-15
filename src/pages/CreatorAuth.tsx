@@ -134,18 +134,8 @@ const CreatorAuth = () => {
 
       if (error) throw error;
 
-      // Assign creator role
-      if (data.user) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: 'creator'
-          });
-
-        if (roleError) console.error('Role assignment error:', roleError);
-      }
-
+      // Role is automatically assigned by database trigger via metadata
+      
       toast({
         title: "Account created!",
         description: "Welcome to DM.me - You can now start earning",
