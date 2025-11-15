@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { DollarSign, TrendingUp, Calendar, CreditCard } from 'lucide-react';
+import { DollarSign, TrendingUp, Calendar, CreditCard, ChevronLeft } from 'lucide-react';
 
 const EarningsDashboard = () => {
   const { user, loading: authLoading } = useAuth();
@@ -81,6 +81,16 @@ const EarningsDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-lime-50/50 via-background to-yellow-50/50 dark:from-lime-950/20 dark:via-background dark:to-yellow-950/20">
+      <header className="sticky top-0 z-10 bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+        <div className="flex items-center justify-between px-4 h-14 max-w-6xl mx-auto">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Revenue</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
       <div className="max-w-6xl mx-auto p-8">
         {/* Colorful Header */}
         <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
