@@ -44,8 +44,8 @@ export const BottomNavigation = () => {
         )}
         
         <Link to="/notifications" className="flex flex-col items-center justify-center flex-1">
-          <Bell className={`h-6 w-6 ${isActive('/notifications') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/notifications') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+          <Bell className={`h-6 w-6 ${isActive('/notifications') ? 'text-lime-400' : 'text-muted-foreground'}`} />
+          <span className={`text-xs mt-1 ${isActive('/notifications') ? 'text-lime-400 font-medium' : 'text-muted-foreground'}`}>
             Notifs
           </span>
         </Link>
