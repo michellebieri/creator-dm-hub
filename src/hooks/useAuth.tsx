@@ -31,13 +31,10 @@ export const useAuth = () => {
 
   const signUp = async (email: string, password: string, username: string, displayName: string, role: 'creator' | 'customer') => {
     try {
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
           data: {
             username,
             display_name: displayName,
@@ -46,20 +43,27 @@ export const useAuth = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
+      }
 
       toast({
         title: "Account created!",
-        description: "Welcome to DM.me! Please check your email to verify your account.",
+        description: "Welcome to DM.me! You can now sign in.",
       });
 
       return { data, error: null };
     } catch (error: any) {
+      const errorMessage = error?.message || error?.error_description || "An unexpected error occurred. Please try again.";
+      
       toast({
         title: "Sign up failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      console.error('Signup failed:', error);
       return { data: null, error };
     }
   };
