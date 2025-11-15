@@ -24,6 +24,8 @@ import {
   FlaskConical,
   ShieldCheck,
   KeyRound,
+  Heart,
+  Ban,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -91,8 +93,14 @@ export function AppSidebar() {
     { title: "Messages", url: "/messages", icon: MessageCircle },
     { title: "Search", url: "/search", icon: Search },
     { title: "My Library", url: "/library", icon: Library },
+    { title: "Subscriptions", url: "/subscriptions", icon: Crown },
+    { title: "Following", url: "/following", icon: Users },
+    { title: "Wishlist", url: "/wishlist", icon: Heart },
     { title: "Purchase History", url: "/purchase-history", icon: Receipt },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
+    { title: "Blocked Users", url: "/blocked-users", icon: Ban },
+    { title: "Privacy", url: "/privacy-settings", icon: Shield },
+    { title: "Account", url: "/account-settings", icon: Settings },
     { title: "Sessions", url: "/sessions", icon: Monitor },
     { title: "Two-Factor Auth", url: "/two-factor-auth", icon: KeyRound },
     { title: "Age Verification", url: "/age-verification", icon: ShieldCheck },
