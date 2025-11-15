@@ -63,11 +63,23 @@ const Index = () => {
 
           <div className="text-center animate-fade-in">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Connect with your<br />
-              favorite <span className="inline-block gradient-primary bg-clip-text text-transparent">creators</span>
+              {isCreator ? (
+                <>
+                  Connect with your<br />
+                  <span className="inline-block gradient-primary bg-clip-text text-transparent">fans</span>
+                </>
+              ) : (
+                <>
+                  Connect with your<br />
+                  favorite <span className="inline-block gradient-primary bg-clip-text text-transparent">creators</span>
+                </>
+              )}
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Get exclusive access to premium content and direct conversations with creators you love.
+              {isCreator 
+                ? "Engage with your audience and share premium content directly." 
+                : "Get exclusive access to premium content and direct conversations with creators you love."
+              }
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               {!isCreator && (
