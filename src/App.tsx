@@ -30,6 +30,9 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CreatorProfile from "./pages/CreatorProfile";
 import NotFound from "./pages/NotFound";
+import Lists from "./pages/Lists";
+import Nudges from "./pages/Nudges";
+import ContentMenu from "./pages/ContentMenu";
 
 const queryClient = new QueryClient();
 
@@ -129,6 +132,31 @@ const App = () => {
             <Route path="/following" element={
               <ProtectedRoute>
                 <Following />
+              </ProtectedRoute>
+            } />
+            <Route path="/lists" element={
+              <ProtectedRoute>
+                <Lists />
+              </ProtectedRoute>
+            } />
+            <Route path="/nudges" element={
+              <ProtectedRoute requireCreator>
+                <Nudges />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-menu" element={
+              <ProtectedRoute requireCreator>
+                <ContentMenu />
+              </ProtectedRoute>
+            } />
+            <Route path="/subscriptions" element={
+              <ProtectedRoute>
+                <SubscribersList />
+              </ProtectedRoute>
+            } />
+            <Route path="/earnings" element={
+              <ProtectedRoute requireCreator>
+                <RevenueAnalytics />
               </ProtectedRoute>
             } />
           </Route>

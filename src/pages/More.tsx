@@ -83,11 +83,11 @@ const More = () => {
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
-          <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('#')} />
+          <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/20" iconColor="text-blue-500" onClick={() => navigate('/content-menu')} />
+          <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/20" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
           <MenuItem title="Followers" icon={Users} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/following')} />
           <MenuItem title="Subscribers" icon={CreditCard} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/subscriptions')} />
-          <MenuItem title="Lists" icon={List} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('#')} />
+          <MenuItem title="Lists" icon={List} iconBg="bg-pink-500/20" iconColor="text-pink-500" onClick={() => navigate('/lists')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
