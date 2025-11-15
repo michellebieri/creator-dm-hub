@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
+import { ApplePayButton } from '@/components/ApplePayButton';
 import { supabase } from '@/integrations/supabase/client';
 
 const stripePromise = loadStripe('pk_live_51KJa0iHBEe0ePTRxLfnSn02kit9LiRIKjmDAyZAg50yWiwiwej93OEsmZYDsSjChdXzeNrXCVlbifNJLeQ67zT8E00WdXKm0Y6');
@@ -247,6 +248,22 @@ export const CreditCheckDialog = ({
                 </Button>
               </div>
             </div>
+
+            {selectedAmount && (
+              <Elements stripe={stripePromise}>
+                <div className="border-t pt-4">
+                  <div className="text-sm font-medium mb-2">Or pay with:</div>
+                  <ApplePayButton
+                    amount={selectedAmount}
+                    onSuccess={handlePaymentSuccess}
+                    onError={() => {
+                      setSelectedAmount(null);
+                      setProcessing(false);
+                    }}
+                  />
+                </div>
+              </Elements>
+            )}
 
             <div className="text-xs text-center text-muted-foreground pt-2 border-t">
               💳 Credit/Debit Card • 🍎 Apple Pay (when available)<br />
