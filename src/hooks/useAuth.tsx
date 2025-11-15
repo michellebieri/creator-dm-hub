@@ -50,7 +50,7 @@ export const useAuth = () => {
 
       toast({
         title: "Account created!",
-        description: "Welcome to DM.me",
+        description: "Welcome to DM.me! Please check your email to verify your account.",
       });
 
       return { data, error: null };
