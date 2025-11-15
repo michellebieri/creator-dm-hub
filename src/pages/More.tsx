@@ -2,72 +2,23 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   User, 
-  MessageSquare,
-  Layers,
-  Package,
-  Share2,
-  Settings as SettingsIcon,
-  ChevronLeft,
-  ChevronRight
+  Bell, 
+  Shield, 
+  CreditCard, 
+  Settings, 
+  LogOut,
+  Mail,
+  Lock,
+  Palette,
+  Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 const More = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-
-  const settingsItems = [
-    { 
-      title: 'Account', 
-      icon: User, 
-      path: '/account-settings',
-      iconBg: 'bg-gray-500/20',
-      iconColor: 'text-gray-500'
-    },
-    { 
-      title: 'Profile', 
-      icon: User, 
-      path: '/profile',
-      iconBg: 'bg-blue-500/20',
-      iconColor: 'text-blue-500'
-    },
-    { 
-      title: 'Messaging', 
-      icon: MessageSquare, 
-      path: '/conversations',
-      iconBg: 'bg-green-500/20',
-      iconColor: 'text-green-500'
-    },
-    { 
-      title: 'Subscription', 
-      icon: Layers, 
-      path: '/subscriptions',
-      iconBg: 'bg-purple-500/20',
-      iconColor: 'text-purple-500'
-    },
-    { 
-      title: 'Bundle', 
-      icon: Package, 
-      path: '/vault',
-      iconBg: 'bg-pink-500/20',
-      iconColor: 'text-pink-500'
-    },
-    { 
-      title: 'Socials', 
-      icon: Share2, 
-      path: '/following',
-      iconBg: 'bg-gray-500/20',
-      iconColor: 'text-gray-500'
-    },
-    { 
-      title: 'Management', 
-      icon: SettingsIcon, 
-      path: '/dashboard',
-      iconBg: 'bg-gray-500/20',
-      iconColor: 'text-gray-500'
-    },
-  ];
 
   const handleSignOut = async () => {
     await signOut();
@@ -77,55 +28,58 @@ const More = () => {
   const MenuItem = ({ 
     title, 
     icon: Icon, 
-    onClick, 
-    iconBg, 
-    iconColor 
+    onClick 
   }: { 
     title: string; 
     icon: any; 
     onClick: () => void;
-    iconBg: string;
-    iconColor: string;
   }) => (
     <button
       onClick={onClick}
-      className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
+      className="flex items-center gap-3 w-full px-4 py-3 hover:bg-muted/50 transition-colors"
     >
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
-          <Icon className={`h-5 w-5 ${iconColor}`} />
-        </div>
-        <span className="text-base font-medium">{title}</span>
-      </div>
-      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+      <Icon className="h-5 w-5 text-muted-foreground" />
+      <span className="text-base">{title}</span>
     </button>
   );
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <header className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-lg font-semibold">More</h1>
-          <div className="w-10" />
-        </div>
-      </header>
+      <div className="max-w-screen-lg mx-auto p-4">
+        <h1 className="text-2xl font-bold mb-6">More</h1>
 
-      <div className="max-w-screen-lg mx-auto">
-        <Card className="m-4 overflow-hidden">
-          {settingsItems.map((item) => (
-            <MenuItem
-              key={item.title}
-              title={item.title}
-              icon={item.icon}
-              iconBg={item.iconBg}
-              iconColor={item.iconColor}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
+        <Card className="mb-4">
+          <div className="p-2">
+            <MenuItem title="Account Settings" icon={User} onClick={() => navigate('/account-settings')} />
+            <MenuItem title="Profile Settings" icon={Settings} onClick={() => navigate('/profile')} />
+            <MenuItem title="Privacy Settings" icon={Shield} onClick={() => navigate('/privacy-settings')} />
+            <MenuItem title="Notification Settings" icon={Bell} onClick={() => navigate('/notification-settings')} />
+          </div>
         </Card>
+
+        <Card className="mb-4">
+          <div className="p-2">
+            <MenuItem title="Payment History" icon={CreditCard} onClick={() => navigate('/purchase-history')} />
+            <MenuItem title="Email Preferences" icon={Mail} onClick={() => navigate('/email-preferences')} />
+            <MenuItem title="Two-Factor Auth" icon={Lock} onClick={() => navigate('/two-factor')} />
+          </div>
+        </Card>
+
+        <Card className="mb-4">
+          <div className="p-2">
+            <MenuItem title="Language" icon={Globe} onClick={() => {}} />
+            <MenuItem title="Theme" icon={Palette} onClick={() => {}} />
+          </div>
+        </Card>
+
+        <Button 
+          variant="destructive" 
+          className="w-full"
+          onClick={handleSignOut}
+        >
+          <LogOut className="h-5 w-5 mr-2" />
+          Sign Out
+        </Button>
       </div>
     </div>
   );
