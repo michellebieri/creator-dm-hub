@@ -37,7 +37,7 @@ export const WalletBalance = () => {
     setSelectedAmount(amount);
     
     try {
-      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+      const { data, error } = await supabase.functions.invoke('add-funds', {
         body: { amount },
       });
 
