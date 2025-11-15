@@ -19,7 +19,7 @@ import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+const stripePromise = loadStripe('pk_live_51KJa0iHBEe0ePTRxLfnSn02kit9LiRIKjmDAyZAg50yWiwiwej93OEsmZYDsSjChdXzeNrXCVlbifNJLeQ67zT8E00WdXKm0Y6');
 
 export const WalletBalance = () => {
   const { balance, loading } = useWallet();
