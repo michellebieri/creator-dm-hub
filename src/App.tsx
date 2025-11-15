@@ -5,8 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import CreatorAuth from "./pages/CreatorAuth";
+import Creators from "./pages/Creators";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import More from "./pages/More";
 import Conversations from "./pages/Conversations";
@@ -38,30 +41,96 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/creator-auth" element={<CreatorAuth />} />
+          <Route path="/browse" element={<Creators />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/creator/:username" element={<CreatorProfile />} />
 
+          {/* Creator-only routes */}
           <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<CreatorDashboard />} />
-            <Route path="/conversations" element={<Conversations />} />
-            <Route path="/notifications" element={<NotificationSettings />} />
-            <Route path="/more" element={<More />} />
-            <Route path="/vault" element={<ContentVault />} />
-            <Route path="/content-upload" element={<ContentUpload />} />
-            <Route path="/profile" element={<ProfileSettings />} />
-            <Route path="/account-settings" element={<AccountSettings />} />
-            <Route path="/privacy-settings" element={<PrivacySettings />} />
-            <Route path="/notification-settings" element={<NotificationSettings />} />
-            <Route path="/following" element={<Following />} />
-            <Route path="/subscribers" element={<SubscribersList />} />
-            <Route path="/analytics" element={<AnalyticsDashboard />} />
-            <Route path="/revenue" element={<RevenueAnalytics />} />
-            <Route path="/broadcast" element={<BroadcastMessages />} />
+            <Route path="/dashboard" element={
+              <ProtectedRoute requireCreator>
+                <CreatorDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/vault" element={
+              <ProtectedRoute requireCreator>
+                <ContentVault />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-upload" element={
+              <ProtectedRoute requireCreator>
+                <ContentUpload />
+              </ProtectedRoute>
+            } />
+            <Route path="/subscribers" element={
+              <ProtectedRoute requireCreator>
+                <SubscribersList />
+              </ProtectedRoute>
+            } />
+            <Route path="/analytics" element={
+              <ProtectedRoute requireCreator>
+                <AnalyticsDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/revenue" element={
+              <ProtectedRoute requireCreator>
+                <RevenueAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/broadcast" element={
+              <ProtectedRoute requireCreator>
+                <BroadcastMessages />
+              </ProtectedRoute>
+            } />
+            
+            {/* Shared authenticated routes */}
+            <Route path="/conversations" element={
+              <ProtectedRoute>
+                <Conversations />
+              </ProtectedRoute>
+            } />
+            <Route path="/notifications" element={
+              <ProtectedRoute>
+                <NotificationSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/more" element={
+              <ProtectedRoute>
+                <More />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfileSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/account-settings" element={
+              <ProtectedRoute>
+                <AccountSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/privacy-settings" element={
+              <ProtectedRoute>
+                <PrivacySettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/notification-settings" element={
+              <ProtectedRoute>
+                <NotificationSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/following" element={
+              <ProtectedRoute>
+                <Following />
+              </ProtectedRoute>
+            } />
           </Route>
 
           <Route path="*" element={<NotFound />} />
