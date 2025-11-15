@@ -5,13 +5,15 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
-import { MessageCircle, Shield, Zap, Loader2, ArrowLeft } from "lucide-react";
+import { MessageCircle, Shield, Zap, Loader2, ArrowLeft, UserPlus, UserMinus, Flag } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { BundlePurchase } from '@/components/BundlePurchase';
 import { CreditsBalance } from '@/components/CreditsBalance';
+import { ReportDialog } from '@/components/ReportDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useFollowing } from '@/hooks/useFollowing';
 
 interface Profile {
   id: string;
@@ -29,6 +31,30 @@ const CreatorProfile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const { isFollowing, followersCount, toggleFollow } = useFollowing(user?.id, profile?.id || null);
+
+  useEffect(() => {
+    const trackView = async () => {
+      if (!profile?.id || !username) return;
+
+      // Track profile view
+      try {
+        await supabase
+          .from('profile_views')
+          .insert({
+            viewer_id: user?.id || null,
+            profile_id: profile.id,
+          });
+      } catch (error) {
+        console.error('Error tracking view:', error);
+      }
+    };
+
+    if (profile) {
+      trackView();
+    }
+  }, [profile, user]);
 
   useEffect(() => {
     const fetchCreatorData = async () => {
@@ -138,6 +164,38 @@ const CreatorProfile = () => {
           <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
             {profile.bio || `Connect with ${profile.display_name} through direct messages`}
           </p>
+          <div className="flex flex-col items-center gap-3 mb-4">
+            <div className="flex gap-2">
+              <Button
+                size="lg"
+                variant={isFollowing ? "outline" : "default"}
+                onClick={toggleFollow}
+              >
+                {isFollowing ? (
+                  <>
+                    <UserMinus className="mr-2 h-5 w-5" />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="mr-2 h-5 w-5" />
+                    Follow
+                  </>
+                )}
+              </Button>
+
+              <Button
+                size="lg"
+                variant="ghost"
+                onClick={() => setReportDialogOpen(true)}
+              >
+                <Flag className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {followersCount} followers
+            </div>
+          </div>
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <Badge variant="secondary" className="shadow-soft">
               <Shield className="h-3 w-3 mr-1" />
@@ -201,6 +259,13 @@ const CreatorProfile = () => {
           </div>
         </div>
       </section>
+
+      <ReportDialog
+        open={reportDialogOpen}
+        onOpenChange={setReportDialogOpen}
+        reportedUserId={profile.id}
+        reporterName={profile.display_name}
+      />
     </div>
   );
 };

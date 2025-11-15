@@ -25,6 +25,10 @@ import CreatorOnboarding from "./pages/CreatorOnboarding";
 import AutoReplies from "./pages/AutoReplies";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserManagement from "./pages/UserManagement";
+import GlobalSearch from "./pages/GlobalSearch";
+import ContentModeration from "./pages/ContentModeration";
+import CreatorWaitlist from "./pages/CreatorWaitlist";
+import SessionManagement from "./pages/SessionManagement";
 import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +65,10 @@ const App = () => (
             <Route path="/auto-replies" element={<AutoReplies />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/users" element={<UserManagement />} />
+            <Route path="/search" element={<GlobalSearch />} />
+            <Route path="/content-moderation" element={<ContentModeration />} />
+            <Route path="/waitlist-status" element={<CreatorWaitlist />} />
+            <Route path="/sessions" element={<SessionManagement />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
           </Route>
           
