@@ -12,7 +12,9 @@ import {
   Library,
   Receipt,
   Shield,
-  Bell
+  Bell,
+  Search,
+  Monitor
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -47,6 +49,7 @@ export function AppSidebar() {
     { title: "Content Analytics", url: "/content-analytics", icon: BarChart3 },
     { title: "Earnings", url: "/earnings", icon: DollarSign },
     { title: "Content Vault", url: "/vault", icon: Vault },
+    { title: "Content Moderation", url: "/content-moderation", icon: Shield },
     { title: "Auto-Replies", url: "/auto-replies", icon: Bot },
     { title: "Templates", url: "/templates", icon: FileText },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
@@ -54,6 +57,8 @@ export function AppSidebar() {
       { title: "Admin", url: "/admin", icon: Shield },
       { title: "Users", url: "/users", icon: Users }
     ] : []),
+    { title: "Search", url: "/search", icon: Search },
+    { title: "Sessions", url: "/sessions", icon: Monitor },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
@@ -61,9 +66,11 @@ export function AppSidebar() {
   const customerItems = [
     { title: "Browse Creators", url: "/creators", icon: Users },
     { title: "Messages", url: "/messages", icon: MessageCircle },
+    { title: "Search", url: "/search", icon: Search },
     { title: "My Library", url: "/library", icon: Library },
     { title: "Purchase History", url: "/purchase-history", icon: Receipt },
     { title: "Conversations", url: "/conversations", icon: MessageCircle },
+    { title: "Sessions", url: "/sessions", icon: Monitor },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
