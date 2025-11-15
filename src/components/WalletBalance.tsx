@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Wallet, Plus } from 'lucide-react';
+import { Wallet, Plus, ArrowLeft } from 'lucide-react';
 import { useWallet } from '@/hooks/useWallet';
 import { useState } from 'react';
 import {
@@ -13,28 +13,44 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 export const WalletBalance = () => {
-  const { balance, loading, addFunds } = useWallet();
+  const { balance, loading } = useWallet();
   const { toast } = useToast();
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [customAmount, setCustomAmount] = useState('');
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const presetAmounts = [10, 25, 50, 100];
 
-  const handleAddFunds = async (amount: number) => {
+  const handleSelectAmount = async (amount: number) => {
     setProcessing(true);
+    setSelectedAmount(amount);
+    
     try {
-      const url = await addFunds(amount);
-      if (url) {
-        window.open(url, '_blank');
-        toast({
-          title: "Opening checkout",
-          description: "Complete your payment in the new tab. Supports Apple Pay and credit cards.",
-        });
-        setShowAddFunds(false);
-      }
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { amount },
+      });
+
+      if (error) throw error;
+      
+      setClientSecret(data.clientSecret);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to initialize payment",
+        variant: "destructive",
+      });
+      setSelectedAmount(null);
     } finally {
       setProcessing(false);
     }
@@ -50,7 +66,23 @@ export const WalletBalance = () => {
       });
       return;
     }
-    handleAddFunds(amount);
+    handleSelectAmount(amount);
+  };
+
+  const handlePaymentSuccess = (newBalance: number) => {
+    setShowAddFunds(false);
+    setSelectedAmount(null);
+    setClientSecret(null);
+    setCustomAmount('');
+    toast({
+      title: "Success!",
+      description: `Your wallet balance is now $${newBalance.toFixed(2)}`,
+    });
+  };
+
+  const handleCancel = () => {
+    setSelectedAmount(null);
+    setClientSecret(null);
   };
 
   if (loading) return null;
@@ -77,57 +109,93 @@ export const WalletBalance = () => {
         </div>
       </Card>
 
-      <Dialog open={showAddFunds} onOpenChange={setShowAddFunds}>
+      <Dialog open={showAddFunds} onOpenChange={(open) => {
+        setShowAddFunds(open);
+        if (!open) {
+          setSelectedAmount(null);
+          setClientSecret(null);
+          setCustomAmount('');
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Funds to Wallet</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedAmount && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancel}
+                  className="p-0 h-auto"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              )}
+              {selectedAmount ? 'Payment Details' : 'Add Funds to Wallet'}
+            </DialogTitle>
             <DialogDescription>
-              Add funds to use for messages, tips, subscriptions, and content from any creator
+              {selectedAmount 
+                ? 'Enter your payment details below'
+                : 'Add funds to use for messages, tips, subscriptions, and content from any creator'}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div>
-              <Label>Quick amounts</Label>
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                {presetAmounts.map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="outline"
-                    onClick={() => handleAddFunds(amount)}
+          {!selectedAmount ? (
+            <div className="space-y-4">
+              <div>
+                <Label>Quick amounts</Label>
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {presetAmounts.map((amount) => (
+                    <Button
+                      key={amount}
+                      variant="outline"
+                      onClick={() => handleSelectAmount(amount)}
+                      disabled={processing}
+                    >
+                      {processing ? '...' : `$${amount}`}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="custom-amount">Custom amount</Label>
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="custom-amount"
+                    type="number"
+                    placeholder="Enter amount"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    min="1"
+                    step="0.01"
                     disabled={processing}
+                  />
+                  <Button
+                    onClick={handleCustomAmount}
+                    disabled={processing || !customAmount}
                   >
-                    ${amount}
+                    {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                   </Button>
-                ))}
+                </div>
+              </div>
+
+              <div className="text-xs text-center text-muted-foreground pt-2 border-t">
+                💳 Credit/Debit Card • 🍎 Apple Pay (when available)
               </div>
             </div>
-
-            <div>
-              <Label htmlFor="custom-amount">Custom amount</Label>
-              <div className="flex gap-2 mt-2">
-                <Input
-                  id="custom-amount"
-                  type="number"
-                  placeholder="Enter amount"
-                  value={customAmount}
-                  onChange={(e) => setCustomAmount(e.target.value)}
-                  min="1"
-                  step="0.01"
-                />
-                <Button
-                  onClick={handleCustomAmount}
-                  disabled={processing || !customAmount}
-                >
-                  Add
-                </Button>
-              </div>
+          ) : clientSecret ? (
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <EmbeddedPaymentForm
+                amount={selectedAmount}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handleCancel}
+              />
+            </Elements>
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-
-            <div className="text-xs text-center text-muted-foreground pt-2 border-t">
-              💳 Credit/Debit Card • 🍎 Apple Pay (when available)
-            </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

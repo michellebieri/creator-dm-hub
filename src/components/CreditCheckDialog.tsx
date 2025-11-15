@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,11 +8,17 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Loader2, MessageCircle, Wallet, Plus } from 'lucide-react';
+import { Loader2, MessageCircle, Wallet, Plus, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/useWallet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
+import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
+import { supabase } from '@/integrations/supabase/client';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface CreditCheckDialogProps {
   open: boolean;
@@ -32,24 +38,34 @@ export const CreditCheckDialog = ({
   onProceedToChat,
 }: CreditCheckDialogProps) => {
   const { toast } = useToast();
-  const { balance, loading, addFunds } = useWallet();
+  const { balance, loading } = useWallet();
   const [customAmount, setCustomAmount] = useState('');
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   const presetAmounts = [10, 25, 50, 100];
   const hasEnoughBalance = balance >= pricePerMessage;
 
-  const handleAddFunds = async (amount: number) => {
+  const handleSelectAmount = async (amount: number) => {
     setProcessing(true);
+    setSelectedAmount(amount);
+    
     try {
-      const url = await addFunds(amount);
-      if (url) {
-        window.open(url, '_blank');
-        toast({
-          title: "Opening checkout",
-          description: "Complete your payment in the new tab. Supports Apple Pay and credit cards.",
-        });
-      }
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { amount },
+      });
+
+      if (error) throw error;
+      
+      setClientSecret(data.clientSecret);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to initialize payment",
+        variant: "destructive",
+      });
+      setSelectedAmount(null);
     } finally {
       setProcessing(false);
     }
@@ -65,7 +81,22 @@ export const CreditCheckDialog = ({
       });
       return;
     }
-    handleAddFunds(amount);
+    handleSelectAmount(amount);
+  };
+
+  const handlePaymentSuccess = (newBalance: number) => {
+    setSelectedAmount(null);
+    setClientSecret(null);
+    setCustomAmount('');
+    toast({
+      title: "Success!",
+      description: `Your wallet balance is now $${newBalance.toFixed(2)}`,
+    });
+  };
+
+  const handleCancel = () => {
+    setSelectedAmount(null);
+    setClientSecret(null);
   };
 
   const handleProceed = () => {
@@ -94,21 +125,43 @@ export const CreditCheckDialog = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(open) => {
+      onOpenChange(open);
+      if (!open) {
+        setSelectedAmount(null);
+        setClientSecret(null);
+        setCustomAmount('');
+      }
+    }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
+            {selectedAmount && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                className="p-0 h-auto"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
             <Wallet className="h-5 w-5" />
-            {hasEnoughBalance ? 'Ready to Chat' : 'Add Funds to Chat'}
+            {selectedAmount 
+              ? 'Payment Details'
+              : hasEnoughBalance ? 'Ready to Chat' : 'Add Funds to Chat'}
           </DialogTitle>
           <DialogDescription>
-            {hasEnoughBalance
+            {selectedAmount
+              ? 'Enter your payment details below'
+              : hasEnoughBalance
               ? `You have $${balance.toFixed(2)} in your wallet`
               : `Add funds to chat with ${creatorName} ($${pricePerMessage.toFixed(2)}/message)`}
           </DialogDescription>
         </DialogHeader>
 
-        {hasEnoughBalance ? (
+        {!selectedAmount ? (
+          hasEnoughBalance ? (
           <div className="space-y-4">
             <Card className="p-6 bg-primary/5 border-primary/20">
               <div className="flex items-center justify-between">
@@ -134,10 +187,10 @@ export const CreditCheckDialog = ({
                     key={amount}
                     variant="outline"
                     size="sm"
-                    onClick={() => handleAddFunds(amount)}
+                    onClick={() => handleSelectAmount(amount)}
                     disabled={processing}
                   >
-                    ${amount}
+                    {processing ? '...' : `$${amount}`}
                   </Button>
                 ))}
               </div>
@@ -164,10 +217,10 @@ export const CreditCheckDialog = ({
                   <Button
                     key={amount}
                     variant="outline"
-                    onClick={() => handleAddFunds(amount)}
+                    onClick={() => handleSelectAmount(amount)}
                     disabled={processing}
                   >
-                    ${amount}
+                    {processing ? '...' : `$${amount}`}
                   </Button>
                 ))}
               </div>
@@ -184,13 +237,13 @@ export const CreditCheckDialog = ({
                   onChange={(e) => setCustomAmount(e.target.value)}
                   min="1"
                   step="0.01"
+                  disabled={processing}
                 />
                 <Button
                   onClick={handleCustomAmount}
                   disabled={processing || !customAmount}
                 >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add
+                  {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Plus className="w-4 h-4 mr-2" />Add</>}
                 </Button>
               </div>
             </div>
@@ -199,6 +252,19 @@ export const CreditCheckDialog = ({
               💳 Credit/Debit Card • 🍎 Apple Pay (when available)<br />
               Balance can be used for messages, tips, subscriptions, and content from any creator
             </div>
+          </div>
+        )
+        ) : clientSecret ? (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <EmbeddedPaymentForm
+              amount={selectedAmount}
+              onSuccess={handlePaymentSuccess}
+              onCancel={handleCancel}
+            />
+          </Elements>
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         )}
       </DialogContent>
