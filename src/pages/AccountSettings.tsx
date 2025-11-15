@@ -21,38 +21,16 @@ const AccountSettings = () => {
   const handleExportData = async () => {
     setExporting(true);
     try {
-      // Fetch all user data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-
-      const { data: messages } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('sender_id', user?.id);
-
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('customer_id', user?.id);
-
-      const exportData = {
-        exported_at: new Date().toISOString(),
-        user_id: user?.id,
-        email: user?.email,
-        profile,
-        messages,
-        transactions,
-      };
+      const { data, error } = await supabase.functions.invoke('export-user-data');
+      
+      if (error) throw error;
 
       // Create and download JSON file
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `dm-me-data-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `data-export-${Date.now()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
