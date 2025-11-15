@@ -26,6 +26,8 @@ import {
   KeyRound,
   Heart,
   Ban,
+  Mail,
+  Activity,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -82,6 +84,7 @@ export function AppSidebar() {
     { title: "Promo Codes", url: "/promo-codes", icon: Receipt },
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
     { title: "Verification", url: "/verification", icon: ShieldCheck },
+    { title: "Activity Feed", url: "/activity-feed", icon: Activity },
     ...(isAdminEmail ? [
       { title: "Admin", url: "/admin", icon: Shield },
       { title: "Users", url: "/users", icon: Users }
@@ -90,6 +93,7 @@ export function AppSidebar() {
     { title: "Sessions", url: "/sessions", icon: Monitor },
     { title: "Two-Factor Auth", url: "/two-factor-auth", icon: KeyRound },
     { title: "Age Verification", url: "/age-verification", icon: ShieldCheck },
+    { title: "Email Preferences", url: "/email-preferences", icon: Mail },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];
@@ -97,6 +101,7 @@ export function AppSidebar() {
   const customerItems = [
     { title: "Browse Creators", url: "/creators", icon: Users },
     { title: "Messages", url: "/messages", icon: MessageCircle },
+    { title: "Activity Feed", url: "/activity-feed", icon: Activity },
     { title: "Search", url: "/search", icon: Search },
     { title: "My Library", url: "/library", icon: Library },
     { title: "Subscriptions", url: "/subscriptions", icon: Crown },
@@ -110,6 +115,7 @@ export function AppSidebar() {
     { title: "Sessions", url: "/sessions", icon: Monitor },
     { title: "Two-Factor Auth", url: "/two-factor-auth", icon: KeyRound },
     { title: "Age Verification", url: "/age-verification", icon: ShieldCheck },
+    { title: "Email Preferences", url: "/email-preferences", icon: Mail },
     { title: "Notifications", url: "/notification-settings", icon: Bell },
     { title: "Settings", url: "/profile-settings", icon: Settings },
   ];

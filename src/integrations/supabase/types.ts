@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_feed: {
+        Row: {
+          activity_type: string
+          content: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          content: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_feed_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       age_verifications: {
         Row: {
           created_at: string
@@ -844,6 +879,59 @@ export type Database = {
             columns: ["unlockable_id"]
             isOneToOne: false
             referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          new_comment: boolean | null
+          new_follower: boolean | null
+          new_message: boolean | null
+          new_purchase: boolean | null
+          new_subscriber: boolean | null
+          new_tip: boolean | null
+          promotional: boolean | null
+          updated_at: string | null
+          user_id: string
+          weekly_summary: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          new_comment?: boolean | null
+          new_follower?: boolean | null
+          new_message?: boolean | null
+          new_purchase?: boolean | null
+          new_subscriber?: boolean | null
+          new_tip?: boolean | null
+          promotional?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          weekly_summary?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          new_comment?: boolean | null
+          new_follower?: boolean | null
+          new_message?: boolean | null
+          new_purchase?: boolean | null
+          new_subscriber?: boolean | null
+          new_tip?: boolean | null
+          promotional?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          weekly_summary?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]

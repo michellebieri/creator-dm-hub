@@ -61,6 +61,8 @@ import { SubscriptionTiersManager } from "./components/SubscriptionTiersManager"
 import SubscribersList from "./pages/SubscribersList";
 import ContentTags from "./pages/ContentTags";
 import CreatorVerification from "./pages/CreatorVerification";
+import EmailPreferences from "./pages/EmailPreferences";
+import ActivityFeed from "./pages/ActivityFeed";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -133,6 +135,8 @@ const App = () => {
             <Route path="/subscribers" element={<SubscribersList />} />
             <Route path="/content-tags" element={<ContentTags />} />
             <Route path="/verification" element={<CreatorVerification />} />
+            <Route path="/email-preferences" element={<EmailPreferences />} />
+            <Route path="/activity-feed" element={<ActivityFeed />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
