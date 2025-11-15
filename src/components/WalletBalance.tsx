@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
-import { ApplePayButton } from '@/components/ApplePayButton';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 
@@ -180,28 +179,18 @@ export const WalletBalance = () => {
                 </div>
               </div>
 
-              {selectedAmount && (
-                <Elements stripe={stripePromise}>
-                  <div className="border-t pt-4">
-                    <div className="text-sm font-medium mb-2">Or pay with:</div>
-                    <ApplePayButton
-                      amount={selectedAmount}
-                      onSuccess={handlePaymentSuccess}
-                      onError={() => {
-                        setSelectedAmount(null);
-                        setProcessing(false);
-                      }}
-                    />
-                  </div>
-                </Elements>
-              )}
-
               <div className="text-xs text-center text-muted-foreground pt-2 border-t">
-                💳 Credit/Debit Card • 🍎 Apple Pay (when available)
+                💳 Credit/Debit Card • 🍎 Apple Pay • 💚 Google Pay
               </div>
             </div>
           ) : clientSecret ? (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <Elements 
+              stripe={stripePromise} 
+              options={{ 
+                clientSecret,
+                appearance: { theme: 'stripe' }
+              }}
+            >
               <EmbeddedPaymentForm
                 amount={selectedAmount}
                 onSuccess={handlePaymentSuccess}
