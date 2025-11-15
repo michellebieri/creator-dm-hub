@@ -3,8 +3,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DollarSign, CreditCard, Calendar } from 'lucide-react';
@@ -26,38 +24,52 @@ const PayoutSettings = () => {
   useEffect(() => {
     if (!user) return;
 
-    const fetchData = async () => {
-      // Fetch total earnings
-      const { data: transactions } = await supabase
-        .from('transactions')
-        .select('net_amount')
-        .eq('creator_id', user.id)
-        .eq('status', 'completed');
-
-      const total = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
-      setEarnings(total);
-
-      // Fetch pending payouts
-      const { data: payouts } = await supabase
-        .from('payouts')
-        .select('*')
-        .eq('creator_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setPendingPayouts(payouts || []);
-
-      // Check if Stripe is connected
-      const { data: settings } = await supabase
-        .from('creator_settings')
-        .select('stripe_account_id')
-        .eq('user_id', user.id)
-        .single();
-
-      setStripeConnected(!!settings?.stripe_account_id);
-    };
-
     fetchData();
   }, [user]);
+
+  const fetchData = async () => {
+    if (!user) return;
+
+    const { data: transactions } = await supabase
+      .from('transactions')
+      .select('net_amount')
+      .eq('creator_id', user.id)
+      .eq('status', 'completed');
+
+    const total = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+    setEarnings(total);
+
+    const { data: payouts } = await supabase
+      .from('payouts')
+      .select('*')
+      .eq('creator_id', user.id)
+      .order('created_at', { ascending: false});
+
+    setPendingPayouts(payouts || []);
+
+    const { data: settings } = await supabase
+      .from('creator_settings')
+      .select('stripe_account_id')
+      .eq('user_id', user.id)
+      .single();
+
+    setStripeConnected(!!settings?.stripe_account_id);
+  };
+
+  const connectStripe = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('create-connect-account');
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success('Redirecting to Stripe. Complete setup to connect your account.');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to connect Stripe account');
+    }
+  };
 
   const requestPayout = async () => {
     if (!user || earnings < 10) {
@@ -79,16 +91,7 @@ const PayoutSettings = () => {
       if (error) throw error;
 
       toast.success('Payout requested! Funds will be transferred within 24 hours.');
-      
-      // Refresh data
-      const { data: payouts } = await supabase
-        .from('payouts')
-        .select('*')
-        .eq('creator_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setPendingPayouts(payouts || []);
-      setEarnings(0);
+      await fetchData();
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -127,21 +130,27 @@ const PayoutSettings = () => {
           <Card className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <CreditCard className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Stripe Account</h2>
+              <h2 className="text-2xl font-bold">Stripe Connection</h2>
             </div>
-            {stripeConnected ? (
-              <div className="flex items-center gap-2 text-success">
-                <div className="h-2 w-2 rounded-full bg-success"></div>
-                <span>Connected</span>
-              </div>
-            ) : (
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-muted-foreground mb-4">
-                  Connect your Stripe account to receive payouts
+                <p className="font-medium">
+                  Status: {stripeConnected ? 'Connected' : 'Not Connected'}
                 </p>
-                <Button>Connect Stripe</Button>
+                <p className="text-sm text-muted-foreground">
+                  {stripeConnected
+                    ? 'Your Stripe account is connected'
+                    : 'Connect your Stripe account to receive payouts'}
+                </p>
               </div>
-            )}
+              <Button 
+                variant="outline" 
+                disabled={stripeConnected}
+                onClick={connectStripe}
+              >
+                {stripeConnected ? "Connected" : "Connect Stripe"}
+              </Button>
+            </div>
           </Card>
 
           <Card className="p-6">
@@ -149,36 +158,35 @@ const PayoutSettings = () => {
               <Calendar className="h-6 w-6 text-primary" />
               <h2 className="text-2xl font-bold">Payout History</h2>
             </div>
-            {pendingPayouts.length === 0 ? (
-              <p className="text-muted-foreground">No payouts yet</p>
-            ) : (
-              <div className="space-y-3">
-                {pendingPayouts.map((payout: any) => (
+            <div className="space-y-3">
+              {pendingPayouts.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  No payout history yet
+                </p>
+              ) : (
+                pendingPayouts.map((payout: any) => (
                   <div
                     key={payout.id}
-                    className="flex justify-between items-center p-3 border rounded"
+                    className="flex items-center justify-between p-4 border rounded"
                   >
                     <div>
-                      <p className="font-semibold">${payout.amount.toFixed(2)}</p>
+                      <p className="font-medium">${payout.amount.toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(payout.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div
-                      className={`px-3 py-1 rounded text-sm ${
-                        payout.status === 'completed'
-                          ? 'bg-success/10 text-success'
-                          : payout.status === 'pending'
-                          ? 'bg-accent/10 text-accent'
-                          : 'bg-destructive/10 text-destructive'
-                      }`}
-                    >
-                      {payout.status}
+                    <div className="text-right">
+                      <p className="font-medium capitalize">{payout.status}</p>
+                      {payout.completed_at && (
+                        <p className="text-sm text-muted-foreground">
+                          Completed {new Date(payout.completed_at).toLocaleDateString()}
+                        </p>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </Card>
         </div>
       </div>

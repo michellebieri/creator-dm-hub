@@ -23,6 +23,8 @@ import MyLibrary from "./pages/MyLibrary";
 import PurchaseHistory from "./pages/PurchaseHistory";
 import CreatorOnboarding from "./pages/CreatorOnboarding";
 import AutoReplies from "./pages/AutoReplies";
+import AdminDashboard from "./pages/AdminDashboard";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +58,8 @@ const App = () => (
             <Route path="/library" element={<MyLibrary />} />
             <Route path="/purchase-history" element={<PurchaseHistory />} />
             <Route path="/auto-replies" element={<AutoReplies />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/notification-settings" element={<NotificationSettings />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
