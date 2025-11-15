@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
+import { useRoleCheck } from "@/hooks/useRoleCheck";
 import {
   Sidebar,
   SidebarContent,
@@ -48,13 +49,11 @@ import {
 export function AppSidebar() {
   const { state } = useSidebar();
   const { user } = useAuth();
+  const { isAdmin, isCreator: hasCreatorRole } = useRoleCheck();
   const isCollapsed = state === "collapsed";
 
-  // Determine if user is creator based on their profile
-  const isCreator = user?.user_metadata?.role === 'creator';
-
-  // Check if user is admin (in production, check against user_roles table)
-  const isAdminEmail = user?.email === 'admin@dm.me';
+  // Determine if user is creator based on their profile or role
+  const isCreator = user?.user_metadata?.role === 'creator' || hasCreatorRole;
 
   const creatorItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -87,9 +86,10 @@ export function AppSidebar() {
     { title: "Payouts", url: "/payout-settings", icon: CreditCard },
     { title: "Verification", url: "/verification", icon: ShieldCheck },
     { title: "Activity Feed", url: "/activity-feed", icon: Activity },
-    ...(isAdminEmail ? [
-      { title: "Admin", url: "/admin", icon: Shield },
-      { title: "Users", url: "/users", icon: Users }
+    ...(isAdmin ? [
+      { title: "Admin Dashboard", url: "/admin", icon: Shield },
+      { title: "Admin Moderation", url: "/admin-moderation", icon: Shield },
+      { title: "User Management", url: "/users", icon: Users }
     ] : []),
     { title: "Search", url: "/search", icon: Search },
     { title: "Sessions", url: "/sessions", icon: Monitor },
