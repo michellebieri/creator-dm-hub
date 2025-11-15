@@ -1388,6 +1388,7 @@ export type Database = {
           theme_preference: string | null
           updated_at: string
           username: string
+          wallet_balance: number
         }
         Insert: {
           avatar_url?: string | null
@@ -1400,6 +1401,7 @@ export type Database = {
           theme_preference?: string | null
           updated_at?: string
           username: string
+          wallet_balance?: number
         }
         Update: {
           avatar_url?: string | null
@@ -1412,6 +1414,7 @@ export type Database = {
           theme_preference?: string | null
           updated_at?: string
           username?: string
+          wallet_balance?: number
         }
         Relationships: []
       }
@@ -2193,6 +2196,54 @@ export type Database = {
           {
             foreignKeyName: "vip_pricing_customer_id_fkey"
             columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          related_user_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_user_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          related_user_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_related_user_id_fkey"
+            columns: ["related_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useCredits } from '@/hooks/useCredits';
 import { toast } from 'sonner';
 
 interface Message {
@@ -30,7 +29,6 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const { credits, deductCredit } = useCredits(creatorId || null);
 
   const fetchMessages = async () => {
     if (!conversationId) {
@@ -119,22 +117,8 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
       const isCustomer = conversation.customer_id === user.id;
 
-      // If customer is sending, check and deduct credits
+      // If customer is sending, deduct from wallet
       if (isCustomer && creatorId) {
-        if (credits === 0) {
-          toast.error("Insufficient credits. Please purchase a message pack.");
-          setSending(false);
-          return;
-        }
-
-        // Deduct credit
-        const deducted = await deductCredit();
-        if (!deducted) {
-          toast.error("Failed to deduct credit. Please try again.");
-          setSending(false);
-          return;
-        }
-
         // Get creator's price per message
         const { data: creatorSettings } = await supabase
           .from('creator_settings')
@@ -143,6 +127,47 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
           .single();
 
         const pricePerMessage = creatorSettings?.price_per_message || 5.00;
+
+        // Get user's wallet balance
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('wallet_balance')
+          .eq('id', user.id)
+          .single();
+
+        const currentBalance = parseFloat(String(profile?.wallet_balance || 0));
+
+        if (currentBalance < pricePerMessage) {
+          toast.error("Insufficient balance. Please add funds to your wallet.");
+          setSending(false);
+          return;
+        }
+
+        const newBalance = currentBalance - pricePerMessage;
+
+        // Update balance
+        const { error: balanceError } = await supabase
+          .from('profiles')
+          .update({ wallet_balance: newBalance })
+          .eq('id', user.id);
+
+        if (balanceError) {
+          toast.error("Failed to process payment. Please try again.");
+          setSending(false);
+          return;
+        }
+
+        // Record transaction
+        await supabase
+          .from('wallet_transactions')
+          .insert({
+            user_id: user.id,
+            amount: -pricePerMessage,
+            transaction_type: 'message',
+            description: `Message to creator`,
+            related_user_id: creatorId,
+            balance_after: newBalance,
+          });
 
         // Send message
         const { data: messageData, error: messageError } = await supabase
