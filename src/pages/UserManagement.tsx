@@ -23,6 +23,7 @@ interface User {
   bio: string | null;
   created_at: string;
   email?: string;
+  app_roles?: string[];
 }
 
 const UserManagement = () => {
@@ -55,10 +56,11 @@ const UserManagement = () => {
     if (!user) return;
 
     try {
-      const adminEmails = ['admin@dm.me'];
-      const userIsAdmin = adminEmails.includes(user.email || '');
+      // Check admin role using RPC
+      const { data: hasAdminRole, error } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-      if (!userIsAdmin) {
+      if (error || !hasAdminRole) {
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",
@@ -87,8 +89,21 @@ const UserManagement = () => {
 
       if (error) throw error;
 
-      setUsers(data || []);
-      setFilteredUsers(data || []);
+      // Fetch app roles for each user
+      const usersWithRoles = await Promise.all((data || []).map(async (profile) => {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', profile.id);
+        
+        return {
+          ...profile,
+          app_roles: roles?.map(r => r.role) || []
+        };
+      }));
+
+      setUsers(usersWithRoles);
+      setFilteredUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({

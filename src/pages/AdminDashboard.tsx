@@ -48,19 +48,22 @@ const AdminDashboard = () => {
     if (!user) return;
 
     try {
-      // Check if user has admin role
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      // Check user roles from user_roles table using RPC
+      const { data: hasAdminRole, error } = await supabase
+        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-      // For now, we'll check if they're a creator and have special permissions
-      // In production, you'd want a proper admin role
-      const adminEmails = ['admin@dm.me']; // Add admin emails here
-      const userIsAdmin = adminEmails.includes(user.email || '');
+      if (error) {
+        console.error('Error checking admin role:', error);
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to access this page",
+          variant: "destructive",
+        });
+        navigate('/dashboard');
+        return;
+      }
 
-      if (!userIsAdmin) {
+      if (!hasAdminRole) {
         toast({
           title: "Access denied",
           description: "You don't have permission to access this page",

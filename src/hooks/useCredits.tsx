@@ -63,18 +63,43 @@ export const useCredits = (creatorId: string | null) => {
       return false;
     }
 
-    const { error } = await supabase
-      .from('customer_credits')
-      .update({ credits_remaining: credits - 1 })
-      .eq('customer_id', user.id)
-      .eq('creator_id', creatorId);
+    try {
+      // Use optimistic locking to prevent race conditions
+      const { data: currentCredits, error: fetchError } = await supabase
+        .from('customer_credits')
+        .select('credits_remaining')
+        .eq('customer_id', user.id)
+        .eq('creator_id', creatorId)
+        .single();
 
-    if (error) {
-      console.error('Error deducting credit:', error);
+      if (fetchError || !currentCredits) {
+        console.error('Error fetching current credits:', fetchError);
+        return false;
+      }
+
+      if (currentCredits.credits_remaining <= 0) {
+        console.error('Insufficient credits');
+        return false;
+      }
+
+      // Perform atomic update
+      const { error } = await supabase
+        .from('customer_credits')
+        .update({ credits_remaining: currentCredits.credits_remaining - 1 })
+        .eq('customer_id', user.id)
+        .eq('creator_id', creatorId)
+        .eq('credits_remaining', currentCredits.credits_remaining); // Ensure no concurrent updates
+
+      if (error) {
+        console.error('Error deducting credit:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Unexpected error in deductCredit:', error);
       return false;
     }
-
-    return true;
   };
 
   return { credits, loading, deductCredit, hasCredits: credits > 0 };
