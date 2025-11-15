@@ -40,6 +40,11 @@ serve(async (req) => {
 
     console.log("Notification created:", data.id);
 
+    // Send email notification in background
+    supabaseClient.functions.invoke('send-notification-email', {
+      body: { userId, type, title, message, link }
+    }).catch(err => console.log('Email notification error:', err));
+
     return new Response(JSON.stringify({ success: true, notification: data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

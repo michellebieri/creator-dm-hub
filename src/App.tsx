@@ -44,6 +44,7 @@ import TrafficSourceDashboard from "./pages/TrafficSourceDashboard";
 import PerformanceBenchmarking from "./pages/PerformanceBenchmarking";
 import ContentWatermark from "./pages/ContentWatermark";
 import ContentExpiration from "./pages/ContentExpiration";
+import ContentUpload from "./pages/ContentUpload";
 import WelcomeAutomation from "./pages/WelcomeAutomation";
 import PricingExperiments from "./pages/PricingExperiments";
 import TwoFactorAuth from "./pages/TwoFactorAuth";
@@ -137,6 +138,7 @@ const App = () => {
             <Route path="/verification" element={<CreatorVerification />} />
             <Route path="/email-preferences" element={<EmailPreferences />} />
             <Route path="/activity-feed" element={<ActivityFeed />} />
+            <Route path="/content-upload" element={<ContentUpload />} />
           </Route>
           
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
