@@ -8,6 +8,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
 import { useUnreadCount } from "@/hooks/useUnreadCount";
+import { BottomNavigation } from "@/components/BottomNavigation";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ const Index = () => {
   const unreadCount = useUnreadCount();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-20">
       {/* Hero Section */}
       <section className="gradient-hero py-20 px-4">
         <div className="container mx-auto max-w-6xl">
@@ -311,6 +312,7 @@ const Index = () => {
       </section>
 
       <Footer />
+      <BottomNavigation />
     </div>
   );
 };
