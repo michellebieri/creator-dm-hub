@@ -14,7 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3 } from 'lucide-react';
+import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
@@ -295,10 +295,20 @@ const Conversations = () => {
   return (
     <div className="bg-background">
       <div className="container mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6 flex items-center gap-3">
-          <MessageCircle className="h-8 w-8 text-primary" />
-          Conversations
-        </h1>
+        <div className="flex items-center gap-3 mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="h-8 w-8"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <MessageCircle className="h-8 w-8 text-primary" />
+            Conversations
+          </h1>
+        </div>
 
         <div className="mb-6 space-y-4">
           <div className="flex items-center gap-2 flex-wrap">
