@@ -19,6 +19,12 @@ export default function ContentUpload() {
   const [price, setPrice] = useState('9.99');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
+  const [debugErrors, setDebugErrors] = useState<Array<{
+    fileName: string;
+    step: string;
+    error: string;
+    details?: any;
+  }>>([]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -32,10 +38,19 @@ export default function ContentUpload() {
   };
 
   const handleUpload = async () => {
+    // Clear previous errors
+    setDebugErrors([]);
+    
     if (files.length === 0 || !user) {
+      setDebugErrors([{
+        fileName: 'N/A',
+        step: 'Validation',
+        error: !user ? 'User not authenticated' : 'No files selected',
+        details: { userId: user?.id, filesCount: files.length }
+      }]);
       toast({
-        title: "No files selected",
-        description: "Please select at least one file to upload.",
+        title: "Upload error",
+        description: !user ? "You must be logged in to upload" : "Please select at least one file to upload.",
         variant: "destructive",
       });
       return;
@@ -43,6 +58,12 @@ export default function ContentUpload() {
 
     const priceValue = parseFloat(price);
     if (isNaN(priceValue) || priceValue <= 0) {
+      setDebugErrors([{
+        fileName: 'N/A',
+        step: 'Validation',
+        error: 'Invalid price value',
+        details: { price, parsedPrice: priceValue }
+      }]);
       toast({
         title: "Invalid price",
         description: "Please enter a valid price greater than 0.",
@@ -51,14 +72,20 @@ export default function ContentUpload() {
       return;
     }
 
+    console.log('=== UPLOAD START ===');
+    console.log('User ID:', user.id);
+    console.log('Files to upload:', files.length);
+    console.log('Price:', priceValue);
+    
     setUploading(true);
     setUploadProgress(0);
     let successCount = 0;
     let failCount = 0;
+    const errors: typeof debugErrors = [];
 
     try {
-      // Create a dummy conversation for vault storage
-      // We use a special pattern to identify vault-only content
+      // Step 1: Get or create vault conversation
+      console.log('Step 1: Getting/creating vault conversation...');
       const { data: vaultConv, error: convError } = await supabase
         .from('conversations')
         .insert({
@@ -69,8 +96,9 @@ export default function ContentUpload() {
         .single();
 
       if (convError) {
+        console.log('Conversation insert failed, trying to find existing:', convError);
         // If conversation exists, try to find it
-        const { data: existing } = await supabase
+        const { data: existing, error: findError } = await supabase
           .from('conversations')
           .select('id')
           .eq('creator_id', user.id)
@@ -78,10 +106,20 @@ export default function ContentUpload() {
           .limit(1)
           .single();
 
-        if (!existing) throw new Error('Failed to create vault conversation');
+        if (!existing || findError) {
+          errors.push({
+            fileName: 'N/A',
+            step: 'Conversation Setup',
+            error: findError?.message || 'Failed to create or find vault conversation',
+            details: { convError, findError }
+          });
+          throw new Error('Failed to create vault conversation: ' + (findError?.message || convError.message));
+        }
         var vaultConversationId = existing.id;
+        console.log('Found existing conversation:', vaultConversationId);
       } else {
         var vaultConversationId = vaultConv.id;
+        console.log('Created new conversation:', vaultConversationId);
       }
 
       // Process files in parallel batches of 5
@@ -95,19 +133,27 @@ export default function ContentUpload() {
             setCurrentFile(file.name);
 
             try {
-              // Validate file size (100MB for videos, 10MB for images)
+              console.log(`\n=== Processing file ${fileIndex + 1}/${files.length}: ${file.name} ===`);
+              
+              // Step 2: Validate file size
               const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-              console.log(`Checking file: ${file.name}, Size: ${file.size} bytes, Max: ${maxSize} bytes`);
+              console.log(`File size: ${(file.size / (1024 * 1024)).toFixed(2)}MB, Max: ${maxSize / (1024 * 1024)}MB`);
               
               if (file.size > maxSize) {
-                throw new Error(`File ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Max size: ${maxSize / (1024 * 1024)}MB`);
+                const error = `File too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Max: ${maxSize / (1024 * 1024)}MB`;
+                errors.push({
+                  fileName: file.name,
+                  step: 'File Validation',
+                  error,
+                  details: { fileSize: file.size, maxSize, fileType: file.type }
+                });
+                throw new Error(error);
               }
 
-              // Sanitize filename - remove spaces and special chars
+              // Step 3: Upload to storage
               const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
               const fileName = `${user.id}/${Date.now()}-${sanitizedName}`;
-              
-              console.log(`Uploading to: unlockables/${fileName}`);
+              console.log(`Step 3: Uploading to storage: unlockables/${fileName}`);
               
               const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('unlockables')
@@ -118,19 +164,30 @@ export default function ContentUpload() {
 
               if (uploadError) {
                 console.error('Storage upload error:', uploadError);
-                throw new Error(`Storage error: ${uploadError.message}`);
+                errors.push({
+                  fileName: file.name,
+                  step: 'Storage Upload',
+                  error: uploadError.message,
+                  details: { 
+                    fileName, 
+                    bucket: 'unlockables',
+                    userId: user.id,
+                    errorDetails: uploadError
+                  }
+                });
+                throw new Error(`Storage upload failed: ${uploadError.message}`);
               }
               
-              console.log('Upload successful:', uploadData);
+              console.log('Storage upload successful:', uploadData?.path);
 
-              // Get public URL
+              // Step 4: Get public URL
               const { data: { publicUrl } } = supabase.storage
                 .from('unlockables')
                 .getPublicUrl(fileName);
+              console.log('Step 4: Public URL generated:', publicUrl);
 
-              console.log('Public URL generated:', publicUrl);
-
-              // Create message for this content
+              // Step 5: Create message
+              console.log('Step 5: Creating message in database...');
               const { data: message, error: messageError } = await supabase
                 .from('messages')
                 .insert({
@@ -144,17 +201,28 @@ export default function ContentUpload() {
 
               if (messageError) {
                 console.error('Message creation error:', messageError);
+                errors.push({
+                  fileName: file.name,
+                  step: 'Message Creation',
+                  error: messageError.message,
+                  details: {
+                    conversationId: vaultConversationId,
+                    senderId: user.id,
+                    errorCode: messageError.code,
+                    errorDetails: messageError
+                  }
+                });
                 throw new Error(`Failed to create message: ${messageError.message}`);
               }
 
-              console.log('Message created:', message.id);
+              console.log('Message created successfully:', message.id);
 
-              // Determine media type
+              // Step 6: Create unlockable
               const mediaType = file.type.startsWith('image/') ? 'image' : 
                                file.type.startsWith('video/') ? 'video' :
                                file.type.startsWith('audio/') ? 'audio' : 'document';
-
-              // Create unlockable entry
+              
+              console.log('Step 6: Creating unlockable entry...');
               const { error: unlockableError } = await supabase
                 .from('unlockables')
                 .insert({
@@ -167,27 +235,51 @@ export default function ContentUpload() {
 
               if (unlockableError) {
                 console.error('Unlockable creation error:', unlockableError);
+                errors.push({
+                  fileName: file.name,
+                  step: 'Unlockable Creation',
+                  error: unlockableError.message,
+                  details: {
+                    creatorId: user.id,
+                    messageId: message.id,
+                    mediaType,
+                    price: priceValue,
+                    errorCode: unlockableError.code,
+                    errorDetails: unlockableError
+                  }
+                });
                 throw new Error(`Failed to create unlockable: ${unlockableError.message}`);
               }
 
-              console.log('Unlockable created successfully');
+              console.log('✓ Unlockable created successfully!');
 
               successCount++;
               setUploadProgress(Math.round(((fileIndex + 1) / files.length) * 100));
+              console.log(`✓ File ${fileIndex + 1}/${files.length} uploaded successfully\n`);
             } catch (err: any) {
-              console.error(`Error uploading ${file.name}:`, err);
+              console.error(`✗ Error uploading ${file.name}:`, err);
               failCount++;
+              
+              // Add to errors array if not already added
+              if (!errors.find(e => e.fileName === file.name)) {
+                errors.push({
+                  fileName: file.name,
+                  step: 'Unknown',
+                  error: err.message || 'Unknown error',
+                  details: err
+                });
+              }
               
               // Show specific error to user
               let errorMessage = err.message || 'An error occurred';
-              if (errorMessage.includes('Storage error')) {
-                errorMessage = 'Storage upload failed. Please check your connection and try again.';
+              if (errorMessage.includes('Storage')) {
+                errorMessage = 'Storage upload failed. Check permissions and try again.';
               } else if (errorMessage.includes('too large')) {
-                errorMessage = `File is too large. Videos: max 100MB, Images: max 10MB`;
+                errorMessage = `File too large. Max: 100MB (videos), 10MB (images)`;
               }
               
               toast({
-                title: `Failed to upload ${file.name}`,
+                title: `Failed: ${file.name}`,
                 description: errorMessage,
                 variant: "destructive",
               });
@@ -197,22 +289,32 @@ export default function ContentUpload() {
       }
 
       if (successCount > 0) {
+        console.log('=== UPLOAD COMPLETE ===');
+        console.log(`Success: ${successCount}/${files.length}`);
         toast({
           title: "Upload complete",
           description: `Successfully uploaded ${successCount} of ${files.length} file(s).`,
         });
+        setDebugErrors([]);
         navigate('/vault');
       } else {
-        throw new Error(`All ${files.length} upload(s) failed. Please check the console for details.`);
+        console.error('=== ALL UPLOADS FAILED ===');
+        setDebugErrors(errors);
+        throw new Error(`All ${files.length} upload(s) failed. See details below.`);
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
+      console.error('Upload process error:', error);
+      
+      // Save errors to state for UI display
+      if (errors.length > 0) {
+        setDebugErrors(errors);
+      }
       
       // Only show general error if no files succeeded
       if (successCount === 0) {
         toast({
           title: "Upload failed",
-          description: error.message || 'Unable to upload files. Please try again or contact support.',
+          description: errors.length > 0 ? 'Check error details below' : (error.message || 'Unable to upload files'),
           variant: "destructive",
         });
       }
@@ -324,6 +426,50 @@ export default function ContentUpload() {
             )}
           </Button>
         </Card>
+
+        {/* Debug Error Display */}
+        {debugErrors.length > 0 && (
+          <Card className="p-6 border-destructive bg-destructive/5">
+            <h3 className="text-lg font-semibold text-destructive mb-4">
+              Upload Error Details
+            </h3>
+            <div className="space-y-4">
+              {debugErrors.map((error, index) => (
+                <div key={index} className="bg-background p-4 rounded-lg border border-destructive/20">
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-destructive min-w-[100px]">File:</span>
+                      <span className="text-foreground">{error.fileName}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-destructive min-w-[100px]">Failed at:</span>
+                      <span className="text-foreground font-semibold">{error.step}</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="font-medium text-destructive min-w-[100px]">Error:</span>
+                      <span className="text-foreground">{error.error}</span>
+                    </div>
+                    {error.details && (
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+                          Technical Details
+                        </summary>
+                        <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-x-auto">
+                          {JSON.stringify(error.details, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-muted rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                <strong>Tip:</strong> Open the browser console (F12) for more detailed logs
+              </p>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );
