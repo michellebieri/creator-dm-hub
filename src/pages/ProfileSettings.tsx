@@ -175,27 +175,6 @@ const ProfileSettings = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="flex flex-col items-center gap-2">
-                <Label htmlFor="avatar-upload" className="cursor-pointer">
-                  <Button
-                    variant="outline"
-                    disabled={uploading}
-                    asChild
-                  >
-                    <span>
-                      {uploading ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Uploading...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload Avatar
-                        </>
-                      )}
-                    </span>
-                  </Button>
-                </Label>
                 <input
                   id="avatar-upload"
                   type="file"
@@ -203,6 +182,26 @@ const ProfileSettings = () => {
                   onChange={handleAvatarUpload}
                   className="hidden"
                 />
+                <Label htmlFor="avatar-upload">
+                  <Button
+                    variant="outline"
+                    disabled={uploading}
+                    type="button"
+                    className="cursor-pointer"
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Avatar
+                      </>
+                    )}
+                  </Button>
+                </Label>
                 <p className="text-xs text-muted-foreground">
                   PNG, JPG or WEBP (max 5MB)
                 </p>
