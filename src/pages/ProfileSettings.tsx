@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ const ProfileSettings = () => {
     bio: '',
     avatar_url: '',
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -176,32 +177,30 @@ const ProfileSettings = () => {
               </Avatar>
               <div className="flex flex-col items-center gap-2">
                 <input
-                  id="avatar-upload"
+                  ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp"
                   onChange={handleAvatarUpload}
                   className="hidden"
                 />
-                <Label htmlFor="avatar-upload">
-                  <Button
-                    variant="outline"
-                    disabled={uploading}
-                    type="button"
-                    className="cursor-pointer"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload Avatar
-                      </>
-                    )}
-                  </Button>
-                </Label>
+                <Button
+                  variant="outline"
+                  disabled={uploading}
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Avatar
+                    </>
+                  )}
+                </Button>
                 <p className="text-xs text-muted-foreground">
                   PNG, JPG or WEBP (max 5MB)
                 </p>
