@@ -120,7 +120,13 @@ const Conversations = () => {
           })
         );
 
-        setConversations(conversationsWithMessages);
+        // Filter out conversations where creator_id === customer_id (self-conversations)
+        // This ensures users never see their own name in the conversation list
+        const validConversations = conversationsWithMessages.filter(conv => 
+          conv.creator_id !== conv.customer_id
+        );
+
+        setConversations(validConversations);
 
         // Fetch label assignments for all conversations
         if (conversationsWithMessages.length > 0) {
@@ -185,10 +191,13 @@ const Conversations = () => {
   }, [user, showArchived]);
 
   const handleOpenConversation = (conversation: Conversation) => {
+    // Navigate to messages with the OTHER person in the conversation
     if (user?.id === conversation.customer_id) {
+      // User is the customer, so navigate to chat with the creator
       navigate(`/messages?creator=${conversation.creator_id}`);
     } else {
-      navigate(`/messages?creator=${conversation.customer_id}`);
+      // User is the creator, so navigate to chat with the customer
+      navigate(`/messages?creator=${conversation.creator_id}&customer=${conversation.customer_id}`);
     }
   };
 
