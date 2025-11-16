@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Footer } from "@/components/Footer";
 import { BundlePurchase } from "@/components/BundlePurchase";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock } from "lucide-react";
+import { MessageCircle, DollarSign, Zap, Shield, TrendingUp, Clock, Vault } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
@@ -220,13 +220,24 @@ const Index = () => {
             </Card>
           </div>
           <div className="text-center mt-12">
-            <Button 
-              size="lg" 
-              className="gradient-primary text-primary-foreground"
-              onClick={() => navigate('/creators')}
-            >
-              Browse Creators
-            </Button>
+            {isCreator ? (
+              <Button 
+                size="lg" 
+                className="gradient-primary text-primary-foreground gap-2"
+                onClick={() => navigate('/vault')}
+              >
+                <Vault className="h-5 w-5" />
+                Upload to Vault
+              </Button>
+            ) : (
+              <Button 
+                size="lg" 
+                className="gradient-primary text-primary-foreground"
+                onClick={() => navigate('/creators')}
+              >
+                Browse Creators
+              </Button>
+            )}
           </div>
         </div>
       </section>
