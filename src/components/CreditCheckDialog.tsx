@@ -133,7 +133,7 @@ export const CreditCheckDialog = ({
         setCustomAmount('');
       }
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {selectedAmount && (
