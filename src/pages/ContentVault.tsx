@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Filter, Image as ImageIcon, Video } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ContentEditModal } from '@/components/ContentEditModal';
 
 interface Unlockable {
   id: string;
@@ -20,6 +21,9 @@ export default function ContentVault() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [unlockables, setUnlockables] = useState<Unlockable[]>([]);
+  const [filterType, setFilterType] = useState<string>('all-types');
+  const [selectedContent, setSelectedContent] = useState<Unlockable | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,10 +54,28 @@ export default function ContentVault() {
     setUnlockables(data || []);
   };
 
+  const handleContentClick = (content: Unlockable) => {
+    setSelectedContent(content);
+    setIsEditModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsEditModalOpen(false);
+    setSelectedContent(null);
+  };
+
+  // Filter unlockables based on selected type
+  const filteredUnlockables = unlockables.filter((item) => {
+    if (filterType === 'all-types') return true;
+    if (filterType === 'images') return item.media_type === 'image';
+    if (filterType === 'videos') return item.media_type === 'video';
+    return true;
+  });
+
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-14 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
@@ -103,7 +125,7 @@ export default function ContentVault() {
             </SelectContent>
           </Select>
           
-          <Select defaultValue="all-types">
+          <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="flex-1">
               <SelectValue />
             </SelectTrigger>
@@ -120,49 +142,83 @@ export default function ContentVault() {
         </div>
 
         {/* Content Grid */}
-        <div className="py-12">
-          {unlockables.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              No content was found
+        <div className="py-4">
+          {filteredUnlockables.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              {filterType === 'images' && unlockables.length > 0 
+                ? 'No images uploaded yet' 
+                : filterType === 'videos' && unlockables.length > 0 
+                ? 'No videos uploaded yet' 
+                : 'No content was found'}
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-2">
-              {unlockables.map((item) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {filteredUnlockables.map((item) => (
                 <div 
                   key={item.id} 
-                  className="aspect-square bg-muted rounded-lg overflow-hidden relative"
+                  className="aspect-square bg-muted rounded-lg overflow-hidden relative cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all duration-200 group"
+                  onClick={() => handleContentClick(item)}
                 >
                   {item.media_type === 'image' ? (
-                    <img 
-                      src={item.media_url} 
-                      alt="Vault content" 
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        console.error('Image load error:', item.media_url);
-                        e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3E?%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
+                    <>
+                      <img 
+                        src={item.media_url} 
+                        alt="Vault content" 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        onError={(e) => {
+                          console.error('Image load error:', item.media_url);
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3E?%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1.5">
+                        <ImageIcon className="h-3 w-3 text-foreground" />
+                      </div>
+                    </>
                   ) : item.media_type === 'video' ? (
-                    <video 
-                      src={item.media_url}
-                      className="w-full h-full object-cover"
-                      controls
-                    />
+                    <>
+                      <video 
+                        src={item.media_url}
+                        className="w-full h-full object-cover pointer-events-none"
+                      />
+                      <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1.5">
+                        <Video className="h-3 w-3 text-foreground" />
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-xs">{item.media_type}</span>
                     </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
-                    ${item.price}
+                  
+                  {/* Price Badge */}
+                  <div className="absolute bottom-2 left-2 bg-primary text-primary-foreground text-sm font-semibold px-2 py-1 rounded-md shadow-md">
+                    ${item.price.toFixed(2)}
                   </div>
+
+                  {/* Upload Date */}
+                  <div className="absolute bottom-2 right-2 bg-background/80 text-xs px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </div>
+
+                  {/* Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {selectedContent && (
+        <ContentEditModal
+          isOpen={isEditModalOpen}
+          onClose={handleModalClose}
+          content={selectedContent}
+          onUpdate={fetchUnlockables}
+        />
+      )}
     </div>
   );
 }
