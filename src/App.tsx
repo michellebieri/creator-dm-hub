@@ -44,19 +44,22 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
+          {/* Public routes without layout */}
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/creator-auth" element={<CreatorAuth />} />
-          <Route path="/browse" element={<Creators />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/creator/:username" element={<CreatorProfile />} />
 
-          {/* Creator-only routes */}
+          {/* Routes with bottom navigation */}
           <Route element={<AppLayout />}>
+            {/* Browse and creator profile pages */}
+            <Route path="/browse" element={<Creators />} />
+            <Route path="/creator/:username" element={<CreatorProfile />} />
+            
+            {/* Creator-only routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute requireCreator>
                 <CreatorDashboard />

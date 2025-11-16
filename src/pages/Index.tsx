@@ -149,84 +149,163 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section - Role-specific */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="text-4xl font-bold text-center mb-12">
-            Everything you need to monetize
-          </h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
-                <MessageCircle className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Pay Per Message</h3>
-              <p className="text-muted-foreground">
-                Set your price per message. Your fans pay to start meaningful conversations with you.
-              </p>
-            </Card>
+          {isCreator ? (
+            <>
+              <h2 className="text-4xl font-bold text-center mb-12">
+                Everything you need to monetize
+              </h2>
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <MessageCircle className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Pay Per Message</h3>
+                  <p className="text-muted-foreground">
+                    Set your price per message. Your fans pay to start meaningful conversations with you.
+                  </p>
+                </Card>
 
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
-                <Zap className="h-6 w-6 text-accent-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Message Packs</h3>
-              <p className="text-muted-foreground">
-                Offer bundles at discounted rates. Encourage bulk purchases and increase revenue.
-              </p>
-            </Card>
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <Zap className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Message Packs</h3>
+                  <p className="text-muted-foreground">
+                    Offer bundles at discounted rates. Encourage bulk purchases and increase revenue.
+                  </p>
+                </Card>
 
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
-                <Shield className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Premium Unlockables</h3>
-              <p className="text-muted-foreground">
-                Send exclusive content that fans can unlock for an additional fee within your chat.
-              </p>
-            </Card>
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Premium Unlockables</h3>
+                  <p className="text-muted-foreground">
+                    Send exclusive content that fans can unlock for an additional fee within your chat.
+                  </p>
+                </Card>
 
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
-                <TrendingUp className="h-6 w-6 text-accent-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Real-Time Analytics</h3>
-              <p className="text-muted-foreground">
-                Track your earnings, message stats, and audience growth all in one dashboard.
-              </p>
-            </Card>
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <TrendingUp className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Real-Time Analytics</h3>
+                  <p className="text-muted-foreground">
+                    Track your earnings, message stats, and audience growth all in one dashboard.
+                  </p>
+                </Card>
 
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
-                <DollarSign className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Next-Day Payouts</h3>
-              <p className="text-muted-foreground">
-                Get your money fast. Guaranteed payouts within 24 hours, every time.
-              </p>
-            </Card>
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <DollarSign className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Next-Day Payouts</h3>
+                  <p className="text-muted-foreground">
+                    Get your money fast. Guaranteed payouts within 24 hours, every time.
+                  </p>
+                </Card>
 
-            <Card className="p-6 shadow-medium hover:shadow-large transition-all">
-              <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
-                <Clock className="h-6 w-6 text-accent-foreground" />
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <Clock className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">24/7 Support</h3>
+                  <p className="text-muted-foreground">
+                    Priority support for creators with dedicated dispute resolution and fast response times.
+                  </p>
+                </Card>
               </div>
-              <h3 className="text-xl font-semibold mb-2">24/7 Support</h3>
-              <p className="text-muted-foreground">
-                Priority support for creators with dedicated dispute resolution and fast response times.
-              </p>
-            </Card>
-          </div>
-          {isCreator && (
-            <div className="text-center mt-12">
-              <Button 
-                size="lg" 
-                className="gradient-primary text-primary-foreground gap-2"
-                onClick={() => navigate('/vault')}
-              >
-                <Vault className="h-5 w-5" />
-                Upload to Vault
-              </Button>
-            </div>
+              <div className="text-center mt-12">
+                <Button 
+                  size="lg" 
+                  className="gradient-primary text-primary-foreground gap-2"
+                  onClick={() => navigate('/vault')}
+                >
+                  <Vault className="h-5 w-5" />
+                  Upload to Vault
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-4xl font-bold text-center mb-12">
+                Why Choose DM.me?
+              </h2>
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <MessageCircle className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Direct Access</h3>
+                  <p className="text-muted-foreground">
+                    Chat directly with your favorite creators. No middleman, just authentic conversations.
+                  </p>
+                </Card>
+
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Exclusive Content</h3>
+                  <p className="text-muted-foreground">
+                    Unlock premium photos, videos, and messages that you won't find anywhere else.
+                  </p>
+                </Card>
+
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <Zap className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Easy Payments</h3>
+                  <p className="text-muted-foreground">
+                    Secure payment options with message packs and bundles. Purchase once, message multiple times.
+                  </p>
+                </Card>
+
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <Vault className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Personal Library</h3>
+                  <p className="text-muted-foreground">
+                    All your purchased content safely stored in your personal vault. Access anytime.
+                  </p>
+                </Card>
+
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-primary rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Private & Secure</h3>
+                  <p className="text-muted-foreground">
+                    Your conversations and purchases are completely private. Bank-level security.
+                  </p>
+                </Card>
+
+                <Card className="p-6 shadow-medium hover:shadow-large transition-all">
+                  <div className="w-12 h-12 gradient-accent rounded-lg flex items-center justify-center mb-4">
+                    <Clock className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">Instant Access</h3>
+                  <p className="text-muted-foreground">
+                    Start chatting immediately after purchase. No waiting, no delays.
+                  </p>
+                </Card>
+              </div>
+              <div className="text-center mt-12">
+                <Button 
+                  size="lg" 
+                  className="gradient-primary text-primary-foreground gap-2"
+                  onClick={() => navigate('/browse')}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Discover Creators
+                </Button>
+              </div>
+            </>
           )}
         </div>
       </section>
@@ -257,24 +336,49 @@ const Index = () => {
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
-                90%+
-              </div>
-              <p className="text-muted-foreground">Creator Revenue Share</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
-                24hrs
-              </div>
-              <p className="text-muted-foreground">Guaranteed Payouts</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
-                100%
-              </div>
-              <p className="text-muted-foreground">Private & Secure</p>
-            </div>
+            {isCreator ? (
+              <>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    90%+
+                  </div>
+                  <p className="text-muted-foreground">Creator Revenue Share</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    24hrs
+                  </div>
+                  <p className="text-muted-foreground">Guaranteed Payouts</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    100%
+                  </div>
+                  <p className="text-muted-foreground">Private & Secure</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    10K+
+                  </div>
+                  <p className="text-muted-foreground">Active Creators</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    Instant
+                  </div>
+                  <p className="text-muted-foreground">Message Delivery</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
+                    100%
+                  </div>
+                  <p className="text-muted-foreground">Private & Secure</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
