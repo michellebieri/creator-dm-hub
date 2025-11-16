@@ -65,13 +65,11 @@ const Index = () => {
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
               {isCreator ? (
                 <>
-                  Connect with your<br />
-                  <span className="inline-block gradient-primary bg-clip-text text-transparent">fans</span>
+                  Connect with your <span className="gradient-primary bg-clip-text text-transparent [-webkit-background-clip:text] [-webkit-text-fill-color:transparent]">fans</span>
                 </>
               ) : (
                 <>
-                  Connect with your<br />
-                  favorite <span className="inline-block gradient-primary bg-clip-text text-transparent">creators</span>
+                  Connect with your favorite <span className="gradient-primary bg-clip-text text-transparent [-webkit-background-clip:text] [-webkit-text-fill-color:transparent]">creators</span>
                 </>
               )}
             </h1>
