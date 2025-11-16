@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, Upload, Plus, Search, SortAsc } from 'lucide-react';
+import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 import { ContentEditModal } from '@/components/ContentEditModal';
 import { FolderNavigation } from '@/components/FolderNavigation';
 import { ContentGridItem } from '@/components/ContentGridItem';
@@ -199,6 +200,97 @@ export default function ContentVault() {
           </Dialog>
         </div>
 
+        {/* Folder Navigation */}
+        <FolderNavigation
+          activeFolder={activeFolder}
+          onFolderChange={setActiveFolder}
+          counts={folderCounts}
+        />
+
+        {/* Search and Sort Controls */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search content..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Content Grid */}
+        {dataLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="aspect-square rounded-lg" />
+            ))}
+          </div>
+        ) : (
+          <>
+            {/* Display Bundles if in bundles or all view */}
+            {displayBundles && bundles.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {bundles.map((bundle) => (
+                  <ContentGridItem
+                    key={bundle.id}
+                    id={bundle.id}
+                    thumbnailUrl={bundle.thumbnail_url || '/placeholder.svg'}
+                    title={bundle.title}
+                    price={bundle.price}
+                    type="bundle"
+                    itemCount={bundle.content_count}
+                    onClick={() => {
+                      // Handle bundle click - could open bundle details
+                      console.log('Bundle clicked:', bundle.id);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* Display Content Items */}
+            {(activeFolder !== 'bundles') && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {filteredContent.length > 0 ? (
+                  filteredContent.map((content) => (
+                    <ContentGridItem
+                      key={content.id}
+                      id={content.id}
+                      thumbnailUrl={content.media_url}
+                      price={content.price}
+                      type={content.media_type === 'image' ? 'image' : 'video'}
+                      onClick={() => handleContentClick(content)}
+                    />
+                  ))
+                ) : (
+                  <EmptyState
+                    icon={activeFolder === 'photos' ? Image : activeFolder === 'videos' ? Video : FolderOpen}
+                    title={`No ${activeFolder === 'all' ? 'content' : activeFolder} yet`}
+                    description="Upload your first content to get started"
+                    action={{
+                      label: 'Upload Content',
+                      onClick: () => navigate('/content-upload')
+                    }}
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* Edit Modal */}
