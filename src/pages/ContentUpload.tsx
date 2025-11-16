@@ -136,7 +136,7 @@ export default function ContentUpload() {
               console.log(`\n=== Processing file ${fileIndex + 1}/${files.length}: ${file.name} ===`);
               
               // Step 2: Validate file size
-              const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+              const maxSize = file.type.startsWith('video/') ? 500 * 1024 * 1024 : 25 * 1024 * 1024;
               console.log(`File size: ${(file.size / (1024 * 1024)).toFixed(2)}MB, Max: ${maxSize / (1024 * 1024)}MB`);
               
               if (file.size > maxSize) {
@@ -275,7 +275,7 @@ export default function ContentUpload() {
               if (errorMessage.includes('Storage')) {
                 errorMessage = 'Storage upload failed. Check permissions and try again.';
               } else if (errorMessage.includes('too large')) {
-                errorMessage = `File too large. Max: 100MB (videos), 10MB (images)`;
+                errorMessage = `File too large. Max: 500MB (videos), 25MB (images)`;
               }
               
               toast({
@@ -350,7 +350,7 @@ export default function ContentUpload() {
               className="mt-2"
             />
             <p className="text-xs text-muted-foreground mt-2">
-              Max 100MB for videos, 10MB for images
+              Max 500MB for videos, 25MB for images
             </p>
           </div>
 
