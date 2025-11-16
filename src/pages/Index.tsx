@@ -98,20 +98,52 @@ const Index = () => {
                 How It Works
               </Button>
             </div>
-            <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-primary" />
-                <span>Secure Payments</span>
+            {isCreator ? (
+              <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
+                <div className="flex items-center gap-3 bg-card px-6 py-3 rounded-lg border border-border shadow-sm">
+                  <div className="w-8 h-8 gradient-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
+                    1
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Create Your Profile</div>
+                    <div className="text-xs text-muted-foreground">Set up your message packs with custom pricing</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-card px-6 py-3 rounded-lg border border-border shadow-sm">
+                  <div className="w-8 h-8 gradient-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
+                    2
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Share Your Link</div>
+                    <div className="text-xs text-muted-foreground">Share your unique creator link with your audience</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 bg-card px-6 py-3 rounded-lg border border-border shadow-sm">
+                  <div className="w-8 h-8 gradient-primary rounded-full flex items-center justify-center text-sm font-bold text-primary-foreground shrink-0">
+                    3
+                  </div>
+                  <div className="text-left">
+                    <div className="font-semibold text-sm">Get Paid</div>
+                    <div className="text-xs text-muted-foreground">Earn money from every conversation</div>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
-                <span>Direct Messaging</span>
+            ) : (
+              <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-primary" />
+                  <span>Secure Payments</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-5 w-5 text-primary" />
+                  <span>Direct Messaging</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-primary" />
+                  <span>Exclusive Content</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Zap className="h-5 w-5 text-primary" />
-                <span>Exclusive Content</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -183,44 +215,8 @@ const Index = () => {
               </p>
             </Card>
           </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 bg-card">
-        <div className="container mx-auto max-w-6xl">
-          <h2 className="text-4xl font-bold text-center mb-12">How It Works</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="p-6 text-center">
-              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
-                1
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Create Your Profile</h3>
-              <p className="text-muted-foreground">
-                Sign up as a creator and set up your message packs with custom pricing.
-              </p>
-            </Card>
-            <Card className="p-6 text-center">
-              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
-                2
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Share Your Link</h3>
-              <p className="text-muted-foreground">
-                Share your unique creator link with your audience on social media.
-              </p>
-            </Card>
-            <Card className="p-6 text-center">
-              <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold text-primary-foreground">
-                3
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Get Paid</h3>
-              <p className="text-muted-foreground">
-                Fans purchase credits, you respond, and earn money from every conversation.
-              </p>
-            </Card>
-          </div>
-          <div className="text-center mt-12">
-            {isCreator ? (
+          {isCreator && (
+            <div className="text-center mt-12">
               <Button 
                 size="lg" 
                 className="gradient-primary text-primary-foreground gap-2"
@@ -229,18 +225,11 @@ const Index = () => {
                 <Vault className="h-5 w-5" />
                 Upload to Vault
               </Button>
-            ) : (
-              <Button 
-                size="lg" 
-                className="gradient-primary text-primary-foreground"
-                onClick={() => navigate('/creators')}
-              >
-                Browse Creators
-              </Button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
+
 
       {/* Featured Content Bundles */}
       <section className="py-20 px-4 bg-muted/50">
