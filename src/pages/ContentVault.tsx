@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, ChevronRight, Filter, Image as ImageIcon, Video } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { ChevronLeft, Upload, Plus, Search, SortAsc } from 'lucide-react';
 import { ContentEditModal } from '@/components/ContentEditModal';
+import { FolderNavigation } from '@/components/FolderNavigation';
+import { ContentGridItem } from '@/components/ContentGridItem';
+import { ContentBundleManager } from '@/components/ContentBundleManager';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Unlockable {
   id: string;
@@ -17,13 +22,26 @@ interface Unlockable {
   unlocked_by: string[] | null;
 }
 
+interface Bundle {
+  id: string;
+  title: string;
+  price: number;
+  thumbnail_url: string | null;
+  content_count: number;
+}
+
 export default function ContentVault() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [unlockables, setUnlockables] = useState<Unlockable[]>([]);
-  const [filterType, setFilterType] = useState<string>('all-types');
+  const [bundles, setBundles] = useState<Bundle[]>([]);
+  const [activeFolder, setActiveFolder] = useState<'all' | 'photos' | 'videos' | 'bundles'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('newest');
   const [selectedContent, setSelectedContent] = useState<Unlockable | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBundleDialogOpen, setIsBundleDialogOpen] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -33,25 +51,52 @@ export default function ContentVault() {
 
   useEffect(() => {
     if (user) {
-      fetchUnlockables();
+      fetchData();
     }
   }, [user]);
 
-  const fetchUnlockables = async () => {
+  const fetchData = async () => {
     if (!user) return;
+    setDataLoading(true);
 
-    const { data, error } = await supabase
+    // Fetch unlockables
+    const { data: unlockablesData, error: unlockError } = await supabase
       .from('unlockables')
       .select('*')
       .eq('creator_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching unlockables:', error);
-      return;
+    if (unlockError) {
+      console.error('Error fetching unlockables:', unlockError);
+    } else {
+      setUnlockables(unlockablesData || []);
     }
 
-    setUnlockables(data || []);
+    // Fetch bundles
+    const { data: bundlesData, error: bundleError } = await supabase
+      .from('content_bundles')
+      .select('*')
+      .eq('creator_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (bundleError) {
+      console.error('Error fetching bundles:', bundleError);
+    } else {
+      // Get content counts for each bundle
+      const bundlesWithCounts = await Promise.all(
+        (bundlesData || []).map(async (bundle) => {
+          const { count } = await supabase
+            .from('bundle_contents')
+            .select('*', { count: 'exact', head: true })
+            .eq('bundle_id', bundle.id);
+
+          return { ...bundle, content_count: count || 0 };
+        })
+      );
+      setBundles(bundlesWithCounts);
+    }
+
+    setDataLoading(false);
   };
 
   const handleContentClick = (content: Unlockable) => {
@@ -62,152 +107,98 @@ export default function ContentVault() {
   const handleModalClose = () => {
     setIsEditModalOpen(false);
     setSelectedContent(null);
+    fetchData(); // Refresh data after edit
   };
 
-  // Filter unlockables based on selected type
-  const filteredUnlockables = unlockables.filter((item) => {
-    if (filterType === 'all-types') return true;
-    if (filterType === 'images') return item.media_type === 'image';
-    if (filterType === 'videos') return item.media_type === 'video';
-    return true;
-  });
+  // Calculate folder counts
+  const folderCounts = {
+    photos: unlockables.filter(u => u.media_type === 'image').length,
+    videos: unlockables.filter(u => u.media_type === 'video').length,
+    bundles: bundles.length,
+    total: unlockables.length + bundles.length
+  };
+
+  // Filter content based on active folder and search
+  const getFilteredContent = () => {
+    let filtered = [...unlockables];
+    
+    // Apply folder filter
+    if (activeFolder === 'photos') {
+      filtered = filtered.filter(u => u.media_type === 'image');
+    } else if (activeFolder === 'videos') {
+      filtered = filtered.filter(u => u.media_type === 'video');
+    }
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(u => 
+        u.media_url.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    if (sortBy === 'newest') {
+      filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (sortBy === 'oldest') {
+      filtered.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    } else if (sortBy === 'price-high') {
+      filtered.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'price-low') {
+      filtered.sort((a, b) => a.price - b.price);
+    }
+
+    return filtered;
+  };
+
+  const filteredContent = getFilteredContent();
+  const displayBundles = activeFolder === 'bundles' || activeFolder === 'all';
 
   if (loading) return null;
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {/* Header */}
       <header className="sticky top-14 z-10 bg-background border-b border-border">
-        <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
+        <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
           <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">Content vault</h1>
+          <h1 className="text-lg font-semibold">Content Vault</h1>
           <div className="w-10" />
         </div>
       </header>
 
-      <div className="max-w-screen-lg mx-auto p-4 space-y-4">
-        {/* Add photos or videos */}
-        <button 
-          onClick={() => navigate('/content-upload')}
-          className="flex items-center justify-between w-full p-4 bg-card rounded-lg border border-border hover:bg-muted/50 transition-colors"
-        >
-          <div>
-            <div className="text-base font-medium text-left">Add photos or videos</div>
-            <div className="text-sm text-muted-foreground mt-1">Upload up to 20 items at once.</div>
-          </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-        </button>
-
-        {/* Albums */}
-        <Card className="p-4">
-          <button 
-            className="flex items-center justify-between w-full"
-            onClick={() => navigate('/collections')}
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button 
+            onClick={() => navigate('/content-upload')}
+            className="flex-1 sm:flex-none"
+            size="lg"
           >
-            <h2 className="text-lg font-bold">Albums</h2>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          
-          <div className="mt-4 text-center py-8 text-muted-foreground">
-            No album created yet.
-          </div>
-        </Card>
-
-        {/* Filters */}
-        <div className="flex gap-2">
-          <Select defaultValue="all-tags">
-            <SelectTrigger className="flex-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-tags">Tags</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="flex-1">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-types">All types</SelectItem>
-              <SelectItem value="images">Images</SelectItem>
-              <SelectItem value="videos">Videos</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Button variant="ghost" size="icon">
-            <Filter className="h-5 w-5" />
+            <Upload className="h-5 w-5 mr-2" />
+            Upload Content
           </Button>
+          
+          <Dialog open={isBundleDialogOpen} onOpenChange={setIsBundleDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="flex-1 sm:flex-none" size="lg">
+                <Plus className="h-5 w-5 mr-2" />
+                Create Bundle
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create Content Bundle</DialogTitle>
+              </DialogHeader>
+              <ContentBundleManager 
+                creatorId={user?.id || ''} 
+                unlockables={unlockables}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
 
-        {/* Content Grid */}
-        <div className="py-4">
-          {filteredUnlockables.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {filterType === 'images' && unlockables.length > 0 
-                ? 'No images uploaded yet' 
-                : filterType === 'videos' && unlockables.length > 0 
-                ? 'No videos uploaded yet' 
-                : 'No content was found'}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {filteredUnlockables.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="aspect-square bg-muted rounded-lg overflow-hidden relative cursor-pointer hover:scale-[1.02] hover:shadow-lg transition-all duration-200 group"
-                  onClick={() => handleContentClick(item)}
-                >
-                  {item.media_type === 'image' ? (
-                    <>
-                      <img 
-                        src={item.media_url} 
-                        alt="Vault content" 
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                        onError={(e) => {
-                          console.error('Image load error:', item.media_url);
-                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999"%3E?%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
-                      <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1.5">
-                        <ImageIcon className="h-3 w-3 text-foreground" />
-                      </div>
-                    </>
-                  ) : item.media_type === 'video' ? (
-                    <>
-                      <video 
-                        src={item.media_url}
-                        className="w-full h-full object-cover pointer-events-none"
-                      />
-                      <div className="absolute top-2 right-2 bg-background/80 rounded-full p-1.5">
-                        <Video className="h-3 w-3 text-foreground" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-xs">{item.media_type}</span>
-                    </div>
-                  )}
-                  
-                  {/* Price Badge */}
-                  <div className="absolute bottom-2 left-2 bg-primary text-primary-foreground text-sm font-semibold px-2 py-1 rounded-md shadow-md">
-                    ${item.price.toFixed(2)}
-                  </div>
-
-                  {/* Upload Date */}
-                  <div className="absolute bottom-2 right-2 bg-background/80 text-xs px-2 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
-                    {new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                  </div>
-
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Edit Modal */}
@@ -216,7 +207,7 @@ export default function ContentVault() {
           isOpen={isEditModalOpen}
           onClose={handleModalClose}
           content={selectedContent}
-          onUpdate={fetchUnlockables}
+          onUpdate={fetchData}
         />
       )}
     </div>
