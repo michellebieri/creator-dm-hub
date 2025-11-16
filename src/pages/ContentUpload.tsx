@@ -97,25 +97,38 @@ export default function ContentUpload() {
             try {
               // Validate file size (100MB for videos, 10MB for images)
               const maxSize = file.type.startsWith('video/') ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+              console.log(`Checking file: ${file.name}, Size: ${file.size} bytes, Max: ${maxSize} bytes`);
+              
               if (file.size > maxSize) {
-                throw new Error(`File ${file.name} is too large. Max size: ${maxSize / (1024 * 1024)}MB`);
+                throw new Error(`File ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(2)}MB). Max size: ${maxSize / (1024 * 1024)}MB`);
               }
 
-              // Upload to storage
-              const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
-              const { error: uploadError } = await supabase.storage
+              // Sanitize filename - remove spaces and special chars
+              const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+              const fileName = `${user.id}/${Date.now()}-${sanitizedName}`;
+              
+              console.log(`Uploading to: unlockables/${fileName}`);
+              
+              const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('unlockables')
                 .upload(fileName, file, {
                   cacheControl: '3600',
                   upsert: false
                 });
 
-              if (uploadError) throw uploadError;
+              if (uploadError) {
+                console.error('Storage upload error:', uploadError);
+                throw new Error(`Storage error: ${uploadError.message}`);
+              }
+              
+              console.log('Upload successful:', uploadData);
 
               // Get public URL
               const { data: { publicUrl } } = supabase.storage
                 .from('unlockables')
                 .getPublicUrl(fileName);
+
+              console.log('Public URL generated:', publicUrl);
 
               // Create message for this content
               const { data: message, error: messageError } = await supabase
@@ -129,7 +142,12 @@ export default function ContentUpload() {
                 .select('id')
                 .single();
 
-              if (messageError) throw messageError;
+              if (messageError) {
+                console.error('Message creation error:', messageError);
+                throw new Error(`Failed to create message: ${messageError.message}`);
+              }
+
+              console.log('Message created:', message.id);
 
               // Determine media type
               const mediaType = file.type.startsWith('image/') ? 'image' : 
@@ -147,16 +165,30 @@ export default function ContentUpload() {
                   price: priceValue,
                 });
 
-              if (unlockableError) throw unlockableError;
+              if (unlockableError) {
+                console.error('Unlockable creation error:', unlockableError);
+                throw new Error(`Failed to create unlockable: ${unlockableError.message}`);
+              }
+
+              console.log('Unlockable created successfully');
 
               successCount++;
               setUploadProgress(Math.round(((fileIndex + 1) / files.length) * 100));
             } catch (err: any) {
               console.error(`Error uploading ${file.name}:`, err);
               failCount++;
+              
+              // Show specific error to user
+              let errorMessage = err.message || 'An error occurred';
+              if (errorMessage.includes('Storage error')) {
+                errorMessage = 'Storage upload failed. Please check your connection and try again.';
+              } else if (errorMessage.includes('too large')) {
+                errorMessage = `File is too large. Videos: max 100MB, Images: max 10MB`;
+              }
+              
               toast({
                 title: `Failed to upload ${file.name}`,
-                description: err.message || 'An error occurred',
+                description: errorMessage,
                 variant: "destructive",
               });
             }
@@ -171,15 +203,19 @@ export default function ContentUpload() {
         });
         navigate('/vault');
       } else {
-        throw new Error('All uploads failed');
+        throw new Error(`All ${files.length} upload(s) failed. Please check the console for details.`);
       }
     } catch (error: any) {
       console.error('Upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: error.message || 'An unexpected error occurred',
-        variant: "destructive",
-      });
+      
+      // Only show general error if no files succeeded
+      if (successCount === 0) {
+        toast({
+          title: "Upload failed",
+          description: error.message || 'Unable to upload files. Please try again or contact support.',
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
       setUploadProgress(0);
