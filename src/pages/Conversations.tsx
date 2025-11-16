@@ -237,8 +237,8 @@ const Conversations = () => {
     if (successCount > 0) {
       setConversations(prev => prev.filter(c => !selectedConversations.has(c.id)));
       toast({
-        title: showArchived ? 'Conversations restored' : 'Conversations archived',
-        description: `${successCount} conversation(s) ${showArchived ? 'restored' : 'archived'} successfully`,
+        title: showArchived ? 'Messages restored' : 'Messages archived',
+        description: `${successCount} message(s) ${showArchived ? 'restored' : 'archived'} successfully`,
       });
     }
 
@@ -287,7 +287,7 @@ const Conversations = () => {
   if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <LoadingSpinner size="lg" text="Loading conversations..." />
+        <LoadingSpinner size="lg" text="Loading messages..." />
       </div>
     );
   }
@@ -306,7 +306,7 @@ const Conversations = () => {
           </Button>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <MessageCircle className="h-8 w-8 text-primary" />
-            Conversations
+            Messages
           </h1>
         </div>
 
@@ -366,7 +366,7 @@ const Conversations = () => {
           
           <input
             type="text"
-            placeholder="Search conversations..."
+            placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -377,14 +377,14 @@ const Conversations = () => {
           searchQuery ? (
             <EmptyState
               icon={MessageSquare}
-              title="No conversations found"
+              title="No messages found"
               description="Try adjusting your search terms"
             />
           ) : (
             <EmptyState
               icon={MessageCircle}
-              title="No conversations yet"
-              description="Start messaging creators to see your conversations here"
+              title="No messages yet"
+              description="Start messaging creators to see your messages here"
               action={{
                 label: 'Browse Creators',
                 onClick: () => navigate('/creators'),

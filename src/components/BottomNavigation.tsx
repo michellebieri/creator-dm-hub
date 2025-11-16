@@ -27,7 +27,7 @@ export const BottomNavigation = () => {
         <Link to="/conversations" className="flex flex-col items-center justify-center flex-1">
           <MessageCircle className={`h-6 w-6 ${isActive('/conversations') ? 'text-primary' : 'text-muted-foreground'}`} />
           <span className={`text-xs mt-1 ${isActive('/conversations') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-            Chats
+            Messages
           </span>
         </Link>
         
