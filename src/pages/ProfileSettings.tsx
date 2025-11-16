@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationToggle } from '@/components/NotificationToggle';
+import { AvatarCropModal } from '@/components/AvatarCropModal';
 import { ArrowLeft, Loader2, User, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +21,8 @@ const ProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [profile, setProfile] = useState({
     username: '',
     display_name: '',
@@ -70,18 +73,39 @@ const ProfileSettings = () => {
     fetchProfile();
   }, [user, toast]);
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || !e.target.files[0] || !user) return;
+  const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0]) return;
 
     const file = e.target.files[0];
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "File too large, please use an image under 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSelectedImageUrl(reader.result as string);
+      setCropModalOpen(true);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (!user) return;
 
     setUploading(true);
     try {
+      const fileName = `${user.id}/profile.jpg`;
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, file, { upsert: true });
+        .upload(fileName, croppedBlob, { upsert: true });
 
       if (uploadError) throw uploadError;
 
@@ -95,6 +119,9 @@ const ProfileSettings = () => {
         title: "Success",
         description: "Avatar uploaded successfully",
       });
+      
+      setCropModalOpen(false);
+      setSelectedImageUrl(null);
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       toast({
@@ -104,6 +131,14 @@ const ProfileSettings = () => {
       });
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    setSelectedImageUrl(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
@@ -170,7 +205,7 @@ const ProfileSettings = () => {
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={profile.avatar_url} />
+                <AvatarImage src={profile.avatar_url} className="object-cover" />
                 <AvatarFallback className="text-2xl">
                   {profile.display_name.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -180,7 +215,7 @@ const ProfileSettings = () => {
                   ref={fileInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
-                  onChange={handleAvatarUpload}
+                  onChange={handleAvatarSelect}
                   className="hidden"
                 />
                 <Button
@@ -267,6 +302,14 @@ const ProfileSettings = () => {
         </Card>
 
         <NotificationToggle />
+
+        {cropModalOpen && selectedImageUrl && (
+          <AvatarCropModal
+            imageUrl={selectedImageUrl}
+            onComplete={handleCropComplete}
+            onCancel={handleCropCancel}
+          />
+        )}
       </div>
     </div>
   );
