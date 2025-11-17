@@ -90,7 +90,21 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
         <div className="text-2xl font-bold">${amount.toFixed(2)}</div>
       </div>
 
-      <PaymentElement />
+      <div className="space-y-2">
+        <div className="text-xs text-muted-foreground font-medium mb-2">
+          Select your payment method
+        </div>
+        <PaymentElement 
+          options={{
+            layout: {
+              type: 'tabs',
+              defaultCollapsed: false,
+              radios: false,
+              spacedAccordionItems: false
+            }
+          }}
+        />
+      </div>
 
       {error && (
         <Alert variant="destructive">
