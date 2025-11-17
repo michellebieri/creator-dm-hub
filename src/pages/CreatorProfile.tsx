@@ -4,17 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
-import { MessageCircle, Shield, Zap, Loader2, ArrowLeft, UserPlus, UserMinus, Flag, Ban } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
-import { MessagePackPurchase } from '@/components/MessagePackPurchase';
-import { BundlePurchase } from '@/components/BundlePurchase';
-import { CreditsBalance } from '@/components/CreditsBalance';
-import { ReportDialog } from '@/components/ReportDialog';
-import { BlockUserDialog } from '@/components/BlockUserDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useFollowing } from '@/hooks/useFollowing';
+import { useCredits } from '@/hooks/useCredits';
 
 interface Profile {
   id: string;
@@ -24,265 +20,267 @@ interface Profile {
   avatar_url?: string;
 }
 
+interface ContentItem {
+  id: string;
+  media_url: string;
+  media_type: 'image' | 'video' | 'audio' | 'document';
+  price: number;
+  title?: string;
+  caption?: string;
+  created_at: string;
+  unlocked_by: string[] | null;
+}
+
+interface Bundle {
+  id: string;
+  title: string;
+  price: number;
+  thumbnail_url?: string;
+  created_at: string;
+  content_count: number;
+}
+
+type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
+
 const CreatorProfile = () => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { checkAndDeductCredits } = useCredits();
+  
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [packs, setPacks] = useState([]);
+  const [content, setContent] = useState<ContentItem[]>([]);
+  const [bundles, setBundles] = useState<Bundle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reportDialogOpen, setReportDialogOpen] = useState(false);
-  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
-  const { isFollowing, followersCount, toggleFollow } = useFollowing(user?.id, profile?.id || null);
+  const [activeFolder, setActiveFolder] = useState<FolderType>('all');
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [pricePerMessage, setPricePerMessage] = useState<number>(5);
 
   useEffect(() => {
-    const trackView = async () => {
-      if (!profile?.id || !username) return;
-
-      // Track profile view
-      try {
-        await supabase
-          .from('profile_views')
-          .insert({
-            viewer_id: user?.id || null,
-            profile_id: profile.id,
-          });
-      } catch (error) {
-        console.error('Error tracking view:', error);
-      }
-    };
-
-    if (profile) {
-      trackView();
-    }
-  }, [profile, user]);
-
-  useEffect(() => {
-    const fetchCreatorData = async () => {
-      if (!username) return;
-
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('username', username)
-          .eq('role', 'creator')
-          .single();
-
-        if (profileError) throw profileError;
-        setProfile(profileData);
-
-        const { data: packsData } = await supabase
-          .from('message_packs')
-          .select('*')
-          .eq('creator_id', profileData.id)
-          .eq('is_active', true)
-          .order('quantity', { ascending: true });
-
-        setPacks(packsData || []);
-      } catch (error: any) {
-        console.error('Error fetching creator:', error);
-        toast({
-          title: "Creator not found",
-          description: "The creator you're looking for doesn't exist",
-          variant: "destructive",
-        });
-        navigate('/');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCreatorData();
-  }, [username, navigate, toast]);
+  }, [username]);
+
+  const fetchCreatorData = async () => {
+    if (!username) return;
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('username', username)
+        .single();
+      if (profileError) throw profileError;
+      setProfile(profileData);
+
+      const { data: settingsData } = await supabase
+        .from('creator_settings')
+        .select('price_per_message')
+        .eq('user_id', profileData.id)
+        .single();
+      if (settingsData) setPricePerMessage(settingsData.price_per_message);
+
+      const { data: contentData } = await supabase
+        .from('unlockables')
+        .select('*')
+        .eq('creator_id', profileData.id)
+        .order('created_at', { ascending: false });
+      setContent(contentData || []);
+
+      const { data: bundlesData } = await supabase
+        .from('content_bundles')
+        .select('*')
+        .eq('creator_id', profileData.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      const bundlesWithCounts = await Promise.all(
+        (bundlesData || []).map(async (bundle) => {
+          const { count } = await supabase
+            .from('bundle_contents')
+            .select('*', { count: 'exact', head: true })
+            .eq('bundle_id', bundle.id);
+          return { ...bundle, content_count: count || 0 };
+        })
+      );
+      setBundles(bundlesWithCounts);
+    } catch (error: any) {
+      toast({ title: "Error", description: "Could not load creator profile", variant: "destructive" });
+      navigate('/browse');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleStartConversation = () => {
     if (!user) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to start a conversation",
-        variant: "destructive",
-      });
+      toast({ title: "Sign in required", description: "Please sign in to start a conversation", variant: "destructive" });
       navigate('/auth');
       return;
     }
-
     if (!profile) return;
     navigate(`/messages?creator=${profile.id}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const handleContentClick = (item: ContentItem) => {
+    setSelectedContent(item);
+    setUnlockDialogOpen(true);
+  };
 
+  const handleUnlockContent = async () => {
+    if (!selectedContent || !user || !profile) return;
+    if (selectedContent.unlocked_by?.includes(user.id)) {
+      toast({ title: "Already unlocked", description: "You have already purchased this content" });
+      return;
+    }
+    setUnlocking(true);
+    try {
+      const hasCredits = await checkAndDeductCredits(profile.id, selectedContent.price, 'Unlocked content');
+      if (!hasCredits) {
+        toast({ title: "Insufficient credits", description: "Please purchase more credits", variant: "destructive" });
+        setUnlocking(false);
+        return;
+      }
+      const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
+      await supabase.from('unlockables').update({ unlocked_by: updatedUnlockedBy }).eq('id', selectedContent.id);
+      await supabase.from('transactions').insert({
+        customer_id: user.id, creator_id: profile.id, amount: selectedContent.price,
+        net_amount: selectedContent.price * 0.8, platform_fee: selectedContent.price * 0.1,
+        processor_fee: selectedContent.price * 0.1, transaction_type: 'content_unlock', status: 'completed'
+      });
+      toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
+      setUnlockDialogOpen(false);
+      fetchCreatorData();
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to unlock content", variant: "destructive" });
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
+  const getFilteredContent = () => {
+    switch (activeFolder) {
+      case 'photos': return content.filter(item => item.media_type === 'image');
+      case 'videos': return content.filter(item => item.media_type === 'video');
+      case 'bundles': return bundles;
+      default: return [...content, ...bundles].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    }
+  };
+
+  const filteredItems = getFilteredContent();
+  const isContentItem = (item: any): item is ContentItem => 'media_type' in item;
+  const counts = {
+    all: content.length + bundles.length,
+    photos: content.filter(c => c.media_type === 'image').length,
+    videos: content.filter(c => c.media_type === 'video').length,
+    bundles: bundles.length,
+  };
+
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (!profile) return null;
 
-  const initials = profile.display_name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
+  const isUnlocked = (item: ContentItem) => user && item.unlocked_by?.includes(user.id);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-soft sticky top-0 z-10">
-        <div className="container mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MessageCircle className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">DM.me</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </div>
+    <div className="min-h-screen bg-background pb-20">
+      <div className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
+          <Button variant="ghost" size="sm" onClick={() => navigate('/browse')}><ArrowLeft className="h-5 w-5" /></Button>
+          <h1 className="text-lg font-semibold">Profile</h1>
+          <div className="w-10" />
         </div>
-      </header>
-
-      <section className="gradient-hero py-12 px-4">
-        <div className="container mx-auto max-w-4xl text-center">
-          <div className="relative inline-block mb-6">
-            <Avatar className="h-32 w-32 shadow-large">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-4xl gradient-primary text-primary-foreground">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="absolute bottom-2 right-2">
-              <OnlineStatusBadge userId={profile.id} size="lg" />
-            </div>
+      </div>
+      <div className="max-w-screen-lg mx-auto px-4 py-6">
+        <div className="flex flex-col items-center text-center mb-6">
+          <Avatar className="h-24 w-24 mb-4">
+            <AvatarImage src={profile.avatar_url || ''} />
+            <AvatarFallback className="text-2xl">{profile.display_name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <h2 className="text-2xl font-bold mb-1">{profile.display_name}</h2>
+          <p className="text-muted-foreground mb-2">@{profile.username}</p>
+          {profile.bio && <p className="text-sm text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+          <Badge variant="secondary" className="mb-4">${pricePerMessage} / message</Badge>
+          <Button onClick={handleStartConversation} size="lg" className="w-full max-w-xs"><MessageCircle className="h-4 w-4 mr-2" />Chat</Button>
+        </div>
+        <Tabs value={activeFolder} onValueChange={(v) => setActiveFolder(v as FolderType)} className="mb-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="all">All ({counts.all})</TabsTrigger>
+            <TabsTrigger value="photos"><ImageIcon className="h-4 w-4 mr-1" />Photos ({counts.photos})</TabsTrigger>
+            <TabsTrigger value="videos"><VideoIcon className="h-4 w-4 mr-1" />Videos ({counts.videos})</TabsTrigger>
+            <TabsTrigger value="bundles"><Package className="h-4 w-4 mr-1" />Bundles ({counts.bundles})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-12"><p className="text-muted-foreground">This creator hasn't posted any content yet. Check back soon!</p></div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredItems.map((item) => {
+              const isContent = isContentItem(item);
+              const unlocked = isContent ? isUnlocked(item) : false;
+              return (
+                <Card key={item.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all" onClick={() => isContent && handleContentClick(item)}>
+                  <div className="relative aspect-square bg-muted">
+                    {isContent ? (
+                      <div className="relative w-full h-full">
+                        {item.media_type === 'image' || item.media_type === 'video' ? (
+                          <img src={item.media_url} alt={item.title || 'Content'} className={`w-full h-full object-cover ${!unlocked ? 'blur-[20px]' : ''}`} />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5"><Lock className="h-12 w-12 text-primary" /></div>
+                        )}
+                        {!unlocked && <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Lock className="h-10 w-10 text-white" /></div>}
+                        {item.media_type === 'video' && <div className="absolute top-2 right-2"><Badge variant="secondary"><VideoIcon className="h-3 w-3 mr-1" />Video</Badge></div>}
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5"><Package className="h-12 w-12 text-primary" /></div>
+                    )}
+                  </div>
+                  <div className="p-3 space-y-1">
+                    {(isContent ? item.title : item.title) && <div className="font-medium text-sm truncate">{isContent ? item.title : item.title}</div>}
+                    {isContent && item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>}
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
+                      {isContent && !unlocked && <Badge variant="outline" className="text-xs gap-1"><Lock className="h-3 w-3" />Locked</Badge>}
+                      {isContent && unlocked && <Badge variant="secondary" className="text-xs">Unlocked</Badge>}
+                      {!isContent && <Badge variant="secondary" className="text-xs gap-1"><Package className="h-3 w-3" />{item.content_count} items</Badge>}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
           </div>
-          <h1 className="text-4xl font-bold mb-1">{profile.display_name}</h1>
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <OnlineStatusBadge userId={profile.id} showLabel size="md" />
-          </div>
-          <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-            {profile.bio || `Connect with ${profile.display_name} through direct messages`}
-          </p>
-          <div className="flex flex-col items-center gap-3 mb-4">
-            <div className="flex gap-2">
-              <Button
-                size="lg"
-                variant={isFollowing ? "outline" : "default"}
-                onClick={toggleFollow}
-              >
-                {isFollowing ? (
-                  <>
-                    <UserMinus className="mr-2 h-5 w-5" />
-                    Following
-                  </>
+        )}
+      </div>
+      <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Unlock Content</DialogTitle></DialogHeader>
+          {selectedContent && (
+            <div className="space-y-4">
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                {selectedContent.media_type === 'image' || selectedContent.media_type === 'video' ? (
+                  <img src={selectedContent.media_url} alt={selectedContent.title || 'Content'} className="w-full h-full object-cover blur-[20px]" />
                 ) : (
-                  <>
-                    <UserPlus className="mr-2 h-5 w-5" />
-                    Follow
-                  </>
+                  <div className="w-full h-full flex items-center justify-center"><Lock className="h-16 w-16 text-muted-foreground" /></div>
                 )}
-              </Button>
-
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={() => setReportDialogOpen(true)}
-              >
-                <Flag className="h-5 w-5" />
-              </Button>
-
-              <Button
-                size="lg"
-                variant="ghost"
-                onClick={() => setBlockDialogOpen(true)}
-              >
-                <Ban className="h-5 w-5" />
-              </Button>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {followersCount} followers
-            </div>
-          </div>
-          <div className="flex flex-wrap justify-center gap-4 mb-8">
-            <Badge variant="secondary" className="shadow-soft">
-              <Shield className="h-3 w-3 mr-1" />
-              Verified Creator
-            </Badge>
-            <Badge variant="secondary" className="shadow-soft">
-              <Zap className="h-3 w-3 mr-1" />
-              Fast Response
-            </Badge>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-12 px-4">
-        <div className="container mx-auto max-w-4xl space-y-8">
-          {user && user.id !== profile.id && (
-            <CreditsBalance creatorId={profile.id} />
-          )}
-
-          {packs.length > 0 ? (
-            <>
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Start a Conversation</h2>
-                <p className="text-muted-foreground">
-                  Purchase message credits to chat with {profile.display_name}
-                </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40"><Lock className="h-16 w-16 text-white" /></div>
               </div>
-
-              <MessagePackPurchase creatorId={profile.id} packs={packs} />
-
-              <div className="text-center pt-4">
-                <Button
-                  size="lg"
-                  onClick={handleStartConversation}
-                  className="gradient-primary text-primary-foreground"
-                >
-                  <MessageCircle className="h-5 w-5 mr-2" />
-                  Go to Messages
+              {selectedContent.title && <h3 className="font-semibold text-lg">{selectedContent.title}</h3>}
+              {selectedContent.caption && <p className="text-sm text-muted-foreground">{selectedContent.caption}</p>}
+              <div className="flex items-center justify-between py-4 border-y">
+                <span className="text-muted-foreground">Price</span>
+                <span className="text-2xl font-bold text-primary">${selectedContent.price.toFixed(2)}</span>
+              </div>
+              {selectedContent.unlocked_by?.includes(user?.id || '') ? (
+                <div className="text-center py-4"><Badge variant="secondary" className="text-sm">Already Unlocked</Badge><p className="text-sm text-muted-foreground mt-2">You can view this in your library</p></div>
+              ) : (
+                <Button onClick={handleUnlockContent} disabled={unlocking} className="w-full" size="lg">
+                  {unlocking ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Unlocking...</> : <><Lock className="h-4 w-4 mr-2" />Unlock for ${selectedContent.price.toFixed(2)}</>}
                 </Button>
-              </div>
-            </>
-          ) : (
-            <Card className="p-8 text-center">
-              <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No Message Packs Available</h3>
-              <p className="text-muted-foreground">
-                This creator hasn't set up message packs yet. Check back soon!
-              </p>
-            </Card>
-          )}
-
-          {/* Content Bundles Section */}
-          <div className="pt-8 border-t">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold mb-2">Premium Content Bundles</h2>
-              <p className="text-muted-foreground">
-                Unlock exclusive content from {profile.display_name}
-              </p>
+              )}
             </div>
-            <BundlePurchase creatorId={profile.id} />
-          </div>
-        </div>
-      </section>
-
-      <ReportDialog
-        open={reportDialogOpen}
-        onOpenChange={setReportDialogOpen}
-        reportedUserId={profile.id}
-        reporterName={profile.display_name}
-      />
-
-      <BlockUserDialog
-        open={blockDialogOpen}
-        onOpenChange={setBlockDialogOpen}
-        userId={profile.id}
-        userName={profile.display_name}
-      />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
