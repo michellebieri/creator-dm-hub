@@ -15,7 +15,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Wallet, ArrowLeft, CreditCard, Smartphone } from 'lucide-react';
+import { Loader2, Wallet, ArrowLeft, CreditCard, Smartphone, DollarSign } from 'lucide-react';
 
 const stripePromise = loadStripe('pk_live_51KJa0iHBEe0ePTRxLfnSn02kit9LiRIKjmDAyZAg50yWiwiwej93OEsmZYDsSjChdXzeNrXCVlbifNJLeQ67zT8E00WdXKm0Y6');
 
@@ -39,7 +39,7 @@ export function AddFundsDialog({
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'applepay'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'applepay' | 'googlepay'>('stripe');
 
   const presetAmounts = [10, 25, 50, 100];
   const shortfall = requiredAmount ? Math.max(0, requiredAmount - currentBalance) : 0;
@@ -179,25 +179,41 @@ export function AddFundsDialog({
 
             {/* Payment Method Selection */}
             <div className="space-y-3 pt-2">
-              <Label>Payment Method</Label>
+              <Label>Select Payment Method</Label>
               <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)}>
-                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentMethod('stripe')}>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setPaymentMethod('stripe')}>
                   <RadioGroupItem value="stripe" id="stripe" />
                   <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
                     <CreditCard className="h-4 w-4" />
                     <span>Credit Card (Stripe)</span>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent" onClick={() => setPaymentMethod('applepay')}>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setPaymentMethod('paypal')}>
+                  <RadioGroupItem value="paypal" id="paypal" />
+                  <Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span>PayPal</span>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setPaymentMethod('applepay')}>
                   <RadioGroupItem value="applepay" id="applepay" />
                   <Label htmlFor="applepay" className="flex items-center gap-2 cursor-pointer flex-1">
                     <Smartphone className="h-4 w-4" />
                     <span>Apple Pay</span>
                   </Label>
                 </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" onClick={() => setPaymentMethod('googlepay')}>
+                  <RadioGroupItem value="googlepay" id="googlepay" />
+                  <Label htmlFor="googlepay" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Smartphone className="h-4 w-4" />
+                    <span>Google Pay</span>
+                  </Label>
+                </div>
               </RadioGroup>
               <p className="text-xs text-muted-foreground">
-                {paymentMethod === 'applepay' && 'Apple Pay is only available on Safari/iOS/macOS devices'}
+                {paymentMethod === 'applepay' && '🍎 Apple Pay is only available on Safari/iOS/macOS devices'}
+                {paymentMethod === 'googlepay' && '💚 Google Pay is available on compatible devices'}
+                {paymentMethod === 'stripe' && '💳 Supports all major credit and debit cards'}
               </p>
             </div>
 
