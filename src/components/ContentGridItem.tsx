@@ -7,6 +7,7 @@ interface ContentGridItemProps {
   id: string;
   thumbnailUrl: string;
   title?: string;
+  caption?: string;
   price: number;
   type: 'image' | 'video' | 'bundle';
   isLocked?: boolean;
@@ -17,6 +18,7 @@ interface ContentGridItemProps {
 export function ContentGridItem({
   thumbnailUrl,
   title,
+  caption,
   price,
   type,
   isLocked,
@@ -75,7 +77,10 @@ export function ContentGridItem({
         {title && (
           <div className="font-medium text-sm truncate">{title}</div>
         )}
-        <div className="flex items-center justify-between">
+        {caption && (
+          <p className="text-xs text-muted-foreground line-clamp-2">{caption}</p>
+        )}
+        <div className="flex items-center justify-between pt-1">
           <span className="text-lg font-bold text-primary">${price.toFixed(2)}</span>
           {isLocked && (
             <Badge variant="outline" className="text-xs">

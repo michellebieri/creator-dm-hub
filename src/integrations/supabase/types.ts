@@ -1906,6 +1906,7 @@ export type Database = {
       }
       unlockables: {
         Row: {
+          caption: string | null
           created_at: string
           creator_id: string
           expires_at: string | null
@@ -1914,9 +1915,11 @@ export type Database = {
           media_url: string
           message_id: string
           price: number
+          title: string | null
           unlocked_by: string[] | null
         }
         Insert: {
+          caption?: string | null
           created_at?: string
           creator_id: string
           expires_at?: string | null
@@ -1925,9 +1928,11 @@ export type Database = {
           media_url: string
           message_id: string
           price: number
+          title?: string | null
           unlocked_by?: string[] | null
         }
         Update: {
+          caption?: string | null
           created_at?: string
           creator_id?: string
           expires_at?: string | null
@@ -1936,6 +1941,7 @@ export type Database = {
           media_url?: string
           message_id?: string
           price?: number
+          title?: string | null
           unlocked_by?: string[] | null
         }
         Relationships: [

@@ -21,6 +21,8 @@ export const UnlockableUpload = ({ conversationId, creatorId, onSuccess }: Unloc
   const [price, setPrice] = useState('5');
   const [file, setFile] = useState<File | null>(null);
   const [messageContent, setMessageContent] = useState('');
+  const [title, setTitle] = useState('');
+  const [caption, setCaption] = useState('');
 
   const handleUpload = async () => {
     if (!file || !messageContent.trim()) {
@@ -69,6 +71,8 @@ export const UnlockableUpload = ({ conversationId, creatorId, onSuccess }: Unloc
           media_type: mediaType,
           media_url: publicUrl,
           price: parseFloat(price),
+          title: title.trim() || null,
+          caption: caption.trim() || null,
         });
 
       if (unlockableError) throw unlockableError;
@@ -77,6 +81,8 @@ export const UnlockableUpload = ({ conversationId, creatorId, onSuccess }: Unloc
       setOpen(false);
       setFile(null);
       setMessageContent('');
+      setTitle('');
+      setCaption('');
       onSuccess();
     } catch (error: any) {
       console.error('Error uploading:', error);
@@ -99,6 +105,26 @@ export const UnlockableUpload = ({ conversationId, creatorId, onSuccess }: Unloc
           <DialogTitle>Send Unlockable Content</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div>
+            <Label>Title (optional)</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g., Beach Day, Workout Video"
+              maxLength={100}
+            />
+          </div>
+
+          <div>
+            <Label>Caption (optional)</Label>
+            <Input
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Add a description..."
+              maxLength={200}
+            />
+          </div>
+
           <div>
             <Label>Message</Label>
             <Input

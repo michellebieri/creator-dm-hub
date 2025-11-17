@@ -155,7 +155,11 @@ const Creators = () => {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCreators.map((creator) => (
-              <Card key={creator.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+              <Card 
+                key={creator.id} 
+                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(`/creator/${creator.username}`)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4 mb-4">
                     <Avatar className="h-16 w-16">
@@ -165,7 +169,9 @@ const Creators = () => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{creator.display_name}</h3>
+                      <h3 className="font-semibold text-lg hover:text-primary transition-colors">
+                        {creator.display_name}
+                      </h3>
                       <p className="text-sm text-muted-foreground">@{creator.username}</p>
                     </div>
                   </div>
@@ -183,7 +189,10 @@ const Creators = () => {
                     </div>
                     <Button 
                       size="sm" 
-                      onClick={() => handleStartChat(creator)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStartChat(creator);
+                      }}
                       className="gap-2"
                     >
                       <MessageCircle className="h-4 w-4" />
