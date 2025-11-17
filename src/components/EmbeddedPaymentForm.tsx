@@ -8,10 +8,9 @@ interface EmbeddedPaymentFormProps {
   amount: number;
   onSuccess: (balance: number) => void;
   onCancel: () => void;
-  paymentMethods?: string[];
 }
 
-export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel, paymentMethods }: EmbeddedPaymentFormProps) => {
+export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPaymentFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -91,19 +90,7 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel, paymentMethod
         <div className="text-2xl font-bold">${amount.toFixed(2)}</div>
       </div>
 
-      <div className="space-y-2">
-        <div className="text-xs text-muted-foreground font-medium">
-          Select Payment Method
-        </div>
-        <PaymentElement 
-          options={{
-            layout: {
-              type: 'tabs',
-              defaultCollapsed: false,
-            }
-          }}
-        />
-      </div>
+      <PaymentElement />
 
       {error && (
         <Alert variant="destructive">
