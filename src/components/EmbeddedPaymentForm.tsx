@@ -93,19 +93,7 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
       <div className="space-y-2">
         <PaymentElement 
           options={{
-            layout: {
-              type: 'tabs',
-              defaultCollapsed: false,
-              radios: false,
-              spacedAccordionItems: false
-            },
-            fields: {
-              billingDetails: {
-                address: {
-                  country: 'auto'
-                }
-              }
-            }
+            layout: 'accordion'
           }}
         />
       </div>
