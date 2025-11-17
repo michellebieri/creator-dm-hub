@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,8 @@ import { Elements } from '@stripe/react-stripe-js';
 import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Wallet, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const stripePromise = loadStripe('pk_live_51KJa0iHBEe0ePTRxLfnSn02kit9LiRIKjmDAyZAg50yWiwiwej93OEsmZYDsSjChdXzeNrXCVlbifNJLeQ67zT8E00WdXKm0Y6');
 
@@ -33,16 +35,40 @@ export function AddFundsDialog({
   currentBalance = 0,
   onSuccess 
 }: AddFundsDialogProps) {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [customAmount, setCustomAmount] = useState('');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
+  // Check authentication when dialog opens
+  useEffect(() => {
+    if (open && !user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add funds to your wallet",
+        variant: "destructive",
+      });
+      onOpenChange(false);
+      navigate('/auth');
+    }
+  }, [open, user, onOpenChange, navigate, toast]);
+
   const presetAmounts = [10, 25, 50, 100];
   const shortfall = requiredAmount ? Math.max(0, requiredAmount - currentBalance) : 0;
 
   const handleSelectAmount = async (amount: number) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add funds",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setProcessing(true);
     setSelectedAmount(amount);
     
