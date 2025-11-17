@@ -26,6 +26,7 @@ import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { DraftsManager } from '@/components/DraftsManager';
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { WalletBalance } from '@/components/WalletBalance';
+import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +58,7 @@ const MessagingInterface = () => {
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
+  const [showAddFunds, setShowAddFunds] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch, sendMessage, sending: messageSending } = useMessages(conversationId, creatorId);
@@ -153,11 +155,7 @@ const MessagingInterface = () => {
 
     // Creators don't need balance to send messages
     if (!isCreator && balance < pricePerMessage) {
-      toast({
-        title: "Insufficient balance",
-        description: `You need $${pricePerMessage.toFixed(2)} to send a message`,
-        variant: "destructive",
-      });
+      setShowAddFunds(true);
       return;
     }
 
@@ -230,11 +228,7 @@ const MessagingInterface = () => {
 
     // Creators don't need balance to send messages
     if (!isCreator && balance < pricePerMessage) {
-      toast({
-        title: "Insufficient balance",
-        description: `You need $${pricePerMessage.toFixed(2)} to send a message`,
-        variant: "destructive",
-      });
+      setShowAddFunds(true);
       return;
     }
 
@@ -607,6 +601,20 @@ const MessagingInterface = () => {
         onOpenChange={setShowSearchDialog}
         messages={messages}
         onSelectMessage={scrollToMessage}
+      />
+
+      <AddFundsDialog
+        open={showAddFunds}
+        onOpenChange={setShowAddFunds}
+        requiredAmount={pricePerMessage}
+        currentBalance={balance}
+        onSuccess={(newBalance) => {
+          setShowAddFunds(false);
+          toast({
+            title: "Success!",
+            description: `Your wallet balance is now $${newBalance.toFixed(2)}. You can now send messages.`,
+          });
+        }}
       />
     </div>
   );
