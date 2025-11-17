@@ -177,6 +177,59 @@ export function AddFundsDialog({
               </div>
             </div>
 
+            {/* Payment Method Selection */}
+            <div className="space-y-3 pt-2 border-t">
+              <Label>Payment Method</Label>
+              <RadioGroup value={paymentMethod} onValueChange={(value) => setPaymentMethod(value as any)}>
+                <div 
+                  className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" 
+                  onClick={() => setPaymentMethod('stripe')}
+                >
+                  <RadioGroupItem value="stripe" id="stripe" />
+                  <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <CreditCard className="h-4 w-4" />
+                    <span>Credit Card (Stripe)</span>
+                  </Label>
+                </div>
+                <div 
+                  className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" 
+                  onClick={() => setPaymentMethod('paypal')}
+                >
+                  <RadioGroupItem value="paypal" id="paypal" />
+                  <Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <DollarSign className="h-4 w-4" />
+                    <span>PayPal</span>
+                  </Label>
+                </div>
+                <div 
+                  className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" 
+                  onClick={() => setPaymentMethod('applepay')}
+                >
+                  <RadioGroupItem value="applepay" id="applepay" />
+                  <Label htmlFor="applepay" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Smartphone className="h-4 w-4" />
+                    <span>Apple Pay</span>
+                  </Label>
+                </div>
+                <div 
+                  className="flex items-center space-x-2 border rounded-lg p-3 cursor-pointer hover:bg-accent transition-colors" 
+                  onClick={() => setPaymentMethod('googlepay')}
+                >
+                  <RadioGroupItem value="googlepay" id="googlepay" />
+                  <Label htmlFor="googlepay" className="flex items-center gap-2 cursor-pointer flex-1">
+                    <Smartphone className="h-4 w-4" />
+                    <span>Google Pay</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+              <p className="text-xs text-muted-foreground">
+                {paymentMethod === 'applepay' && '🍎 Apple Pay is only available on Safari/iOS/macOS devices'}
+                {paymentMethod === 'googlepay' && '💚 Google Pay is available on compatible devices'}
+                {paymentMethod === 'stripe' && '💳 Supports all major credit and debit cards'}
+                {paymentMethod === 'paypal' && '💙 PayPal payment redirect'}
+              </p>
+            </div>
+
             {shortfall > 0 && (
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                 <p className="text-sm text-amber-600 dark:text-amber-400">
