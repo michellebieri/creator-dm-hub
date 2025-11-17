@@ -19,6 +19,8 @@ interface Unlockable {
   media_url: string;
   media_type: string;
   price: number;
+  caption?: string;
+  title?: string;
   created_at: string;
   unlocked_by: string[] | null;
 }
@@ -271,6 +273,8 @@ export default function ContentVault() {
                       key={content.id}
                       id={content.id}
                       thumbnailUrl={content.media_url}
+                      title={content.title}
+                      caption={content.caption}
                       price={content.price}
                       type={content.media_type === 'image' ? 'image' : 'video'}
                       onClick={() => handleContentClick(content)}

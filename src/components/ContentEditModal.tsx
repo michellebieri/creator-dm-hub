@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -16,6 +17,8 @@ interface ContentEditModalProps {
     media_url: string;
     media_type: string;
     price: number;
+    caption?: string;
+    title?: string;
     created_at: string;
   };
   onUpdate: () => void;
@@ -23,6 +26,7 @@ interface ContentEditModalProps {
 
 export function ContentEditModal({ isOpen, onClose, content, onUpdate }: ContentEditModalProps) {
   const [price, setPrice] = useState(content.price.toString());
+  const [caption, setCaption] = useState(content.caption || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -41,7 +45,7 @@ export function ContentEditModal({ isOpen, onClose, content, onUpdate }: Content
     setIsSaving(true);
     const { error } = await supabase
       .from('unlockables')
-      .update({ price: priceNum })
+      .update({ price: priceNum, caption: caption })
       .eq('id', content.id);
 
     if (error) {
@@ -119,6 +123,23 @@ export function ContentEditModal({ isOpen, onClose, content, onUpdate }: Content
                 month: 'long', 
                 day: 'numeric' 
               })}
+            </div>
+
+            {/* Caption Input */}
+            <div className="space-y-2">
+              <Label htmlFor="caption">Caption</Label>
+              <Textarea
+                id="caption"
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder="Write a caption to make users curious... (This will be visible on your profile)"
+                maxLength={500}
+                rows={4}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                {caption.length}/500 characters
+              </p>
             </div>
 
             {/* Price Input */}
