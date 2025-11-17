@@ -43,6 +43,7 @@ export function ContentGridItem({
             src={thumbnailUrl} 
             alt={title || 'Content'}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         )}
         

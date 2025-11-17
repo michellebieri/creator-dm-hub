@@ -11,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/useWallet';
+import { AddFundsDialog } from '@/components/AddFundsDialog';
+import { ContentGridSkeleton } from '@/components/ui/skeleton';
 
 interface Profile {
   id: string;
@@ -58,6 +60,8 @@ const CreatorProfile = () => {
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [pricePerMessage, setPricePerMessage] = useState<number>(5);
+  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [itemsToShow, setItemsToShow] = useState(20);
 
   useEffect(() => {
     fetchCreatorData();
@@ -83,9 +87,10 @@ const CreatorProfile = () => {
 
       const { data: contentData } = await supabase
         .from('unlockables')
-        .select('*')
+        .select('id, media_url, media_type, price, title, caption, created_at, unlocked_by, creator_id')
         .eq('creator_id', profileData.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(itemsToShow);
       setContent(contentData || []);
 
       const { data: bundlesData } = await supabase
@@ -134,11 +139,19 @@ const CreatorProfile = () => {
       toast({ title: "Already unlocked", description: "You have already purchased this content" });
       return;
     }
+    
+    // Check if user has sufficient balance
+    if (balance < selectedContent.price) {
+      setUnlockDialogOpen(false);
+      setShowAddFunds(true);
+      return;
+    }
+    
     setUnlocking(true);
     try {
       const success = await spend(selectedContent.price, 'content_unlock', `Unlocked: ${selectedContent.title || 'content'}`, profile.id);
       if (!success) {
-        toast({ title: "Insufficient balance", description: "Please add funds to your wallet", variant: "destructive" });
+        toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
         setUnlocking(false);
         return;
       }
@@ -152,6 +165,22 @@ const CreatorProfile = () => {
     } finally {
       setUnlocking(false);
     }
+  };
+
+  const handleFundsAdded = () => {
+    // After funds are added, check if we have enough and unlock automatically
+    if (selectedContent && balance >= selectedContent.price) {
+      setUnlockDialogOpen(true);
+      // Auto-unlock after a brief delay to allow balance to update
+      setTimeout(() => {
+        handleUnlockContent();
+      }, 500);
+    }
+  };
+
+  const loadMoreContent = () => {
+    setItemsToShow(prev => prev + 20);
+    fetchCreatorData();
   };
 
   const getFilteredContent = () => {
@@ -172,7 +201,22 @@ const CreatorProfile = () => {
     bundles: bundles.length,
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <div className="sticky top-0 z-10 bg-background border-b border-border">
+          <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/browse')}><ArrowLeft className="h-5 w-5" /></Button>
+            <h1 className="text-lg font-semibold">Profile</h1>
+            <div className="w-10" />
+          </div>
+        </div>
+        <div className="max-w-screen-lg mx-auto px-4 py-6">
+          <ContentGridSkeleton />
+        </div>
+      </div>
+    );
+  }
   if (!profile) return null;
 
   const isUnlocked = (item: ContentItem) => user && item.unlocked_by?.includes(user.id);
@@ -209,8 +253,9 @@ const CreatorProfile = () => {
         {filteredItems.length === 0 ? (
           <div className="text-center py-12"><p className="text-muted-foreground">This creator hasn't posted any content yet. Check back soon!</p></div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredItems.map((item) => {
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredItems.slice(0, itemsToShow).map((item) => {
               const isContent = isContentItem(item);
               const unlocked = isContent ? isUnlocked(item) : false;
               return (
@@ -244,6 +289,16 @@ const CreatorProfile = () => {
               );
             })}
           </div>
+          
+          {/* Load more button */}
+          {filteredItems.length > itemsToShow && (
+            <div className="flex justify-center mt-8">
+              <Button onClick={loadMoreContent} variant="outline" size="lg">
+                Load More Content
+              </Button>
+            </div>
+          )}
+        </>
         )}
       </div>
       <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
@@ -276,6 +331,15 @@ const CreatorProfile = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Add Funds Dialog */}
+      <AddFundsDialog
+        open={showAddFunds}
+        onOpenChange={setShowAddFunds}
+        requiredAmount={selectedContent?.price}
+        currentBalance={balance}
+        onSuccess={handleFundsAdded}
+      />
     </div>
   );
 };
