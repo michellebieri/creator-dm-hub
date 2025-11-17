@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Search } from 'lucide-react';
+import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 
@@ -13,14 +13,14 @@ export const BottomNavigation = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 safe-area-bottom">
       <div className="flex items-center justify-around h-16 max-w-screen-lg mx-auto px-2">
-        <Link to={isCreator ? "/dashboard" : "/browse"} className="flex flex-col items-center justify-center flex-1">
+        <Link to="/dashboard" className="flex flex-col items-center justify-center flex-1">
           {isCreator ? (
             <BarChart3 className={`h-6 w-6 ${isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
           ) : (
-            <Search className={`h-6 w-6 ${isActive('/browse') ? 'text-primary' : 'text-muted-foreground'}`} />
+            <Home className={`h-6 w-6 ${isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
           )}
-          <span className={`text-xs mt-1 ${isActive(isCreator ? '/dashboard' : '/browse') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-            {isCreator ? 'Dashboard' : 'Browse'}
+          <span className={`text-xs mt-1 ${isActive('/dashboard') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+            Dashboard
           </span>
         </Link>
         
@@ -44,8 +44,8 @@ export const BottomNavigation = () => {
         )}
         
         <Link to="/vault" className="flex flex-col items-center justify-center flex-1">
-          <Vault className={`h-6 w-6 ${isActive('/vault') ? 'text-primary' : 'text-muted-foreground'}`} />
-          <span className={`text-xs mt-1 ${isActive('/vault') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+          <Vault className={`h-6 w-6 ${isActive('/vault') || isActive('/content-vault') ? 'text-primary' : 'text-muted-foreground'}`} />
+          <span className={`text-xs mt-1 ${isActive('/vault') || isActive('/content-vault') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
             Vault
           </span>
         </Link>
