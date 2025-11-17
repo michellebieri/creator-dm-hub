@@ -10,7 +10,7 @@ import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as V
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useCredits } from '@/hooks/useCredits';
+import { useWallet } from '@/hooks/useWallet';
 
 interface Profile {
   id: string;
@@ -47,7 +47,7 @@ const CreatorProfile = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { checkAndDeductCredits } = useCredits();
+  const { balance, spend } = useWallet();
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -136,19 +136,14 @@ const CreatorProfile = () => {
     }
     setUnlocking(true);
     try {
-      const hasCredits = await checkAndDeductCredits(profile.id, selectedContent.price, 'Unlocked content');
-      if (!hasCredits) {
-        toast({ title: "Insufficient credits", description: "Please purchase more credits", variant: "destructive" });
+      const success = await spend(selectedContent.price, 'content_unlock', `Unlocked: ${selectedContent.title || 'content'}`, profile.id);
+      if (!success) {
+        toast({ title: "Insufficient balance", description: "Please add funds to your wallet", variant: "destructive" });
         setUnlocking(false);
         return;
       }
       const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
       await supabase.from('unlockables').update({ unlocked_by: updatedUnlockedBy }).eq('id', selectedContent.id);
-      await supabase.from('transactions').insert({
-        customer_id: user.id, creator_id: profile.id, amount: selectedContent.price,
-        net_amount: selectedContent.price * 0.8, platform_fee: selectedContent.price * 0.1,
-        processor_fee: selectedContent.price * 0.1, transaction_type: 'content_unlock', status: 'completed'
-      });
       toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
       setUnlockDialogOpen(false);
       fetchCreatorData();
