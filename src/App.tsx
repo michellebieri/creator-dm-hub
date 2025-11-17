@@ -10,11 +10,13 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import CreatorAuth from "./pages/CreatorAuth";
 import Creators from "./pages/Creators";
+import Dashboard from "./pages/Dashboard";
 import CreatorDashboard from "./pages/CreatorDashboard";
 import More from "./pages/More";
 import Conversations from "./pages/Conversations";
 import NotificationSettings from "./pages/NotificationSettings";
 import ContentVault from "./pages/ContentVault";
+import Vault from "./pages/Vault";
 import ContentUpload from "./pages/ContentUpload";
 import ProfileSettings from "./pages/ProfileSettings";
 import AccountSettings from "./pages/AccountSettings";
@@ -59,13 +61,27 @@ const App = () => {
             <Route path="/browse" element={<Creators />} />
             <Route path="/creator/:username" element={<CreatorProfile />} />
             
-            {/* Creator-only routes */}
+            {/* Dashboard route - different for creators vs customers */}
             <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            
+            {/* Creator-specific dashboard */}
+            <Route path="/creator-dashboard" element={
               <ProtectedRoute requireCreator>
                 <CreatorDashboard />
               </ProtectedRoute>
             } />
+            
+            {/* Vault - different for creators vs customers */}
             <Route path="/vault" element={
+              <ProtectedRoute>
+                <Vault />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-vault" element={
               <ProtectedRoute requireCreator>
                 <ContentVault />
               </ProtectedRoute>
