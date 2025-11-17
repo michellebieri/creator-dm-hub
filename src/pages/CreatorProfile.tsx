@@ -140,13 +140,6 @@ const CreatorProfile = () => {
       return;
     }
     
-    // Check if user has sufficient balance
-    if (balance < selectedContent.price) {
-      setUnlockDialogOpen(false);
-      setShowAddFunds(true);
-      return;
-    }
-    
     setUnlocking(true);
     try {
       const success = await spend(selectedContent.price, 'content_unlock', `Unlocked: ${selectedContent.title || 'content'}`, profile.id);
@@ -167,10 +160,9 @@ const CreatorProfile = () => {
     }
   };
 
-  const handleFundsAdded = () => {
+  const handleFundsAdded = (newBalance: number) => {
     // After funds are added, check if we have enough and unlock automatically
-    if (selectedContent && balance >= selectedContent.price) {
-      setUnlockDialogOpen(true);
+    if (selectedContent && newBalance >= selectedContent.price) {
       // Auto-unlock after a brief delay to allow balance to update
       setTimeout(() => {
         handleUnlockContent();
@@ -302,7 +294,7 @@ const CreatorProfile = () => {
         )}
       </div>
       <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Unlock Content</DialogTitle></DialogHeader>
           {selectedContent && (
             <div className="space-y-4">
@@ -320,12 +312,32 @@ const CreatorProfile = () => {
                 <span className="text-muted-foreground">Price</span>
                 <span className="text-2xl font-bold text-primary">${selectedContent.price.toFixed(2)}</span>
               </div>
+              
               {selectedContent.unlocked_by?.includes(user?.id || '') ? (
                 <div className="text-center py-4"><Badge variant="secondary" className="text-sm">Already Unlocked</Badge><p className="text-sm text-muted-foreground mt-2">You can view this in your library</p></div>
-              ) : (
+              ) : balance >= selectedContent.price ? (
                 <Button onClick={handleUnlockContent} disabled={unlocking} className="w-full" size="lg">
                   {unlocking ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Unlocking...</> : <><Lock className="h-4 w-4 mr-2" />Unlock for ${selectedContent.price.toFixed(2)}</>}
                 </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Insufficient Balance</p>
+                    <p className="text-sm text-muted-foreground mt-1">Your balance: ${balance.toFixed(2)}</p>
+                    <p className="text-sm text-muted-foreground">You need ${(selectedContent.price - balance).toFixed(2)} more</p>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => {
+                      setUnlockDialogOpen(false);
+                      setShowAddFunds(true);
+                    }} 
+                    className="w-full" 
+                    size="lg"
+                  >
+                    Add Credits to Unlock
+                  </Button>
+                </div>
               )}
             </div>
           )}
