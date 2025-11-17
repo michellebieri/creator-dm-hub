@@ -91,9 +91,6 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
       </div>
 
       <div className="space-y-2">
-        <div className="text-xs text-muted-foreground font-medium mb-2">
-          Select your payment method
-        </div>
         <PaymentElement 
           options={{
             layout: {
@@ -101,6 +98,13 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
               defaultCollapsed: false,
               radios: false,
               spacedAccordionItems: false
+            },
+            fields: {
+              billingDetails: {
+                address: {
+                  country: 'auto'
+                }
+              }
             }
           }}
         />
