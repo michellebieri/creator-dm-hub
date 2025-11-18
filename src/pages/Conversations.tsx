@@ -351,7 +351,7 @@ const Conversations = () => {
                       </div>
                     </div>
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();

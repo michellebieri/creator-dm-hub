@@ -60,7 +60,7 @@ const App = () => {
           <Route element={<AppLayout />}>
             {/* Browse and creator profile pages */}
             <Route path="/browse" element={<Creators />} />
-            <Route path="/creator/:username" element={<CreatorProfile />} />
+            <Route path="/creator/:id" element={<CreatorProfile />} />
             
             {/* Dashboard route - different for creators vs customers */}
             <Route path="/dashboard" element={
