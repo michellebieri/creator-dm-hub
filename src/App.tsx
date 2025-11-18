@@ -35,6 +35,7 @@ import NotFound from "./pages/NotFound";
 import Lists from "./pages/Lists";
 import Nudges from "./pages/Nudges";
 import ContentMenu from "./pages/ContentMenu";
+import MessagingInterface from "./pages/MessagingInterface";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,11 @@ const App = () => {
             <Route path="/conversations" element={
               <ProtectedRoute>
                 <Conversations />
+              </ProtectedRoute>
+            } />
+            <Route path="/messages" element={
+              <ProtectedRoute>
+                <MessagingInterface />
               </ProtectedRoute>
             } />
             <Route path="/notifications" element={

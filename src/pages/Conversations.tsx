@@ -197,7 +197,7 @@ const Conversations = () => {
       navigate(`/messages?creator=${conversation.creator_id}`);
     } else {
       // User is the creator, so navigate to chat with the customer
-      navigate(`/messages?creator=${conversation.creator_id}&customer=${conversation.customer_id}`);
+      navigate(`/messages?creator=${conversation.customer_id}`);
     }
   };
 

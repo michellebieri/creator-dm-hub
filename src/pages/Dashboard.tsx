@@ -13,6 +13,19 @@ import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import CreatorDashboard from './CreatorDashboard';
+import { AddFundsDialog } from '@/components/AddFundsDialog';
+import { useWallet } from '@/hooks/useWallet';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Creator {
   id: string;
@@ -36,9 +49,14 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { isCreator } = useRoleCheck();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { balance, spend } = useWallet();
   const [loading, setLoading] = useState(true);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
+  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [showConfirmUnlock, setShowConfirmUnlock] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
 
   // If user is a creator, show creator dashboard instead
   if (isCreator) {
@@ -125,9 +143,82 @@ const Dashboard = () => {
     }
   };
 
-  const handleUnlock = (postId: string, price: number) => {
-    // Navigate to conversations or show unlock modal
-    navigate('/conversations');
+  const handleUnlock = (post: FeedPost) => {
+    if (balance < post.price) {
+      setShowAddFunds(true);
+      return;
+    }
+    setSelectedPost(post);
+    setShowConfirmUnlock(true);
+  };
+
+  const confirmUnlock = async () => {
+    if (!selectedPost || !user) return;
+
+    try {
+      // Spend from wallet
+      const success = await spend(
+        selectedPost.price,
+        'unlockable',
+        `Unlocked content from ${selectedPost.creator.display_name}`,
+        selectedPost.creator.id
+      );
+
+      if (!success) {
+        toast({
+          title: "Error",
+          description: "Failed to unlock content",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update unlockable in database
+      const { data: unlockable } = await supabase
+        .from('unlockables')
+        .select('unlocked_by')
+        .eq('id', selectedPost.id)
+        .single();
+
+      const unlockedBy = unlockable?.unlocked_by || [];
+      if (!unlockedBy.includes(user.id)) {
+        unlockedBy.push(user.id);
+      }
+
+      await supabase
+        .from('unlockables')
+        .update({ unlocked_by: unlockedBy })
+        .eq('id', selectedPost.id);
+
+      // Record transaction
+      await supabase.from('transactions').insert({
+        customer_id: user.id,
+        creator_id: selectedPost.creator.id,
+        amount: selectedPost.price,
+        net_amount: selectedPost.price * 0.85,
+        platform_fee: selectedPost.price * 0.15,
+        processor_fee: 0,
+        transaction_type: 'unlockable',
+        status: 'completed',
+      });
+
+      toast({
+        title: "Content Unlocked!",
+        description: `You can now view this content`,
+      });
+
+      // Refresh feed
+      fetchDashboardData();
+      setShowConfirmUnlock(false);
+      setSelectedPost(null);
+    } catch (error) {
+      console.error('Error unlocking content:', error);
+      toast({
+        title: "Error",
+        description: "Failed to unlock content",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -252,7 +343,7 @@ const Dashboard = () => {
                       <div className="absolute inset-0 flex items-center justify-center">
                         <Button
                           size="lg"
-                          onClick={() => handleUnlock(post.id, post.price)}
+                          onClick={() => handleUnlock(post)}
                           className="gap-2 shadow-lg"
                         >
                           <Lock className="w-4 h-4" />
@@ -289,6 +380,38 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      <AddFundsDialog
+        open={showAddFunds}
+        onOpenChange={setShowAddFunds}
+        requiredAmount={selectedPost?.price}
+        currentBalance={balance}
+        onSuccess={() => {
+          setShowAddFunds(false);
+          if (selectedPost) {
+            handleUnlock(selectedPost);
+          }
+        }}
+      />
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={showConfirmUnlock} onOpenChange={setShowConfirmUnlock}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unlock Content</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to unlock this content for ${selectedPost?.price.toFixed(2)}?
+              <br />
+              Your current balance: ${balance.toFixed(2)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSelectedPost(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUnlock}>Unlock Now</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
