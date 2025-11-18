@@ -45,7 +45,7 @@ interface Bundle {
 type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
 
 const CreatorProfile = () => {
-  const { username } = useParams<{ username: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -65,15 +65,15 @@ const CreatorProfile = () => {
 
   useEffect(() => {
     fetchCreatorData();
-  }, [username]);
+  }, [id]);
 
   const fetchCreatorData = async () => {
-    if (!username) return;
+    if (!id) return;
     try {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('username', username)
+        .eq('id', id)
         .single();
       if (profileError) throw profileError;
       setProfile(profileData);
