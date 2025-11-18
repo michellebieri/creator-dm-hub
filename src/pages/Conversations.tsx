@@ -14,21 +14,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, CheckSquare, BarChart3, ArrowLeft } from 'lucide-react';
+import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, Inbox, ArrowLeft } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
-import { useConversationLabels } from '@/hooks/useConversationLabels';
-import { ConversationLabelManager } from '@/components/ConversationLabelManager';
-import { ConversationLabelPicker } from '@/components/ConversationLabelPicker';
-import { ConversationLabelFilter } from '@/components/ConversationLabelFilter';
 import { DraftsManager } from '@/components/DraftsManager';
-import { BulkActionsBar } from '@/components/BulkActionsBar';
 import { ConversationStats } from '@/components/ConversationStats';
-import { BookmarksView } from '@/components/BookmarksView';
-import { AdvancedSearch } from '@/components/AdvancedSearch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@/hooks/useWallet';
+import { AddFundsDialog } from '@/components/AddFundsDialog';
 
 interface Conversation {
   id: string;
@@ -62,13 +56,11 @@ const Conversations = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showArchived, setShowArchived] = useState(false);
-  const [selectedLabelFilter, setSelectedLabelFilter] = useState<string | null>(null);
-  const [conversationLabels, setConversationLabels] = useState<Record<string, string[]>>({});
-  const [selectedConversations, setSelectedConversations] = useState<Set<string>>(new Set());
-  const [bulkActionMode, setBulkActionMode] = useState(false);
+  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [selectedCreatorId, setSelectedCreatorId] = useState<string | null>(null);
   const { archiveConversation, unarchiveConversation } = useConversationArchive();
-  const { assignLabel } = useConversationLabels(user?.id || null);
   const { toast } = useToast();
+  const { balance } = useWallet();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -127,26 +119,6 @@ const Conversations = () => {
         );
 
         setConversations(validConversations);
-
-        // Fetch label assignments for all conversations
-        if (conversationsWithMessages.length > 0) {
-          const convIds = conversationsWithMessages.map(c => c.id);
-          const { data: assignments } = await supabase
-            .from('conversation_label_assignments')
-            .select('conversation_id, label_id')
-            .in('conversation_id', convIds);
-
-          if (assignments) {
-            const labelMap: Record<string, string[]> = {};
-            assignments.forEach(assignment => {
-              if (!labelMap[assignment.conversation_id]) {
-                labelMap[assignment.conversation_id] = [];
-              }
-              labelMap[assignment.conversation_id].push(assignment.label_id);
-            });
-            setConversationLabels(labelMap);
-          }
-        }
       } catch (error) {
         console.error('Error fetching conversations:', error);
       } finally {
@@ -190,15 +162,36 @@ const Conversations = () => {
     };
   }, [user, showArchived]);
 
-  const handleOpenConversation = (conversation: Conversation) => {
-    // Navigate to messages with the OTHER person in the conversation
-    if (user?.id === conversation.customer_id) {
-      // User is the customer, so navigate to chat with the creator
-      navigate(`/messages?creator=${conversation.creator_id}`);
-    } else {
-      // User is the creator, so navigate to chat with the customer
-      navigate(`/messages?creator=${conversation.customer_id}`);
+  const handleViewProfile = (conversation: Conversation) => {
+    const otherUserId = user?.id === conversation.customer_id 
+      ? conversation.creator_id 
+      : conversation.customer_id;
+    navigate(`/creator/${otherUserId}`);
+  };
+
+  const handleChatClick = async (conversation: Conversation) => {
+    const otherUserId = user?.id === conversation.customer_id 
+      ? conversation.creator_id 
+      : conversation.customer_id;
+
+    // Get creator settings to check message price
+    const { data: creatorSettings } = await supabase
+      .from('creator_settings')
+      .select('price_per_message')
+      .eq('user_id', otherUserId)
+      .single();
+
+    const messagePrice = creatorSettings?.price_per_message || 5;
+
+    // Check if user has sufficient balance
+    if (balance < messagePrice) {
+      setSelectedCreatorId(otherUserId);
+      setShowAddFunds(true);
+      return;
     }
+
+    // Navigate to chat
+    navigate(`/messages?creator=${otherUserId}`);
   };
 
   const handleArchive = async (e: React.MouseEvent, conversationId: string) => {
@@ -212,85 +205,15 @@ const Conversations = () => {
     }
   };
 
-  const toggleConversationSelection = (conversationId: string) => {
-    setSelectedConversations(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(conversationId)) {
-        newSet.delete(conversationId);
-      } else {
-        newSet.add(conversationId);
-      }
-      return newSet;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedConversations.size === filteredConversations.length) {
-      setSelectedConversations(new Set());
-    } else {
-      setSelectedConversations(new Set(filteredConversations.map(c => c.id)));
-    }
-  };
-
-  const handleBulkArchive = async () => {
-    const conversationIds = Array.from(selectedConversations);
-    let successCount = 0;
-
-    for (const id of conversationIds) {
-      const success = showArchived 
-        ? await unarchiveConversation(id)
-        : await archiveConversation(id);
-      if (success) successCount++;
-    }
-
-    if (successCount > 0) {
-      setConversations(prev => prev.filter(c => !selectedConversations.has(c.id)));
-      toast({
-        title: showArchived ? 'Messages restored' : 'Messages archived',
-        description: `${successCount} message(s) ${showArchived ? 'restored' : 'archived'} successfully`,
-      });
-    }
-
-    setSelectedConversations(new Set());
-    setBulkActionMode(false);
-  };
-
-  const handleBulkAssignLabel = async (labelId: string) => {
-    const conversationIds = Array.from(selectedConversations);
-    let successCount = 0;
-
-    for (const id of conversationIds) {
-      const success = await assignLabel(id, labelId);
-      if (success) successCount++;
-    }
-
-    if (successCount > 0) {
-      toast({
-        title: 'Label assigned',
-        description: `Label assigned to ${successCount} conversation(s)`,
-      });
-    }
-
-    setSelectedConversations(new Set());
-    setBulkActionMode(false);
-  };
-
   const filteredConversations = conversations.filter(conv => {
     const otherUser = user?.id === conv.customer_id ? conv.creator : conv.customer;
     const searchLower = searchQuery.toLowerCase();
     
-    // Filter by search query
-    const matchesSearch = (
+    return (
       otherUser?.display_name.toLowerCase().includes(searchLower) ||
       otherUser?.username.toLowerCase().includes(searchLower) ||
       conv.last_message?.content.toLowerCase().includes(searchLower)
     );
-    
-    // Filter by label if one is selected
-    const matchesLabel = !selectedLabelFilter || 
-      (conversationLabels[conv.id]?.includes(selectedLabelFilter));
-    
-    return matchesSearch && matchesLabel;
   });
 
   if (loading || authLoading) {
@@ -337,41 +260,8 @@ const Conversations = () => {
               <Archive className="h-4 w-4 mr-2" />
               Archived
             </Button>
-            {user?.id && <ConversationLabelManager userId={user.id} />}
             {user?.id && <DraftsManager userId={user.id} />}
-            {user?.id && <BookmarksView userId={user.id} />}
-            {user?.id && <AdvancedSearch userId={user.id} />}
-            <Button
-              variant={bulkActionMode ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setBulkActionMode(!bulkActionMode);
-                if (bulkActionMode) {
-                  setSelectedConversations(new Set());
-                }
-              }}
-            >
-              <CheckSquare className="h-4 w-4 mr-2" />
-              {bulkActionMode ? 'Cancel Selection' : 'Select'}
-            </Button>
-            {bulkActionMode && filteredConversations.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleSelectAll}
-              >
-                {selectedConversations.size === filteredConversations.length ? 'Deselect All' : 'Select All'}
-              </Button>
-            )}
           </div>
-          
-          {user?.id && (
-            <ConversationLabelFilter 
-              userId={user.id}
-              selectedLabelId={selectedLabelFilter}
-              onSelectLabel={setSelectedLabelFilter}
-            />
-          )}
           
           <input
             type="text"
@@ -406,26 +296,16 @@ const Conversations = () => {
               const otherUser = user?.id === conversation.creator_id 
                 ? conversation.customer 
                 : conversation.creator;
-              const isSelected = selectedConversations.has(conversation.id);
 
               return (
                 <Card
                   key={conversation.id}
-                  className={`p-4 hover:shadow-medium transition-all ${
-                    isSelected ? 'ring-2 ring-primary' : ''
-                  }`}
+                  className="p-4 hover:shadow-medium transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    {bulkActionMode && (
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={() => toggleConversationSelection(conversation.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    )}
                     <div 
                       className="flex items-center gap-4 flex-1 cursor-pointer"
-                      onClick={() => !bulkActionMode && handleOpenConversation(conversation)}
+                      onClick={() => handleViewProfile(conversation)}
                     >
                       <div className="relative">
                         <Avatar className="h-12 w-12">
@@ -461,23 +341,26 @@ const Conversations = () => {
                             No messages yet
                           </p>
                         )}
-                        {user?.id && (
-                          <div className="mt-2">
-                            <ConversationLabelPicker
-                              conversationId={conversation.id}
-                              userId={user.id}
-                            />
+                        {conversation.last_message && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {formatDistanceToNow(new Date(conversation.last_message.created_at), {
+                              addSuffix: true,
+                            })}
                           </div>
                         )}
                       </div>
-                      {conversation.last_message && (
-                        <div className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(conversation.last_message.created_at), {
-                            addSuffix: true,
-                          })}
-                        </div>
-                      )}
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleChatClick(conversation);
+                      }}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Chat
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
@@ -519,20 +402,16 @@ const Conversations = () => {
         )}
       </div>
 
-      {user?.id && (
-        <BulkActionsBar
-          selectedCount={selectedConversations.size}
-          showArchived={showArchived}
-          userId={user.id}
-          onArchive={handleBulkArchive}
-          onUnarchive={handleBulkArchive}
-          onAssignLabel={handleBulkAssignLabel}
-          onClear={() => {
-            setSelectedConversations(new Set());
-            setBulkActionMode(false);
-          }}
-        />
-      )}
+      <AddFundsDialog 
+        open={showAddFunds} 
+        onOpenChange={setShowAddFunds}
+        onSuccess={() => {
+          setShowAddFunds(false);
+          if (selectedCreatorId) {
+            navigate(`/messages?creator=${selectedCreatorId}`);
+          }
+        }}
+      />
     </div>
   );
 };
