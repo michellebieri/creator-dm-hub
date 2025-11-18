@@ -54,16 +54,11 @@ const Vault = () => {
   const [purchasedContent, setPurchasedContent] = useState<PurchasedContent[]>([]);
   const [purchasedBundles, setPurchasedBundles] = useState<PurchasedBundle[]>([]);
 
-  // If user is a creator, show content vault instead
-  if (isCreator) {
-    return <ContentVault />;
-  }
-
   useEffect(() => {
-    if (user) {
+    if (user && !isCreator) {
       fetchVaultData();
     }
-  }, [user]);
+  }, [user, isCreator]);
 
   // Disable right-click and screenshots
   useEffect(() => {
@@ -92,6 +87,11 @@ const Vault = () => {
       document.removeEventListener('keydown', disableScreenshot);
     };
   }, []);
+
+  // If user is a creator, show content vault instead
+  if (isCreator) {
+    return <ContentVault />;
+  }
 
   const fetchVaultData = async () => {
     if (!user) return;
