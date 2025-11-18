@@ -58,16 +58,16 @@ const Dashboard = () => {
   const [showConfirmUnlock, setShowConfirmUnlock] = useState(false);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
 
+  useEffect(() => {
+    if (user && !isCreator) {
+      fetchDashboardData();
+    }
+  }, [user, isCreator]);
+
   // If user is a creator, show creator dashboard instead
   if (isCreator) {
     return <CreatorDashboard />;
   }
-
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
 
   const fetchDashboardData = async () => {
     if (!user) return;
