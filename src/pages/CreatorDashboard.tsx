@@ -19,6 +19,7 @@ const CreatorDashboard = () => {
     messageUnlockables: 0,
     posts: 0,
   });
+  const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month' | 'all'>('today');
 
   useEffect(() => {
     if (!loading && !user) {
@@ -30,37 +31,79 @@ const CreatorDashboard = () => {
     if (!user) return;
 
     const fetchStats = async () => {
-      // Fetch conversations count
-      const { count: customerCount } = await supabase
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .eq('creator_id', user.id);
+      // Calculate date filter based on time period
+      let dateFilter: string | null = null;
+      const now = new Date();
+      
+      switch (timePeriod) {
+        case 'today':
+          dateFilter = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+          break;
+        case 'week':
+          const weekAgo = new Date(now);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          dateFilter = weekAgo.toISOString();
+          break;
+        case 'month':
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          dateFilter = monthStart.toISOString();
+          break;
+        case 'all':
+          dateFilter = null;
+          break;
+      }
 
-      // Fetch earnings
-      const { data: transactions } = await supabase
+      // Build query for transactions
+      let query = supabase
         .from('transactions')
-        .select('net_amount, transaction_type')
+        .select('net_amount, transaction_type, message_id, customer_id, amount')
         .eq('creator_id', user.id)
         .eq('status', 'completed');
 
+      if (dateFilter) {
+        query = query.gte('created_at', dateFilter);
+      }
+
+      const { data: transactions } = await query;
+
+      // Count unique customers who spent at least $1.00
+      const uniqueCustomers = new Set(
+        transactions?.filter(t => t.amount >= 1.00).map(t => t.customer_id) || []
+      );
+      const customerCount = uniqueCustomers.size;
+
+      // Calculate revenue by category
       const totalRevenue = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
-      const messagingRevenue = transactions?.filter(t => t.transaction_type === 'message').reduce((sum, t) => sum + t.net_amount, 0) || 0;
-      const unlockablesRevenue = transactions?.filter(t => t.transaction_type === 'unlockable').reduce((sum, t) => sum + t.net_amount, 0) || 0;
-      const packsRevenue = transactions?.filter(t => t.transaction_type === 'pack').reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      
+      const subscriptionsRevenue = transactions
+        ?.filter(t => t.transaction_type === 'pack')
+        .reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      
+      const messagingRevenue = transactions
+        ?.filter(t => t.transaction_type === 'message')
+        .reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      
+      const messageUnlockablesRevenue = transactions
+        ?.filter(t => t.transaction_type === 'unlockable' && t.message_id !== null)
+        .reduce((sum, t) => sum + t.net_amount, 0) || 0;
+      
+      const postsRevenue = transactions
+        ?.filter(t => t.transaction_type === 'unlockable' && t.message_id === null)
+        .reduce((sum, t) => sum + t.net_amount, 0) || 0;
 
       setStats({
-        newCustomers: customerCount || 0,
+        newCustomers: customerCount,
         revenue: totalRevenue,
-        revenuePerCustomer: customerCount ? totalRevenue / customerCount : 0,
-        subscriptions: packsRevenue,
+        revenuePerCustomer: customerCount > 0 ? totalRevenue / customerCount : 0,
+        subscriptions: subscriptionsRevenue,
         messaging: messagingRevenue,
-        messageUnlockables: unlockablesRevenue,
-        posts: 0,
+        messageUnlockables: messageUnlockablesRevenue,
+        posts: postsRevenue,
       });
     };
 
     fetchStats();
-  }, [user]);
+  }, [user, timePeriod]);
 
   if (loading) return null;
 
@@ -92,7 +135,7 @@ const CreatorDashboard = () => {
               </div>
               <h2 className="text-sm font-medium text-green-700 dark:text-green-400 uppercase">Summary</h2>
             </div>
-            <Select defaultValue="today">
+            <Select value={timePeriod} onValueChange={(value: any) => setTimePeriod(value)}>
               <SelectTrigger className="w-32 h-9">
                 <SelectValue />
               </SelectTrigger>
@@ -100,6 +143,7 @@ const CreatorDashboard = () => {
                 <SelectItem value="today">Today</SelectItem>
                 <SelectItem value="week">This Week</SelectItem>
                 <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="all">All Time</SelectItem>
               </SelectContent>
             </Select>
           </div>
