@@ -255,15 +255,19 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
   };
 
   const calculateOriginalPrice = () => {
-    const selectedItems = unlockables.filter(u => selectedContent.has(u.id));
-    return selectedItems.reduce((sum, item) => sum + item.price, 0);
+    const bundlePrice = parseFloat(price) || 0;
+    const discount = parseFloat(discountPercentage) || 0;
+    
+    if (bundlePrice === 0 || discount === 0) return bundlePrice;
+    
+    // Formula: Original Price = Bundle Price / (1 - Discount Percentage / 100)
+    return bundlePrice / (1 - discount / 100);
   };
 
-  const calculateDiscount = () => {
+  const calculateSavings = () => {
     const original = calculateOriginalPrice();
     const bundlePrice = parseFloat(price) || 0;
-    if (original === 0) return 0;
-    return ((original - bundlePrice) / original * 100).toFixed(1);
+    return (original - bundlePrice).toFixed(2);
   };
 
   return (
@@ -317,9 +321,9 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                   />
-                  {selectedContent.size > 0 && price && (
+                  {price && discountPercentage && parseFloat(discountPercentage) > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Original: ${calculateOriginalPrice().toFixed(2)} • Save {calculateDiscount()}%
+                      Original: ${calculateOriginalPrice().toFixed(2)} • Save: {discountPercentage}% (${calculateSavings()})
                     </p>
                   )}
                 </div>
