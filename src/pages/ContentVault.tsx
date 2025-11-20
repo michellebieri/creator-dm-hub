@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen } from 'lucide-react';
+import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { ContentEditModal } from '@/components/ContentEditModal';
 import { FolderNavigation } from '@/components/FolderNavigation';
@@ -13,6 +13,9 @@ import { ContentGridItem } from '@/components/ContentGridItem';
 import { ContentBundleManager } from '@/components/ContentBundleManager';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { BundlePurchase } from '@/components/BundlePurchase';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface Unlockable {
   id: string;
@@ -31,6 +34,8 @@ interface Bundle {
   price: number;
   thumbnail_url: string | null;
   content_count: number;
+  description: string | null;
+  discount_percentage: number | null;
 }
 
 export default function ContentVault() {
@@ -44,6 +49,8 @@ export default function ContentVault() {
   const [selectedContent, setSelectedContent] = useState<Unlockable | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBundleDialogOpen, setIsBundleDialogOpen] = useState(false);
+  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
+  const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
@@ -93,7 +100,12 @@ export default function ContentVault() {
             .select('*', { count: 'exact', head: true })
             .eq('bundle_id', bundle.id);
 
-          return { ...bundle, content_count: count || 0 };
+          return { 
+            ...bundle, 
+            content_count: count || 0,
+            description: bundle.description,
+            discount_percentage: bundle.discount_percentage
+          };
         })
       );
       setBundles(bundlesWithCounts);
@@ -113,12 +125,17 @@ export default function ContentVault() {
     fetchData(); // Refresh data after edit
   };
 
+  const handleBundleClick = (bundle: Bundle) => {
+    setSelectedBundle(bundle);
+    setIsBundleViewOpen(true);
+  };
+
   // Calculate folder counts
   const folderCounts = {
     photos: unlockables.filter(u => u.media_type === 'image').length,
     videos: unlockables.filter(u => u.media_type === 'video').length,
     bundles: bundles.length,
-    total: unlockables.length + bundles.length
+    total: unlockables.length // All content = all unlockables, NOT bundles
   };
 
   // Filter content based on active folder and search
@@ -154,7 +171,7 @@ export default function ContentVault() {
   };
 
   const filteredContent = getFilteredContent();
-  const displayBundles = activeFolder === 'bundles' || activeFolder === 'all';
+  const displayBundles = activeFolder === 'bundles'; // Only show bundles in bundles tab
 
   if (loading) return null;
 
@@ -243,25 +260,42 @@ export default function ContentVault() {
           </div>
         ) : (
           <>
-            {/* Display Bundles if in bundles or all view */}
+            {/* Display Bundles if in bundles view */}
             {displayBundles && bundles.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {bundles.map((bundle) => (
-                  <ContentGridItem
-                    key={bundle.id}
-                    id={bundle.id}
-                    thumbnailUrl={bundle.thumbnail_url || '/placeholder.svg'}
-                    title={bundle.title}
-                    price={bundle.price}
-                    type="bundle"
-                    itemCount={bundle.content_count}
-                    onClick={() => {
-                      // Handle bundle click - could open bundle details
-                      console.log('Bundle clicked:', bundle.id);
-                    }}
-                  />
-                ))}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold">
+                    Bundle{bundles.length !== 1 ? 's' : ''} ({bundles.length})
+                  </h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                  {bundles.map((bundle) => (
+                    <ContentGridItem
+                      key={bundle.id}
+                      id={bundle.id}
+                      thumbnailUrl={bundle.thumbnail_url || '/placeholder.svg'}
+                      title={bundle.title}
+                      price={bundle.price}
+                      type="bundle"
+                      itemCount={bundle.content_count}
+                      onClick={() => handleBundleClick(bundle)}
+                    />
+                  ))}
+                </div>
               </div>
+            )}
+
+            {/* Show empty state if in bundles view and no bundles */}
+            {displayBundles && bundles.length === 0 && (
+              <EmptyState
+                icon={Package}
+                title="No bundles yet"
+                description="Create your first bundle to get started"
+                action={{
+                  label: 'Create Bundle',
+                  onClick: () => setIsBundleDialogOpen(true)
+                }}
+              />
             )}
 
             {/* Display Content Items */}
@@ -306,6 +340,68 @@ export default function ContentVault() {
           onUpdate={fetchData}
         />
       )}
+
+      {/* Bundle View/Purchase Dialog */}
+      <Dialog open={isBundleViewOpen} onOpenChange={setIsBundleViewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedBundle?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedBundle && (
+            <div className="space-y-6">
+              {selectedBundle.thumbnail_url && (
+                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
+                  <img
+                    src={selectedBundle.thumbnail_url}
+                    alt={selectedBundle.title}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-2xl font-bold">${selectedBundle.price.toFixed(2)}</h3>
+                      {selectedBundle.discount_percentage && selectedBundle.discount_percentage > 0 && (
+                        <Badge variant="secondary">
+                          {selectedBundle.discount_percentage}% OFF
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedBundle.content_count} items included
+                    </p>
+                  </div>
+                </div>
+                {selectedBundle.description && (
+                  <p className="text-muted-foreground">{selectedBundle.description}</p>
+                )}
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    className="flex-1" 
+                    size="lg"
+                    onClick={() => {
+                      toast.info('Bundle purchase functionality will be implemented');
+                      // TODO: Implement purchase with wallet/credits
+                    }}
+                  >
+                    Purchase Bundle
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsBundleViewOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
