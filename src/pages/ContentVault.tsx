@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package } from 'lucide-react';
+import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package, Lock, Loader2 } from 'lucide-react';
 import { EmptyState } from '@/components/EmptyState';
 import { ContentEditModal } from '@/components/ContentEditModal';
 import { FolderNavigation } from '@/components/FolderNavigation';
@@ -52,6 +52,7 @@ export default function ContentVault() {
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -128,6 +129,30 @@ export default function ContentVault() {
   const handleBundleClick = (bundle: Bundle) => {
     setSelectedBundle(bundle);
     setIsBundleViewOpen(true);
+  };
+
+  const handlePurchaseBundle = async () => {
+    if (!selectedBundle) return;
+
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-bundle-payment', {
+        body: { bundleId: selectedBundle.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast.success('Redirecting to payment...');
+        setIsBundleViewOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      toast.error('Failed to start purchase');
+    } finally {
+      setPurchasing(false);
+    }
   };
 
   // Calculate folder counts
@@ -383,12 +408,20 @@ export default function ContentVault() {
                   <Button 
                     className="flex-1" 
                     size="lg"
-                    onClick={() => {
-                      toast.info('Bundle purchase functionality will be implemented');
-                      // TODO: Implement purchase with wallet/credits
-                    }}
+                    onClick={handlePurchaseBundle}
+                    disabled={purchasing}
                   >
-                    Purchase Bundle
+                    {purchasing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-4 w-4 mr-2" />
+                        Purchase Bundle
+                      </>
+                    )}
                   </Button>
                   <Button 
                     variant="outline" 
