@@ -88,11 +88,12 @@ export default function ContentVault() {
       setUnlockables(unlockablesData || []);
     }
 
-    // Fetch bundles
+    // Fetch bundles (only active ones for creator)
     const { data: bundlesData, error: bundleError } = await supabase
       .from('content_bundles')
       .select('*')
       .eq('creator_id', user.id)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (bundleError) {
