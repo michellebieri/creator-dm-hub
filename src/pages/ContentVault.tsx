@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package, Lock, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/EmptyState';
 import { ContentEditModal } from '@/components/ContentEditModal';
 import { FolderNavigation } from '@/components/FolderNavigation';
@@ -49,9 +51,13 @@ export default function ContentVault() {
   const [selectedContent, setSelectedContent] = useState<Unlockable | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBundleDialogOpen, setIsBundleDialogOpen] = useState(false);
-  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
-  const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<Bundle | null>(null);
+  const [isBundleEditOpen, setIsBundleEditOpen] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
+  const [bundleContents, setBundleContents] = useState<Unlockable[]>([]);
+  const [bundleSelectedContent, setBundleSelectedContent] = useState<Set<string>>(new Set());
+  const [showContentSelector, setShowContentSelector] = useState(false);
+  const [savingBundle, setSavingBundle] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -125,9 +131,127 @@ export default function ContentVault() {
     fetchData(); // Refresh data after edit
   };
 
-  const handleBundleClick = (bundle: Bundle) => {
-    setSelectedBundle(bundle);
-    setIsBundleViewOpen(true);
+  const handleBundleClick = async (bundle: Bundle) => {
+    setEditingBundle(bundle);
+    
+    // Fetch bundle contents
+    const { data: contents } = await supabase
+      .from('bundle_contents')
+      .select('unlockable_id')
+      .eq('bundle_id', bundle.id);
+    
+    if (contents) {
+      setBundleSelectedContent(new Set(contents.map(item => item.unlockable_id)));
+      
+      // Fetch full unlockable details
+      const { data: unlockablesData } = await supabase
+        .from('unlockables')
+        .select('*')
+        .in('id', contents.map(c => c.unlockable_id));
+      
+      setBundleContents(unlockablesData || []);
+    }
+    
+    setIsBundleEditOpen(true);
+  };
+
+  const handleSaveBundle = async () => {
+    if (!editingBundle) return;
+    
+    if (!editingBundle.title || editingBundle.price <= 0 || bundleSelectedContent.size === 0) {
+      toast.error('Title, price, and at least one content item are required');
+      return;
+    }
+    
+    setSavingBundle(true);
+    
+    try {
+      // Update bundle
+      const { error: updateError } = await supabase
+        .from('content_bundles')
+        .update({
+          title: editingBundle.title,
+          description: editingBundle.description,
+          price: editingBundle.price,
+          discount_percentage: editingBundle.discount_percentage,
+        })
+        .eq('id', editingBundle.id);
+      
+      if (updateError) throw updateError;
+      
+      // Update bundle contents
+      await supabase
+        .from('bundle_contents')
+        .delete()
+        .eq('bundle_id', editingBundle.id);
+      
+      const contents = Array.from(bundleSelectedContent).map((unlockableId, index) => ({
+        bundle_id: editingBundle.id,
+        unlockable_id: unlockableId,
+        sort_order: index,
+      }));
+      
+      const { error: contentsError } = await supabase
+        .from('bundle_contents')
+        .insert(contents);
+      
+      if (contentsError) throw contentsError;
+      
+      toast.success('Bundle updated successfully');
+      setIsBundleEditOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update bundle');
+    } finally {
+      setSavingBundle(false);
+    }
+  };
+
+  const handleDeleteBundle = async () => {
+    if (!editingBundle) return;
+    
+    if (!confirm('Mark this bundle as inactive? Users who already purchased it will still have access, but it will no longer be available for new purchases.')) return;
+    
+    try {
+      // Soft delete - mark as inactive
+      const { error } = await supabase
+        .from('content_bundles')
+        .update({ is_active: false })
+        .eq('id', editingBundle.id);
+      
+      if (error) throw error;
+      
+      toast.success('Bundle marked as inactive');
+      setIsBundleEditOpen(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete bundle');
+    }
+  };
+
+  const toggleContentSelection = (id: string) => {
+    setBundleSelectedContent(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const calculateOriginalPrice = () => {
+    if (!editingBundle) return 0;
+    return Array.from(bundleSelectedContent).reduce((total, id) => {
+      const item = unlockables.find(u => u.id === id);
+      return total + (item?.price || 0);
+    }, 0);
+  };
+
+  const calculateSavings = () => {
+    const original = calculateOriginalPrice();
+    return original - (editingBundle?.price || 0);
   };
 
   // Calculate folder counts
@@ -341,58 +465,195 @@ export default function ContentVault() {
         />
       )}
 
-      {/* Bundle Edit/View Dialog */}
-      <Dialog open={isBundleViewOpen} onOpenChange={setIsBundleViewOpen}>
+      {/* Bundle Edit Dialog */}
+      <Dialog open={isBundleEditOpen} onOpenChange={setIsBundleEditOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Bundle Details - {selectedBundle?.title}</DialogTitle>
+            <DialogTitle>Edit Bundle</DialogTitle>
           </DialogHeader>
-          {selectedBundle && (
+          {editingBundle && (
             <div className="space-y-6">
-              {selectedBundle.thumbnail_url && (
-                <div className="aspect-video rounded-lg overflow-hidden bg-muted">
-                  <img
-                    src={selectedBundle.thumbnail_url}
-                    alt={selectedBundle.title}
-                    className="w-full h-full object-cover"
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="bundle-title">Bundle Title</Label>
+                  <Input
+                    id="bundle-title"
+                    value={editingBundle.title}
+                    onChange={(e) => setEditingBundle({ ...editingBundle, title: e.target.value })}
+                    placeholder="My Content Bundle"
                   />
                 </div>
-              )}
-              <div className="space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-2xl font-bold">${selectedBundle.price.toFixed(2)}</h3>
-                      {selectedBundle.discount_percentage && selectedBundle.discount_percentage > 0 && (
-                        <Badge variant="secondary">
-                          {selectedBundle.discount_percentage}% OFF
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedBundle.content_count} items included
-                    </p>
+                
+                <div>
+                  <Label htmlFor="bundle-description">Description</Label>
+                  <Input
+                    id="bundle-description"
+                    value={editingBundle.description || ''}
+                    onChange={(e) => setEditingBundle({ ...editingBundle, description: e.target.value })}
+                    placeholder="Bundle description"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bundle-price">Bundle Price ($)</Label>
+                    <Input
+                      id="bundle-price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={editingBundle.price}
+                      onChange={(e) => setEditingBundle({ ...editingBundle, price: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="bundle-discount">Discount Badge (%)</Label>
+                    <Input
+                      id="bundle-discount"
+                      type="number"
+                      step="1"
+                      min="0"
+                      max="100"
+                      value={editingBundle.discount_percentage || 0}
+                      onChange={(e) => setEditingBundle({ ...editingBundle, discount_percentage: parseFloat(e.target.value) || 0 })}
+                    />
                   </div>
                 </div>
-                {selectedBundle.description && (
-                  <p className="text-muted-foreground">{selectedBundle.description}</p>
-                )}
-                <div className="rounded-lg bg-muted p-4 space-y-2">
-                  <p className="text-sm font-medium">Creator View</p>
-                  <p className="text-sm text-muted-foreground">
-                    To edit this bundle's title, description, price, discount, or included content, use the Bundle Manager section above.
-                  </p>
+                
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Original Price (sum of items):</span>
+                    <span className="font-medium">${calculateOriginalPrice().toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Bundle Price:</span>
+                    <span className="font-medium">${editingBundle.price.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold text-green-600">
+                    <span>Customer Saves:</span>
+                    <span>${calculateSavings().toFixed(2)}</span>
+                  </div>
                 </div>
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={() => setIsBundleViewOpen(false)}
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Bundle Content ({bundleSelectedContent.size} items)</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowContentSelector(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Edit Content
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3">
+                  {bundleContents.map((content) => (
+                    <div key={content.id} className="relative aspect-square rounded-lg overflow-hidden bg-muted">
+                      <img
+                        src={content.media_url}
+                        alt="Bundle content"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                        <p className="text-xs text-white">${content.price.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button
+                  onClick={handleSaveBundle}
+                  disabled={savingBundle}
+                  className="flex-1"
                 >
-                  Close
+                  {savingBundle ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteBundle}
+                >
+                  Delete Bundle
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Content Selector Dialog */}
+      <Dialog open={showContentSelector} onOpenChange={setShowContentSelector}>
+        <DialogContent className="max-w-4xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Select Bundle Content</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 overflow-y-auto max-h-[60vh]">
+            <p className="text-sm text-muted-foreground">
+              Selected: {bundleSelectedContent.size} items
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              {unlockables.map((content) => (
+                <div
+                  key={content.id}
+                  className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                    bundleSelectedContent.has(content.id)
+                      ? 'border-primary ring-2 ring-primary/20'
+                      : 'border-transparent hover:border-muted-foreground/20'
+                  }`}
+                  onClick={() => toggleContentSelection(content.id)}
+                >
+                  <img
+                    src={content.media_url}
+                    alt={content.title || 'Content'}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <Checkbox checked={bundleSelectedContent.has(content.id)} />
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <p className="text-xs text-white">${content.price.toFixed(2)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setShowContentSelector(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                // Update bundle contents display
+                const { data: unlockablesData } = await supabase
+                  .from('unlockables')
+                  .select('*')
+                  .in('id', Array.from(bundleSelectedContent));
+                
+                setBundleContents(unlockablesData || []);
+                setShowContentSelector(false);
+                toast.success('Content selection updated');
+              }}
+              className="flex-1"
+            >
+              Apply Selection
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

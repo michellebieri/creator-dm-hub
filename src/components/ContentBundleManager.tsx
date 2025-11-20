@@ -200,11 +200,12 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this bundle? This will not delete the individual content items.')) return;
+    if (!confirm('Mark this bundle as inactive? Users who already purchased it will still have access, but it will no longer be available for new purchases.')) return;
 
+    // Soft delete - mark as inactive
     const { error } = await supabase
       .from('content_bundles')
-      .delete()
+      .update({ is_active: false })
       .eq('id', id);
 
     if (error) {
@@ -217,8 +218,8 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
     }
 
     toast({
-      title: 'Deleted',
-      description: 'Bundle deleted successfully',
+      title: 'Bundle Deactivated',
+      description: 'Bundle is now inactive. Users who purchased it still have access.',
     });
 
     fetchBundles();
