@@ -57,8 +57,11 @@ const CreatorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [activeFolder, setActiveFolder] = useState<FolderType>('all');
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
+  const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
+  const [bundlePurchaseDialogOpen, setBundlePurchaseDialogOpen] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
+  const [purchasingBundle, setPurchasingBundle] = useState(false);
   const [pricePerMessage, setPricePerMessage] = useState<number>(5);
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [itemsToShow, setItemsToShow] = useState(20);
@@ -170,6 +173,36 @@ const CreatorProfile = () => {
     }
   };
 
+  const handleBundleClick = (bundle: Bundle) => {
+    setSelectedBundle(bundle);
+    setBundlePurchaseDialogOpen(true);
+  };
+
+  const handlePurchaseBundle = async () => {
+    if (!selectedBundle) return;
+    
+    setPurchasingBundle(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-bundle-payment', {
+        body: { bundleId: selectedBundle.id },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        toast({ title: 'Redirecting to payment...', description: 'Opening checkout in a new tab' });
+        setBundlePurchaseDialogOpen(false);
+        setSelectedBundle(null);
+      }
+    } catch (error) {
+      console.error('Error purchasing bundle:', error);
+      toast({ title: 'Error', description: 'Failed to start purchase', variant: 'destructive' });
+    } finally {
+      setPurchasingBundle(false);
+    }
+  };
+
   const loadMoreContent = () => {
     setItemsToShow(prev => prev + 20);
     fetchCreatorData();
@@ -251,7 +284,7 @@ const CreatorProfile = () => {
               const isContent = isContentItem(item);
               const unlocked = isContent ? isUnlocked(item) : false;
               return (
-                <Card key={item.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all" onClick={() => isContent && handleContentClick(item)}>
+                <Card key={item.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all" onClick={() => isContent ? handleContentClick(item) : handleBundleClick(item)}>
                   <div className="relative aspect-square bg-muted">
                     {isContent ? (
                       <div className="relative w-full h-full">
@@ -317,28 +350,63 @@ const CreatorProfile = () => {
                 <div className="text-center py-4"><Badge variant="secondary" className="text-sm">Already Unlocked</Badge><p className="text-sm text-muted-foreground mt-2">You can view this in your library</p></div>
               ) : balance >= selectedContent.price ? (
                 <Button onClick={handleUnlockContent} disabled={unlocking} className="w-full" size="lg">
-                  {unlocking ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Unlocking...</> : <><Lock className="h-4 w-4 mr-2" />Unlock for ${selectedContent.price.toFixed(2)}</>}
+                  {unlocking ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Unlocking...</>) : (<>Unlock for ${selectedContent.price.toFixed(2)}</>)}
                 </Button>
               ) : (
-                <div className="space-y-4">
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Insufficient Balance</p>
-                    <p className="text-sm text-muted-foreground mt-1">Your balance: ${balance.toFixed(2)}</p>
-                    <p className="text-sm text-muted-foreground">You need ${(selectedContent.price - balance).toFixed(2)} more</p>
-                  </div>
-                  
-                  <Button 
-                    onClick={() => {
-                      setUnlockDialogOpen(false);
-                      setShowAddFunds(true);
-                    }} 
-                    className="w-full" 
-                    size="lg"
-                  >
-                    Add Credits to Unlock
-                  </Button>
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-destructive/10 p-4 text-center"><p className="text-sm text-destructive font-medium">Insufficient balance. You need ${(selectedContent.price - balance).toFixed(2)} more.</p></div>
+                  <Button onClick={() => { setUnlockDialogOpen(false); setShowAddFunds(true); }} variant="outline" className="w-full">Add Funds</Button>
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bundle Purchase Dialog */}
+      <Dialog open={bundlePurchaseDialogOpen} onOpenChange={setBundlePurchaseDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Purchase Bundle</DialogTitle></DialogHeader>
+          {selectedBundle && (
+            <div className="space-y-4">
+              <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
+                {selectedBundle.thumbnail_url ? (
+                  <>
+                    <img src={selectedBundle.thumbnail_url} alt={selectedBundle.title} className="w-full h-full object-cover blur-[20px]" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                      <Lock className="h-16 w-16 text-white" />
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="h-16 w-16 text-primary" />
+                  </div>
+                )}
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">{selectedBundle.title}</h3>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This bundle contains {selectedBundle.content_count} exclusive items
+                </p>
+              </div>
+              <div className="flex items-center justify-between py-4 border-y">
+                <span className="text-muted-foreground">Price</span>
+                <span className="text-2xl font-bold text-primary">${selectedBundle.price.toFixed(2)}</span>
+              </div>
+              
+              <Button onClick={handlePurchaseBundle} disabled={purchasingBundle} className="w-full" size="lg">
+                {purchasingBundle ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="h-4 w-4 mr-2" />
+                    Purchase Bundle
+                  </>
+                )}
+              </Button>
             </div>
           )}
         </DialogContent>
