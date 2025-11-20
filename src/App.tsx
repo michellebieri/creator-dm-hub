@@ -37,6 +37,13 @@ import Nudges from "./pages/Nudges";
 import ContentMenu from "./pages/ContentMenu";
 import MessagingInterface from "./pages/MessagingInterface";
 import WelcomeMessage from "./pages/WelcomeMessage";
+import MessagingSettings from "./pages/settings/MessagingSettings";
+import SubscriptionSettings from "./pages/settings/SubscriptionSettings";
+import BundleSettings from "./pages/settings/BundleSettings";
+import SocialsSettings from "./pages/settings/SocialsSettings";
+import ProfileSettings2 from "./pages/settings/ProfileSettings";
+import GeneralSettings from "./pages/settings/GeneralSettings";
+import AccountManagement from "./pages/settings/AccountManagement";
 
 const queryClient = new QueryClient();
 
@@ -148,6 +155,41 @@ const App = () => {
             <Route path="/welcome-message/:messageNumber" element={
               <ProtectedRoute requireCreator>
                 <WelcomeMessage />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/account" element={
+              <ProtectedRoute>
+                <GeneralSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/profile" element={
+              <ProtectedRoute>
+                <ProfileSettings2 />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/messaging" element={
+              <ProtectedRoute requireCreator>
+                <MessagingSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/subscription" element={
+              <ProtectedRoute requireCreator>
+                <SubscriptionSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/bundle" element={
+              <ProtectedRoute requireCreator>
+                <BundleSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/socials" element={
+              <ProtectedRoute requireCreator>
+                <SocialsSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/management" element={
+              <ProtectedRoute>
+                <AccountManagement />
               </ProtectedRoute>
             } />
             <Route path="/privacy-settings" element={
