@@ -49,6 +49,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [discountPercentage, setDiscountPercentage] = useState('0');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchBundles();
@@ -119,6 +120,27 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
       });
       return;
     }
+
+    if (selectedContent.size < 3) {
+      toast({
+        title: 'Error',
+        description: 'A bundle must contain at least 3 items. Please select more content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const discountValue = parseFloat(discountPercentage) || 0;
+    if (discountValue < 0 || discountValue > 100) {
+      toast({
+        title: 'Error',
+        description: 'Discount percentage must be between 0 and 100',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsCreating(true);
 
     const bundleData = {
       creator_id: creatorId,
@@ -197,6 +219,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
     fetchBundles();
     setShowDialog(false);
     resetForm();
+    setIsCreating(false);
   };
 
   const handleDelete = async (id: string) => {
@@ -321,6 +344,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
                     placeholder="19.99"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   {price && discountPercentage && parseFloat(discountPercentage) > 0 && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -333,15 +357,26 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
                   <Input
                     type="number"
                     step="1"
+                    min="0"
+                    max="100"
                     placeholder="20"
                     value={discountPercentage}
-                    onChange={(e) => setDiscountPercentage(e.target.value)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 0;
+                      setDiscountPercentage(Math.min(100, Math.max(0, val)).toString());
+                    }}
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>
 
               <div>
-                <Label className="mb-3 block">Select Content ({selectedContent.size} selected)</Label>
+                <Label className="mb-3 block">
+                  Select Content ({selectedContent.size} selected) 
+                  {selectedContent.size < 3 && (
+                    <span className="text-destructive ml-2">• Minimum 3 items required</span>
+                  )}
+                </Label>
                 <div className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto border rounded-lg p-3">
                   {unlockables.length === 0 ? (
                     <p className="col-span-2 text-center text-muted-foreground py-4">
@@ -375,10 +410,14 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleSave} className="flex-1" disabled={selectedContent.size === 0}>
-                  {editingId ? 'Update Bundle' : 'Create Bundle'}
+                <Button 
+                  onClick={handleSave} 
+                  className="flex-1" 
+                  disabled={selectedContent.size < 3 || isCreating || !title || !price}
+                >
+                  {isCreating ? 'Creating Bundle...' : (editingId ? 'Update Bundle' : 'Create Bundle')}
                 </Button>
-                <Button variant="outline" onClick={() => setShowDialog(false)}>
+                <Button variant="outline" onClick={() => setShowDialog(false)} disabled={isCreating}>
                   Cancel
                 </Button>
               </div>

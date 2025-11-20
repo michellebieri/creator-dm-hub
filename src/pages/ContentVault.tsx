@@ -163,6 +163,17 @@ export default function ContentVault() {
       return;
     }
     
+    if (bundleSelectedContent.size < 3) {
+      toast.error('A bundle must contain at least 3 items. Please select more content.');
+      return;
+    }
+    
+    const discountValue = editingBundle.discount_percentage || 0;
+    if (discountValue < 0 || discountValue > 100) {
+      toast.error('Discount percentage must be between 0 and 100');
+      return;
+    }
+    
     setSavingBundle(true);
     
     try {
@@ -504,6 +515,7 @@ export default function ContentVault() {
                       min="0"
                       value={editingBundle.price}
                       onChange={(e) => setEditingBundle({ ...editingBundle, price: parseFloat(e.target.value) || 0 })}
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                   
@@ -516,7 +528,11 @@ export default function ContentVault() {
                       min="0"
                       max="100"
                       value={editingBundle.discount_percentage || 0}
-                      onChange={(e) => setEditingBundle({ ...editingBundle, discount_percentage: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setEditingBundle({ ...editingBundle, discount_percentage: Math.min(100, Math.max(0, val)) });
+                      }}
+                      className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>
@@ -539,7 +555,11 @@ export default function ContentVault() {
               
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label>Bundle Content ({bundleSelectedContent.size} items)</Label>
+                  <Label>Bundle Content ({bundleSelectedContent.size} items)
+                    {bundleSelectedContent.size < 3 && (
+                      <span className="text-destructive ml-2">• Minimum 3 items required</span>
+                    )}
+                  </Label>
                   <Button
                     variant="outline"
                     size="sm"
@@ -569,7 +589,7 @@ export default function ContentVault() {
               <div className="flex gap-3">
                 <Button
                   onClick={handleSaveBundle}
-                  disabled={savingBundle}
+                  disabled={savingBundle || bundleSelectedContent.size < 3 || !editingBundle.title || editingBundle.price <= 0}
                   className="flex-1"
                 >
                   {savingBundle ? (
