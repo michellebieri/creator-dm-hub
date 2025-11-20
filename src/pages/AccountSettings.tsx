@@ -6,8 +6,6 @@ const AccountSettings = () => {
   const navigate = useNavigate();
 
   const sections = [
-    { title: 'Account', icon: User, path: '/settings/account', bgColor: 'bg-muted', iconColor: 'text-muted-foreground' },
-    { title: 'Profile', icon: UserCircle, path: '/settings/profile', bgColor: 'bg-blue-500/10', iconColor: 'text-blue-500' },
     { title: 'Messaging', icon: MessageSquare, path: '/settings/messaging', bgColor: 'bg-green-500/10', iconColor: 'text-green-500' },
     { title: 'Subscription', icon: Layers, path: '/settings/subscription', bgColor: 'bg-purple-500/10', iconColor: 'text-purple-500' },
     { title: 'Bundle', icon: Package, path: '/settings/bundle', bgColor: 'bg-pink-500/10', iconColor: 'text-pink-500' },
