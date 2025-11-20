@@ -52,7 +52,6 @@ export default function ContentVault() {
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
   const [isBundleViewOpen, setIsBundleViewOpen] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
-  const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -129,30 +128,6 @@ export default function ContentVault() {
   const handleBundleClick = (bundle: Bundle) => {
     setSelectedBundle(bundle);
     setIsBundleViewOpen(true);
-  };
-
-  const handlePurchaseBundle = async () => {
-    if (!selectedBundle) return;
-
-    setPurchasing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('create-bundle-payment', {
-        body: { bundleId: selectedBundle.id },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast.success('Redirecting to payment...');
-        setIsBundleViewOpen(false);
-      }
-    } catch (error) {
-      console.error('Error creating payment:', error);
-      toast.error('Failed to start purchase');
-    } finally {
-      setPurchasing(false);
-    }
   };
 
   // Calculate folder counts
@@ -366,13 +341,11 @@ export default function ContentVault() {
         />
       )}
 
-      {/* Bundle View/Purchase Dialog */}
+      {/* Bundle Edit/View Dialog */}
       <Dialog open={isBundleViewOpen} onOpenChange={setIsBundleViewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedBundle?.title}
-            </DialogTitle>
+            <DialogTitle>Bundle Details - {selectedBundle?.title}</DialogTitle>
           </DialogHeader>
           {selectedBundle && (
             <div className="space-y-6">
@@ -404,32 +377,19 @@ export default function ContentVault() {
                 {selectedBundle.description && (
                   <p className="text-muted-foreground">{selectedBundle.description}</p>
                 )}
-                <div className="flex gap-3 pt-4">
-                  <Button 
-                    className="flex-1" 
-                    size="lg"
-                    onClick={handlePurchaseBundle}
-                    disabled={purchasing}
-                  >
-                    {purchasing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-4 w-4 mr-2" />
-                        Purchase Bundle
-                      </>
-                    )}
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsBundleViewOpen(false)}
-                  >
-                    Cancel
-                  </Button>
+                <div className="rounded-lg bg-muted p-4 space-y-2">
+                  <p className="text-sm font-medium">Creator View</p>
+                  <p className="text-sm text-muted-foreground">
+                    To edit this bundle's title, description, price, discount, or included content, use the Bundle Manager section above.
+                  </p>
                 </div>
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={() => setIsBundleViewOpen(false)}
+                >
+                  Close
+                </Button>
               </div>
             </div>
           )}
