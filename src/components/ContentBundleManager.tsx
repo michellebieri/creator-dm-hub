@@ -60,6 +60,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
       .from('content_bundles')
       .select('*')
       .eq('creator_id', creatorId)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
 
     if (error) {
