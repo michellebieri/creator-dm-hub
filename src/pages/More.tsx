@@ -80,9 +80,8 @@ const More = () => {
       <div className="max-w-screen-lg mx-auto">
         <Card className="m-4 overflow-hidden">
           <MenuItem title="Profile" icon={User} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/profile')} />
-          <MenuItem title="Gallery" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
-          <MenuItem title="Following" icon={Newspaper} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/following')} />
-          <MenuItem title="Subscriptions" icon={CreditCard} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/subscriptions')} />
+          <MenuItem title="Vault" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
+          <MenuItem title="Settings" icon={Settings} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
