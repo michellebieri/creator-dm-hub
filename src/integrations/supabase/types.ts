@@ -264,6 +264,8 @@ export type Database = {
           discount_percentage: number | null
           id: string
           is_active: boolean | null
+          messages_included: number | null
+          original_price: number | null
           price: number
           thumbnail_url: string | null
           title: string
@@ -276,6 +278,8 @@ export type Database = {
           discount_percentage?: number | null
           id?: string
           is_active?: boolean | null
+          messages_included?: number | null
+          original_price?: number | null
           price: number
           thumbnail_url?: string | null
           title: string
@@ -288,6 +292,8 @@ export type Database = {
           discount_percentage?: number | null
           id?: string
           is_active?: boolean | null
+          messages_included?: number | null
+          original_price?: number | null
           price?: number
           thumbnail_url?: string | null
           title?: string
@@ -598,40 +604,91 @@ export type Database = {
       }
       creator_settings: {
         Row: {
+          ai_messaging: boolean | null
+          bulk_message_amount: number | null
+          bulk_message_price: number | null
           created_at: string
+          first_three_free: boolean | null
+          gift_message_count: number | null
+          gift_messages: boolean | null
           id: string
           is_accepting_messages: boolean
           price_per_message: number
+          social_facebook: string | null
+          social_instagram: string | null
+          social_other_url: string | null
+          social_snapchat: string | null
+          social_tiktok: string | null
+          social_twitch: string | null
+          social_twitter: string | null
+          social_youtube: string | null
           stripe_account_id: string | null
           updated_at: string
           user_id: string
           waitlist_status: Database["public"]["Enums"]["waitlist_status"]
           watermark_enabled: boolean | null
           watermark_text: string | null
+          welcome_message_1: string | null
+          welcome_message_2: string | null
+          welcome_message_3: string | null
         }
         Insert: {
+          ai_messaging?: boolean | null
+          bulk_message_amount?: number | null
+          bulk_message_price?: number | null
           created_at?: string
+          first_three_free?: boolean | null
+          gift_message_count?: number | null
+          gift_messages?: boolean | null
           id?: string
           is_accepting_messages?: boolean
           price_per_message?: number
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_other_url?: string | null
+          social_snapchat?: string | null
+          social_tiktok?: string | null
+          social_twitch?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           stripe_account_id?: string | null
           updated_at?: string
           user_id: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
           watermark_enabled?: boolean | null
           watermark_text?: string | null
+          welcome_message_1?: string | null
+          welcome_message_2?: string | null
+          welcome_message_3?: string | null
         }
         Update: {
+          ai_messaging?: boolean | null
+          bulk_message_amount?: number | null
+          bulk_message_price?: number | null
           created_at?: string
+          first_three_free?: boolean | null
+          gift_message_count?: number | null
+          gift_messages?: boolean | null
           id?: string
           is_accepting_messages?: boolean
           price_per_message?: number
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_other_url?: string | null
+          social_snapchat?: string | null
+          social_tiktok?: string | null
+          social_twitch?: string | null
+          social_twitter?: string | null
+          social_youtube?: string | null
           stripe_account_id?: string | null
           updated_at?: string
           user_id?: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
           watermark_enabled?: boolean | null
           watermark_text?: string | null
+          welcome_message_1?: string | null
+          welcome_message_2?: string | null
+          welcome_message_3?: string | null
         }
         Relationships: [
           {
@@ -1697,12 +1754,16 @@ export type Database = {
           created_at: string
           creator_id: string
           description: string | null
+          discount_comment: string | null
+          discount_percentage: number | null
           features: Json | null
+          free_messages_per_month: number | null
           id: string
           is_active: boolean
           name: string
           price: number
           stripe_price_id: string | null
+          unlimited_messages: boolean | null
           updated_at: string
         }
         Insert: {
@@ -1710,12 +1771,16 @@ export type Database = {
           created_at?: string
           creator_id: string
           description?: string | null
+          discount_comment?: string | null
+          discount_percentage?: number | null
           features?: Json | null
+          free_messages_per_month?: number | null
           id?: string
           is_active?: boolean
           name: string
           price: number
           stripe_price_id?: string | null
+          unlimited_messages?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -1723,12 +1788,16 @@ export type Database = {
           created_at?: string
           creator_id?: string
           description?: string | null
+          discount_comment?: string | null
+          discount_percentage?: number | null
           features?: Json | null
+          free_messages_per_month?: number | null
           id?: string
           is_active?: boolean
           name?: string
           price?: number
           stripe_price_id?: string | null
+          unlimited_messages?: boolean | null
           updated_at?: string
         }
         Relationships: [

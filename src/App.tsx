@@ -36,6 +36,7 @@ import Lists from "./pages/Lists";
 import Nudges from "./pages/Nudges";
 import ContentMenu from "./pages/ContentMenu";
 import MessagingInterface from "./pages/MessagingInterface";
+import WelcomeMessage from "./pages/WelcomeMessage";
 
 const queryClient = new QueryClient();
 
@@ -142,6 +143,11 @@ const App = () => {
             <Route path="/account-settings" element={
               <ProtectedRoute>
                 <AccountSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/welcome-message/:messageNumber" element={
+              <ProtectedRoute requireCreator>
+                <WelcomeMessage />
               </ProtectedRoute>
             } />
             <Route path="/privacy-settings" element={
