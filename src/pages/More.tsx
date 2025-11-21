@@ -86,9 +86,6 @@ const More = () => {
 
         <Card className="m-4 overflow-hidden">
           <MenuItem title="Notifications" icon={Bell} iconBg="bg-red-500/10" iconColor="text-red-500" onClick={() => navigate('/notification-settings')} />
-          <MenuItem title="Account" icon={Settings} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
-          <MenuItem title="Payment details" icon={CreditCard} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('#')} />
-          <MenuItem title="Payment history" icon={Receipt} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/purchase-history')} />
         </Card>
 
         {isCreator && (
