@@ -5,8 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Search, MessageCircle, ChevronLeft } from 'lucide-react';
+import { Search, MessageCircle, ChevronLeft, Users } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { CreditCheckDialog } from '@/components/CreditCheckDialog';
 
@@ -17,6 +18,7 @@ interface Creator {
   bio: string | null;
   avatar_url: string | null;
   price_per_message?: number;
+  followers_count?: number;
 }
 
 const Creators = () => {
@@ -61,9 +63,21 @@ const Creators = () => {
         .select('user_id, price_per_message')
         .in('user_id', creatorIds);
 
+      // Get follower counts for each creator
+      const followersPromises = creatorIds.map(async (creatorId) => {
+        const { count } = await supabase
+          .from('user_follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', creatorId);
+        return { creatorId, count: count || 0 };
+      });
+      
+      const followersData = await Promise.all(followersPromises);
+
       const creatorsWithPricing = profiles?.map(profile => ({
         ...profile,
-        price_per_message: settings?.find(s => s.user_id === profile.id)?.price_per_message || 5
+        price_per_message: settings?.find(s => s.user_id === profile.id)?.price_per_message || 5,
+        followers_count: followersData.find(f => f.creatorId === profile.id)?.count || 0
       })) || [];
 
       setCreators(creatorsWithPricing);
@@ -182,23 +196,27 @@ const Creators = () => {
                     </p>
                   )}
                   
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm">
-                      <span className="font-semibold">${creator.price_per_message}</span>
-                      <span className="text-muted-foreground"> / message</span>
-                    </div>
-                    <Button 
-                      size="sm" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStartChat(creator);
-                      }}
-                      className="gap-2"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      Chat
-                    </Button>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Badge variant="secondary" className="text-xs">
+                      ${creator.price_per_message} / message
+                    </Badge>
+                    <Badge variant="outline" className="text-xs gap-1">
+                      <Users className="h-3 w-3" />
+                      {creator.followers_count || 0}
+                    </Badge>
                   </div>
+                  
+                  <Button 
+                    size="sm" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartChat(creator);
+                    }}
+                    className="w-full gap-2"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Chat
+                  </Button>
                 </CardContent>
               </Card>
             ))}
