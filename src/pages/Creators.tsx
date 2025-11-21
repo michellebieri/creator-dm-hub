@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Search, MessageCircle, ChevronLeft, Users } from 'lucide-react';
+import { Search, MessageCircle, ChevronLeft, Users, UserPlus, UserCheck } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { CreditCheckDialog } from '@/components/CreditCheckDialog';
+import { useFollowing } from '@/hooks/useFollowing';
 
 interface Creator {
   id: string;
@@ -168,58 +169,90 @@ const Creators = () => {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCreators.map((creator) => (
-              <Card 
-                key={creator.id} 
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => navigate(`/creator/${creator.username}`)}
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4 mb-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={creator.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {creator.display_name.substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-lg hover:text-primary transition-colors">
-                        {creator.display_name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">@{creator.username}</p>
-                    </div>
-                  </div>
-                  
-                  {creator.bio && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {creator.bio}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="secondary" className="text-xs">
-                      ${creator.price_per_message} / message
-                    </Badge>
-                    <Badge variant="outline" className="text-xs gap-1">
-                      <Users className="h-3 w-3" />
-                      {creator.followers_count || 0}
-                    </Badge>
-                  </div>
-                  
-                  <Button 
-                    size="sm" 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStartChat(creator);
-                    }}
-                    className="w-full gap-2"
+            {filteredCreators.map((creator) => {
+              const CreatorCardWithFollow = () => {
+                const { isFollowing, toggleFollow, loading: followLoading } = useFollowing(user?.id, creator.id);
+                
+                return (
+                  <Card 
+                    key={creator.id} 
+                    className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                    onClick={() => navigate(`/creator/${creator.username}`)}
                   >
-                    <MessageCircle className="h-4 w-4" />
-                    Chat
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4 mb-4">
+                        <Avatar className="h-16 w-16">
+                          <AvatarImage src={creator.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {creator.display_name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg hover:text-primary transition-colors">
+                            {creator.display_name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">@{creator.username}</p>
+                        </div>
+                      </div>
+                      
+                      {creator.bio && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {creator.bio}
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center gap-2 mb-3">
+                        <Badge variant="secondary" className="text-xs">
+                          ${creator.price_per_message} / message
+                        </Badge>
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Users className="h-3 w-3" />
+                          {creator.followers_count || 0}
+                        </Badge>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartChat(creator);
+                          }}
+                          className="flex-1 gap-2"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                          Chat
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={isFollowing ? "secondary" : "outline"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFollow();
+                          }}
+                          disabled={followLoading || isFollowing}
+                          className="gap-2"
+                        >
+                          {isFollowing ? (
+                            <>
+                              <UserCheck className="h-4 w-4" />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-4 w-4" />
+                              Follow
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              };
+              
+              return <CreatorCardWithFollow key={creator.id} />;
+            })}
           </div>
         )}
       </div>

@@ -78,7 +78,7 @@ const CreatorProfile = () => {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', id)
+        .eq('username', id)
         .single();
       if (profileError) throw profileError;
       setProfile(profileData);
