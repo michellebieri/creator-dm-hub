@@ -6,13 +6,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, UserCheck } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/useWallet';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { ContentGridSkeleton } from '@/components/ui/skeleton';
+import { useFollowing } from '@/hooks/useFollowing';
 
 interface Profile {
   id: string;
@@ -50,6 +51,7 @@ const CreatorProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { balance, spend } = useWallet();
+  const { isFollowing, followersCount, loading: followLoading, toggleFollow } = useFollowing(user?.id, id || null);
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -264,8 +266,31 @@ const CreatorProfile = () => {
           <h2 className="text-2xl font-bold mb-1">{profile.display_name}</h2>
           <p className="text-muted-foreground mb-2">@{profile.username}</p>
           {profile.bio && <p className="text-sm text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
-          <Badge variant="secondary" className="mb-4">${pricePerMessage} / message</Badge>
-          <Button onClick={handleStartConversation} size="lg" className="w-full max-w-xs"><MessageCircle className="h-4 w-4 mr-2" />Chat</Button>
+          <div className="flex items-center gap-3 mb-4">
+            <Badge variant="secondary">${pricePerMessage} / message</Badge>
+            <Badge variant="outline">{followersCount} {followersCount === 1 ? 'Follower' : 'Followers'}</Badge>
+          </div>
+          <div className="flex gap-2 w-full max-w-xs">
+            <Button onClick={handleStartConversation} size="lg" className="flex-1">
+              <MessageCircle className="h-4 w-4 mr-2" />Chat
+            </Button>
+            {user?.id !== id && (
+              <Button 
+                onClick={toggleFollow} 
+                disabled={followLoading}
+                variant={isFollowing ? "outline" : "default"}
+                size="lg"
+              >
+                {followLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  <><UserCheck className="h-4 w-4 mr-2" />Following</>
+                ) : (
+                  <><UserPlus className="h-4 w-4 mr-2" />Follow</>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
         <Tabs value={activeFolder} onValueChange={(v) => setActiveFolder(v as FolderType)} className="mb-6">
           <TabsList className="grid w-full grid-cols-4">

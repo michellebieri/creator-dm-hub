@@ -112,10 +112,11 @@ const Conversations = () => {
           })
         );
 
-        // Filter out conversations where creator_id === customer_id (self-conversations)
-        // This ensures users never see their own name in the conversation list
+        // Filter out conversations where:
+        // 1. creator_id === customer_id (self-conversations)
+        // 2. There are no messages (empty conversations)
         const validConversations = conversationsWithMessages.filter(conv => 
-          conv.creator_id !== conv.customer_id
+          conv.creator_id !== conv.customer_id && conv.last_message !== undefined
         );
 
         setConversations(validConversations);
