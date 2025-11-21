@@ -175,7 +175,9 @@ const AnalyticsDashboard = () => {
               </div>
               <h3 className="text-sm font-medium text-muted-foreground">Growth Rate</h3>
             </div>
-            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">12%</p>
+            <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+              {stats.totalCustomers > 0 ? '0%' : 'N/A'}
+            </p>
           </Card>
         </div>
 
