@@ -287,7 +287,7 @@ const Conversations = () => {
               description="Start messaging creators to see your messages here"
               action={{
                 label: 'Browse Creators',
-                onClick: () => navigate('/creators'),
+                onClick: () => navigate('/browse'),
               }}
             />
           )

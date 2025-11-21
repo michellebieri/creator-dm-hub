@@ -25,7 +25,7 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/creators" className="hover:text-foreground transition-colors">
+                <Link to="/browse" className="hover:text-foreground transition-colors">
                   Browse Creators
                 </Link>
               </li>

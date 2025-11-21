@@ -101,7 +101,7 @@ export function AppSidebar() {
   ];
 
   const customerItems = [
-    { title: "Browse Creators", url: "/creators", icon: Users },
+    { title: "Browse Creators", url: "/browse", icon: Users },
     { title: "Messages", url: "/messages", icon: MessageCircle },
     { title: "Activity Feed", url: "/activity-feed", icon: Activity },
     { title: "Search", url: "/search", icon: Search },
