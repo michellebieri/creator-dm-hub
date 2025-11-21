@@ -100,7 +100,7 @@ const More = () => {
             <Card className="m-4 overflow-hidden">
               <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/content-menu')} />
               <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
-              <MenuItem title="Lists" icon={List} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
+              <MenuItem title="Followers & Subscribers" icon={List} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
             </Card>
 
             <Card className="m-4 overflow-hidden">
