@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Music, Package, Vault as VaultIcon, Download } from 'lucide-react';
+import { Image, Video, Music, Package, Vault as VaultIcon, Download, ChevronLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
@@ -219,25 +219,46 @@ const Vault = () => {
 
   if (purchasedContent.length === 0 && purchasedBundles.length === 0) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-2xl">
-        <EmptyState
-          icon={VaultIcon}
-          title="No purchased content yet"
-          description="Browse creators and unlock exclusive content to see it here."
-          action={{
-            label: "Browse Creators",
-            onClick: () => navigate('/browse')
-          }}
-        />
+      <div className="min-h-screen bg-background pb-4">
+        <header className="sticky top-0 z-10 bg-background border-b border-border">
+          <div className="flex items-center justify-between px-4 h-14">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-lg font-semibold">My Vault</h1>
+            <div className="w-10" />
+          </div>
+        </header>
+        
+        <div className="container mx-auto px-4 py-8 max-w-2xl">
+          <EmptyState
+            icon={VaultIcon}
+            title="No purchased content yet"
+            description="Browse creators and unlock exclusive content to see it here."
+            action={{
+              label: "Browse Creators",
+              onClick: () => navigate('/browse')
+            }}
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background pb-4">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">My Vault</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">My Vault</h1>
           <Badge variant="secondary">
             {purchasedContent.length} items
           </Badge>
