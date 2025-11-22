@@ -54,7 +54,8 @@ const CreatorProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { balance, spend } = useWallet();
-  const { isFollowing, followersCount, loading: followLoading, toggleFollow } = useFollowing(user?.id, id || null);
+  const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
+  const { isFollowing, followersCount, loading: followLoading, toggleFollow } = useFollowing(user?.id, creatorUserId);
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -85,6 +86,7 @@ const CreatorProfile = () => {
         .single();
       if (profileError) throw profileError;
       setProfile(profileData);
+      setCreatorUserId(profileData.id);
 
       const { data: settingsData } = await supabase
         .from('creator_settings')
@@ -277,7 +279,7 @@ const CreatorProfile = () => {
             <Button onClick={handleStartConversation} size="lg" className="flex-1">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
-            {user?.id !== id && !isFollowing && (
+            {user?.id !== creatorUserId && !isFollowing && (
               <Button 
                 onClick={toggleFollow} 
                 disabled={followLoading}
