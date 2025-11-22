@@ -23,6 +23,7 @@ import AccountSettings from "./pages/AccountSettings";
 import PrivacySettings from "./pages/PrivacySettings";
 import Following from "./pages/Following";
 import SubscribersList from "./pages/SubscribersList";
+import Subscriptions from "./pages/Subscriptions";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import RevenueAnalytics from "./pages/RevenueAnalytics";
 import BroadcastMessages from "./pages/BroadcastMessages";
@@ -225,7 +226,7 @@ const App = () => {
             } />
             <Route path="/subscriptions" element={
               <ProtectedRoute>
-                <SubscribersList />
+                <Subscriptions />
               </ProtectedRoute>
             } />
             <Route path="/payment-methods" element={
