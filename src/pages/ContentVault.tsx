@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BundlePurchase } from '@/components/BundlePurchase';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 interface Unlockable {
@@ -35,9 +36,11 @@ interface Bundle {
   title: string;
   price: number;
   thumbnail_url: string | null;
+  thumbnail_urls?: string[];
   content_count: number;
   description: string | null;
   discount_percentage: number | null;
+  original_price: number | null;
 }
 
 export default function ContentVault() {
@@ -99,19 +102,33 @@ export default function ContentVault() {
     if (bundleError) {
       console.error('Error fetching bundles:', bundleError);
     } else {
-      // Get content counts for each bundle
+      // Get content counts and thumbnail URLs for each bundle
       const bundlesWithCounts = await Promise.all(
         (bundlesData || []).map(async (bundle) => {
-          const { count } = await supabase
+          const { data: contents, count } = await supabase
             .from('bundle_contents')
-            .select('*', { count: 'exact', head: true })
-            .eq('bundle_id', bundle.id);
+            .select('unlockable_id', { count: 'exact' })
+            .eq('bundle_id', bundle.id)
+            .order('sort_order', { ascending: true });
+
+          let thumbnailUrls: string[] = [];
+          if (contents && contents.length > 0) {
+            const { data: unlockables } = await supabase
+              .from('unlockables')
+              .select('media_url')
+              .in('id', contents.map(c => c.unlockable_id))
+              .limit(8);
+            
+            thumbnailUrls = unlockables?.map(u => u.media_url) || [];
+          }
 
           return { 
             ...bundle, 
             content_count: count || 0,
             description: bundle.description,
-            discount_percentage: bundle.discount_percentage
+            discount_percentage: bundle.discount_percentage,
+            original_price: bundle.original_price,
+            thumbnail_urls: thumbnailUrls
           };
         })
       );
@@ -406,18 +423,72 @@ export default function ContentVault() {
                   </h2>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                  {bundles.map((bundle) => (
-                    <ContentGridItem
-                      key={bundle.id}
-                      id={bundle.id}
-                      thumbnailUrl={bundle.thumbnail_url || '/placeholder.svg'}
-                      title={bundle.title}
-                      price={bundle.price}
-                      type="bundle"
-                      itemCount={bundle.content_count}
-                      onClick={() => handleBundleClick(bundle)}
-                    />
-                  ))}
+                  {bundles.map((bundle) => {
+                    const calculateOriginalPrice = (finalPrice: number, discountPercentage: number | null): number => {
+                      if (!discountPercentage || discountPercentage <= 0) return finalPrice;
+                      return Math.round(finalPrice / (1 - discountPercentage / 100));
+                    };
+
+                    return (
+                      <Card 
+                        key={bundle.id} 
+                        className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all"
+                        onClick={() => handleBundleClick(bundle)}
+                      >
+                        <div className="relative aspect-square bg-muted">
+                          {bundle.thumbnail_urls && bundle.thumbnail_urls.length > 0 ? (
+                            <div className={`w-full h-full grid ${
+                              bundle.thumbnail_urls.length === 1 ? 'grid-cols-1' : 
+                              bundle.thumbnail_urls.length === 2 ? 'grid-cols-2' : 
+                              bundle.thumbnail_urls.length <= 4 ? 'grid-cols-2 grid-rows-2' : 
+                              'grid-cols-3 grid-rows-3'
+                            } gap-0.5`}>
+                              {bundle.thumbnail_urls.slice(0, 8).map((url, idx) => (
+                                <div key={idx} className="relative w-full h-full overflow-hidden">
+                                  <img 
+                                    src={url} 
+                                    alt={`Bundle item ${idx + 1}`} 
+                                    className="w-full h-full object-cover" 
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                              <Package className="h-12 w-12 text-primary" />
+                            </div>
+                          )}
+                          <div className="absolute top-2 right-2">
+                            <Badge variant="secondary">
+                              <Package className="h-3 w-3 mr-1" />
+                              Bundle · {bundle.content_count}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div className="p-3 space-y-1">
+                          {bundle.title && <div className="font-medium text-sm truncate">{bundle.title}</div>}
+                          {bundle.description && <p className="text-xs text-muted-foreground line-clamp-2">{bundle.description}</p>}
+                          <div className="flex items-center justify-between pt-1">
+                            {bundle.discount_percentage && bundle.discount_percentage > 0 ? (
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm line-through text-muted-foreground">
+                                    ${calculateOriginalPrice(bundle.price, bundle.discount_percentage).toFixed(2)}
+                                  </span>
+                                  <Badge variant="destructive" className="text-xs">
+                                    {bundle.discount_percentage}% OFF
+                                  </Badge>
+                                </div>
+                                <span className="text-lg font-bold text-primary">${bundle.price.toFixed(2)}</span>
+                              </div>
+                            ) : (
+                              <span className="text-lg font-bold text-primary">${bundle.price.toFixed(2)}</span>
+                            )}
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )}
