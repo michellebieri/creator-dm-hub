@@ -392,10 +392,10 @@ const Dashboard = () => {
                     </div>
                     {!post.is_unlocked && (
                       <div className="flex items-center gap-2">
-                        {post.original_price && post.discount_percentage && (
+                        {post.discount_percentage && post.discount_percentage > 0 && (
                           <>
                             <span className="text-xs text-muted-foreground line-through">
-                              ${post.original_price.toFixed(2)}
+                              ${((post.original_price && post.original_price > 0) ? post.original_price : (post.price / (1 - post.discount_percentage / 100))).toFixed(2)}
                             </span>
                             <Badge variant="destructive" className="text-xs">
                               {post.discount_percentage}% OFF
