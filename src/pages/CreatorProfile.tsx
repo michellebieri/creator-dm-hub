@@ -393,7 +393,7 @@ const CreatorProfile = () => {
                           </div>
                         )}
                         <div className="absolute top-2 right-2">
-                          <Badge variant="secondary"><Package className="h-3 w-3 mr-1" />Bundle</Badge>
+                          <Badge variant="secondary"><Package className="h-3 w-3 mr-1" />Bundle · {item.content_count}</Badge>
                         </div>
                       </div>
                     )}
@@ -421,7 +421,6 @@ const CreatorProfile = () => {
                       )}
                       {isContent && !unlocked && <Badge variant="outline" className="text-xs gap-1"><Lock className="h-3 w-3" />Locked</Badge>}
                       {isContent && unlocked && <Badge variant="secondary" className="text-xs">Unlocked</Badge>}
-                      {!isContent && <Badge variant="secondary" className="text-xs gap-1"><Package className="h-3 w-3" />{item.content_count} items</Badge>}
                     </div>
                   </div>
                 </Card>
