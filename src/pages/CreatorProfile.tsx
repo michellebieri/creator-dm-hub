@@ -405,6 +405,14 @@ const CreatorProfile = () => {
               const unlocked = isContent ? isUnlocked(item) : false;
               return (
                 <Card key={item.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all" onClick={() => isContent ? handleContentClick(item) : handleBundleClick(item)}>
+                  <div className="p-3 pb-2 space-y-1">
+                    {(isContent ? item.title : item.title) && <div className="font-semibold text-sm line-clamp-1">{isContent ? item.title : item.title}</div>}
+                    {isContent ? (
+                      item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>
+                    ) : (
+                      item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    )}
+                  </div>
                   <div className="relative aspect-square bg-muted">
                     {isContent ? (
                       <div className="relative w-full h-full">
@@ -448,14 +456,8 @@ const CreatorProfile = () => {
                       </div>
                     )}
                   </div>
-                  <div className="p-3 space-y-1">
-                    {(isContent ? item.title : item.title) && <div className="font-medium text-sm truncate">{isContent ? item.title : item.title}</div>}
-                    {isContent ? (
-                      item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>
-                    ) : (
-                      item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
-                    )}
-                    <div className="flex items-center justify-between pt-1">
+                  <div className="p-3 pt-2">
+                    <div className="flex items-center justify-between">
                       {!isContent && item.discount_percentage && item.discount_percentage > 0 ? (
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
