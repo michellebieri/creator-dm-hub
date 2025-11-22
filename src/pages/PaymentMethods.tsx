@@ -6,8 +6,10 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -25,7 +27,25 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [isDefault, setIsDefault] = useState(false);
+  const [cardholderName, setCardholderName] = useState('');
+  const [billingZip, setBillingZip] = useState('');
   const { toast } = useToast();
+
+  const elementOptions = {
+    style: {
+      base: {
+        fontSize: '16px',
+        color: 'hsl(var(--foreground))',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        '::placeholder': {
+          color: 'hsl(var(--muted-foreground))',
+        },
+      },
+      invalid: {
+        color: 'hsl(var(--destructive))',
+      },
+    },
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +55,8 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
     setLoading(true);
 
     try {
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) throw new Error('Card element not found');
+      const cardNumberElement = elements.getElement(CardNumberElement);
+      if (!cardNumberElement) throw new Error('Card number element not found');
 
       // Get or create Stripe customer
       const { data: customerData, error: customerError } = await supabase.functions.invoke(
@@ -48,7 +68,13 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
       // Create payment method
       const { paymentMethod, error: pmError } = await stripe.createPaymentMethod({
         type: 'card',
-        card: cardElement,
+        card: cardNumberElement,
+        billing_details: {
+          name: cardholderName || undefined,
+          address: {
+            postal_code: billingZip || undefined,
+          },
+        },
       });
 
       if (pmError) throw pmError;
@@ -83,20 +109,51 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 border border-border rounded-lg">
-        <CardElement
-          options={{
-            style: {
-              base: {
-                fontSize: '16px',
-                color: 'hsl(var(--foreground))',
-                '::placeholder': {
-                  color: 'hsl(var(--muted-foreground))',
-                },
-              },
-            },
-          }}
-        />
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="cardholderName">Cardholder Name (Optional)</Label>
+          <Input
+            id="cardholderName"
+            type="text"
+            placeholder="John Doe"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value)}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Card Number</Label>
+          <div className="p-3 border border-border rounded-lg bg-background">
+            <CardNumberElement options={elementOptions} />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Expiration Date</Label>
+            <div className="p-3 border border-border rounded-lg bg-background">
+              <CardExpiryElement options={elementOptions} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>CVC</Label>
+            <div className="p-3 border border-border rounded-lg bg-background">
+              <CardCvcElement options={elementOptions} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="billingZip">Billing ZIP Code (Optional)</Label>
+          <Input
+            id="billingZip"
+            type="text"
+            placeholder="12345"
+            value={billingZip}
+            onChange={(e) => setBillingZip(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -105,7 +162,7 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
           id="setDefault"
           checked={isDefault}
           onChange={(e) => setIsDefault(e.target.checked)}
-          className="w-4 h-4"
+          className="w-4 h-4 rounded border-border"
         />
         <label htmlFor="setDefault" className="text-sm">
           Set as default payment method
