@@ -18,8 +18,7 @@ const AccountSettings = () => {
   const userSections = [
     { title: 'Account Settings', icon: User, path: '/settings/profile', bgColor: 'bg-blue-500/10', iconColor: 'text-blue-500' },
     { title: 'Notification Preferences', icon: Bell, path: '/notification-settings', bgColor: 'bg-green-500/10', iconColor: 'text-green-500' },
-    { title: 'Privacy Settings', icon: Lock, path: '/privacy-settings', bgColor: 'bg-purple-500/10', iconColor: 'text-purple-500' },
-    { title: 'Payment Methods', icon: CreditCard, path: '/purchase-history', bgColor: 'bg-pink-500/10', iconColor: 'text-pink-500' },
+    { title: 'Payment Methods', icon: CreditCard, path: '/payment-methods', bgColor: 'bg-pink-500/10', iconColor: 'text-pink-500' },
     { title: 'Subscription Management', icon: Star, path: '/subscriptions', bgColor: 'bg-orange-500/10', iconColor: 'text-orange-500' },
   ];
 
