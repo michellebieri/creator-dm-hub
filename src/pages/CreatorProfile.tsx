@@ -372,7 +372,7 @@ const CreatorProfile = () => {
             <Button onClick={handleStartConversation} size="lg" className="flex-1">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
-            {user?.id !== creatorUserId && !isFollowing && (
+            {user?.id && creatorUserId && user.id !== creatorUserId && !isFollowing && (
               <Button 
                 onClick={toggleFollow} 
                 disabled={followLoading}

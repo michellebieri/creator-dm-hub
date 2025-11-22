@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -51,6 +52,7 @@ interface Conversation {
 
 const Conversations = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isCreator } = useRoleCheck();
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,11 +286,11 @@ const Conversations = () => {
             <EmptyState
               icon={MessageCircle}
               title="No messages yet"
-              description="Start messaging creators to see your messages here"
-              action={{
+              description={isCreator ? "Your messages will appear here" : "Start messaging creators to see your messages here"}
+              action={!isCreator ? {
                 label: 'Browse Creators',
                 onClick: () => navigate('/browse'),
-              }}
+              } : undefined}
             />
           )
         ) : (
