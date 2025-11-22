@@ -41,6 +41,9 @@ interface Bundle {
   thumbnail_url?: string;
   created_at: string;
   content_count: number;
+  discount_percentage?: number;
+  original_price?: number;
+  description?: string;
 }
 
 type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
@@ -274,17 +277,14 @@ const CreatorProfile = () => {
             <Button onClick={handleStartConversation} size="lg" className="flex-1">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
-            {user?.id !== id && (
+            {user?.id !== id && !isFollowing && (
               <Button 
                 onClick={toggleFollow} 
                 disabled={followLoading}
-                variant={isFollowing ? "outline" : "default"}
                 size="lg"
               >
                 {followLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isFollowing ? (
-                  <><UserCheck className="h-4 w-4 mr-2" />Following</>
                 ) : (
                   <><UserPlus className="h-4 w-4 mr-2" />Follow</>
                 )}
@@ -322,14 +322,44 @@ const CreatorProfile = () => {
                         {item.media_type === 'video' && <div className="absolute top-2 right-2"><Badge variant="secondary"><VideoIcon className="h-3 w-3 mr-1" />Video</Badge></div>}
                       </div>
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5"><Package className="h-12 w-12 text-primary" /></div>
+                      <div className="relative w-full h-full">
+                        {item.thumbnail_url ? (
+                          <>
+                            <img src={item.thumbnail_url} alt={item.title || 'Bundle'} className="w-full h-full object-cover blur-[20px]" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                              <Lock className="h-10 w-10 text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                            <Package className="h-12 w-12 text-primary" />
+                          </div>
+                        )}
+                        <div className="absolute top-2 right-2">
+                          <Badge variant="secondary"><Package className="h-3 w-3 mr-1" />Bundle</Badge>
+                        </div>
+                      </div>
                     )}
                   </div>
                   <div className="p-3 space-y-1">
                     {(isContent ? item.title : item.title) && <div className="font-medium text-sm truncate">{isContent ? item.title : item.title}</div>}
-                    {isContent && item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>}
+                    {isContent ? (
+                      item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>
+                    ) : (
+                      item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    )}
                     <div className="flex items-center justify-between pt-1">
-                      <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
+                      {!isContent && item.discount_percentage && item.discount_percentage > 0 ? (
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm line-through text-muted-foreground">${(item.original_price || 0).toFixed(2)}</span>
+                            <Badge variant="destructive" className="text-xs">{item.discount_percentage}% OFF</Badge>
+                          </div>
+                          <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
+                      )}
                       {isContent && !unlocked && <Badge variant="outline" className="text-xs gap-1"><Lock className="h-3 w-3" />Locked</Badge>}
                       {isContent && unlocked && <Badge variant="secondary" className="text-xs">Unlocked</Badge>}
                       {!isContent && <Badge variant="secondary" className="text-xs gap-1"><Package className="h-3 w-3" />{item.content_count} items</Badge>}
