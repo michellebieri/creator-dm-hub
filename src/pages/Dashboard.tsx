@@ -43,6 +43,9 @@ interface FeedPost {
   created_at: string;
   creator: Creator;
   is_unlocked: boolean;
+  is_bundle?: boolean;
+  thumbnail_urls?: string[];
+  content_count?: number;
 }
 
 const Dashboard = () => {
@@ -133,9 +136,79 @@ const Dashboard = () => {
         created_at: post.created_at,
         creator: post.profiles,
         is_unlocked: post.unlocked_by?.includes(user.id) || false,
+        is_bundle: false,
       })) || [];
 
-      setFeedPosts(formattedPosts);
+      // Get bundles from these creators
+      const { data: bundles } = await supabase
+        .from('content_bundles')
+        .select(`
+          id,
+          title,
+          description,
+          price,
+          created_at,
+          creator_id,
+          profiles:creator_id (
+            id,
+            display_name,
+            avatar_url,
+            username
+          )
+        `)
+        .in('creator_id', creatorIds)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      const formattedBundles = await Promise.all(
+        (bundles || []).map(async (bundle: any) => {
+          const { data: bundleContents } = await supabase
+            .from('bundle_contents')
+            .select('unlockable_id')
+            .eq('bundle_id', bundle.id);
+
+          const content_count = bundleContents?.length || 0;
+          let thumbnail_urls: string[] = [];
+          let is_unlocked = false;
+
+          if (bundleContents && bundleContents.length > 0) {
+            const unlockableIds = bundleContents.slice(0, 8).map((c: any) => c.unlockable_id);
+            const { data: bundleUnlockables } = await supabase
+              .from('unlockables')
+              .select('media_url, media_type, unlocked_by')
+              .in('id', unlockableIds);
+
+            if (bundleUnlockables) {
+              thumbnail_urls = bundleUnlockables
+                .filter((u: any) => u.media_type === 'image' || u.media_type === 'video')
+                .map((u: any) => u.media_url);
+
+              is_unlocked = bundleUnlockables.every((u: any) => u.unlocked_by?.includes(user.id));
+            }
+          }
+
+          return {
+            id: bundle.id,
+            media_type: 'bundle',
+            media_url: '',
+            caption: bundle.description || '',
+            price: bundle.price,
+            created_at: bundle.created_at,
+            creator: bundle.profiles,
+            is_unlocked,
+            is_bundle: true,
+            thumbnail_urls,
+            content_count,
+          };
+        })
+      );
+
+      const allPosts = [...formattedPosts, ...formattedBundles].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setFeedPosts(allPosts);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -321,7 +394,25 @@ const Dashboard = () => {
 
                   {/* Post Content */}
                   <div className="relative bg-muted aspect-square">
-                    {post.media_type === 'image' ? (
+                    {post.is_bundle ? (
+                      post.thumbnail_urls && post.thumbnail_urls.length > 0 ? (
+                        <div className={`w-full h-full grid ${post.thumbnail_urls.length === 1 ? 'grid-cols-1' : post.thumbnail_urls.length === 2 ? 'grid-cols-2' : post.thumbnail_urls.length <= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-3 grid-rows-3'} gap-0.5`}>
+                          {post.thumbnail_urls.slice(0, 8).map((url, idx) => (
+                            <div key={idx} className="relative w-full h-full overflow-hidden">
+                              <img 
+                                src={url} 
+                                alt={`Bundle item ${idx + 1}`} 
+                                className={`w-full h-full object-cover ${!post.is_unlocked ? 'blur-2xl' : ''}`} 
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Lock className="w-16 h-16 text-muted-foreground" />
+                        </div>
+                      )
+                    ) : post.media_type === 'image' ? (
                       <img
                         src={post.media_url}
                         alt={post.caption || 'Content'}

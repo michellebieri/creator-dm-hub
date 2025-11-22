@@ -39,6 +39,7 @@ interface Bundle {
   title: string;
   price: number;
   thumbnail_url?: string;
+  thumbnail_urls?: string[];
   created_at: string;
   content_count: number;
   discount_percentage?: number;
@@ -125,19 +126,21 @@ const CreatorProfile = () => {
             .eq('bundle_id', bundle.id);
           
           const content_count = bundleContents?.length || 0;
-          let thumbnail_url = bundle.thumbnail_url;
+          let thumbnail_urls: string[] = [];
           let purchased = false;
           
-          // Get thumbnail from first unlockable if not set
-          if (!thumbnail_url && bundleContents && bundleContents.length > 0) {
-            const { data: firstUnlockable } = await supabase
+          // Get up to 8 thumbnails from bundle items
+          if (bundleContents && bundleContents.length > 0) {
+            const unlockableIds = bundleContents.slice(0, 8).map(c => c.unlockable_id);
+            const { data: unlockables } = await supabase
               .from('unlockables')
-              .select('media_url')
-              .eq('id', bundleContents[0].unlockable_id)
-              .single();
+              .select('media_url, media_type')
+              .in('id', unlockableIds);
             
-            if (firstUnlockable) {
-              thumbnail_url = firstUnlockable.media_url;
+            if (unlockables) {
+              thumbnail_urls = unlockables
+                .filter(u => u.media_type === 'image' || u.media_type === 'video')
+                .map(u => u.media_url);
             }
           }
           
@@ -157,7 +160,7 @@ const CreatorProfile = () => {
             purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
           }
           
-          return { ...bundle, content_count, thumbnail_url, purchased };
+          return { ...bundle, content_count, thumbnail_urls, purchased };
         })
       );
       setBundles(bundlesWithCounts);
@@ -415,23 +418,28 @@ const CreatorProfile = () => {
                       </div>
                     ) : (
                       <div className="relative w-full h-full">
-                        {item.thumbnail_url ? (
+                        {item.thumbnail_urls && item.thumbnail_urls.length > 0 ? (
                           <>
-                            <img src={item.thumbnail_url} alt={item.title || 'Bundle'} className={`w-full h-full object-cover ${!item.purchased ? 'blur-[20px]' : ''}`} />
-                            {!item.purchased && (
+                            <div className={`w-full h-full grid ${item.thumbnail_urls.length === 1 ? 'grid-cols-1' : item.thumbnail_urls.length === 2 ? 'grid-cols-2' : item.thumbnail_urls.length <= 4 ? 'grid-cols-2 grid-rows-2' : 'grid-cols-3 grid-rows-3'} gap-0.5`}>
+                              {item.thumbnail_urls.slice(0, 8).map((url, idx) => (
+                                <div key={idx} className="relative w-full h-full overflow-hidden">
+                                  <img 
+                                    src={url} 
+                                    alt={`Bundle item ${idx + 1}`} 
+                                    className={`w-full h-full object-cover ${(!item.purchased && profile?.id !== user?.id) ? 'blur-[20px]' : ''}`} 
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            {!item.purchased && profile?.id !== user?.id && (
                               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                                 <Lock className="h-10 w-10 text-white" />
                               </div>
                             )}
                           </>
                         ) : (
-                          <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 ${!item.purchased ? 'blur-[20px]' : ''}`}>
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
                             <Package className="h-12 w-12 text-primary" />
-                          </div>
-                        )}
-                        {!item.purchased && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <Lock className="h-10 w-10 text-white" />
                           </div>
                         )}
                         <div className="absolute top-2 right-2">
