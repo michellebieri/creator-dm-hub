@@ -44,6 +44,7 @@ interface Bundle {
   discount_percentage?: number;
   original_price?: number;
   description?: string;
+  purchased?: boolean;
 }
 
 type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
@@ -122,7 +123,32 @@ const CreatorProfile = () => {
             .from('bundle_contents')
             .select('*', { count: 'exact', head: true })
             .eq('bundle_id', bundle.id);
-          return { ...bundle, content_count: count || 0 };
+          
+          // Check if bundle is purchased (all items unlocked)
+          let purchased = false;
+          if (user) {
+            const { data: bundleContents } = await supabase
+              .from('bundle_contents')
+              .select('unlockable_id')
+              .eq('bundle_id', bundle.id);
+            
+            if (bundleContents && bundleContents.length > 0) {
+              const unlockables = await Promise.all(
+                bundleContents.map(async (content) => {
+                  const { data } = await supabase
+                    .from('unlockables')
+                    .select('unlocked_by')
+                    .eq('id', content.unlockable_id)
+                    .single();
+                  return data;
+                })
+              );
+              
+              purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
+            }
+          }
+          
+          return { ...bundle, content_count: count || 0, purchased };
         })
       );
       setBundles(bundlesWithCounts);
@@ -382,14 +408,21 @@ const CreatorProfile = () => {
                       <div className="relative w-full h-full">
                         {item.thumbnail_url ? (
                           <>
-                            <img src={item.thumbnail_url} alt={item.title || 'Bundle'} className="w-full h-full object-cover blur-[20px]" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                              <Lock className="h-10 w-10 text-white" />
-                            </div>
+                            <img src={item.thumbnail_url} alt={item.title || 'Bundle'} className={`w-full h-full object-cover ${!item.purchased ? 'blur-[20px]' : ''}`} />
+                            {!item.purchased && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                                <Lock className="h-10 w-10 text-white" />
+                              </div>
+                            )}
                           </>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
+                          <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 ${!item.purchased ? 'blur-[20px]' : ''}`}>
                             <Package className="h-12 w-12 text-primary" />
+                          </div>
+                        )}
+                        {!item.purchased && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                            <Lock className="h-10 w-10 text-white" />
                           </div>
                         )}
                         <div className="absolute top-2 right-2">
