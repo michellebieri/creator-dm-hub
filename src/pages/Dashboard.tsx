@@ -40,6 +40,8 @@ interface FeedPost {
   media_url: string;
   caption: string | null;
   price: number;
+  original_price?: number | null;
+  discount_percentage?: number | null;
   created_at: string;
   creator: Creator;
   is_unlocked: boolean;
@@ -147,6 +149,8 @@ const Dashboard = () => {
           title,
           description,
           price,
+          original_price,
+          discount_percentage,
           created_at,
           creator_id,
           profiles:creator_id (
@@ -194,6 +198,8 @@ const Dashboard = () => {
             media_url: '',
             caption: bundle.description || '',
             price: bundle.price,
+            original_price: bundle.original_price,
+            discount_percentage: bundle.discount_percentage,
             created_at: bundle.created_at,
             creator: bundle.profiles,
             is_unlocked,
@@ -385,10 +391,22 @@ const Dashboard = () => {
                       </p>
                     </div>
                     {!post.is_unlocked && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Lock className="w-3 h-3" />
-                        ${post.price}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {post.original_price && post.discount_percentage && (
+                          <>
+                            <span className="text-xs text-muted-foreground line-through">
+                              ${post.original_price.toFixed(2)}
+                            </span>
+                            <Badge variant="destructive" className="text-xs">
+                              {post.discount_percentage}% OFF
+                            </Badge>
+                          </>
+                        )}
+                        <Badge variant="secondary" className="gap-1">
+                          <Lock className="w-3 h-3" />
+                          ${post.price.toFixed(2)}
+                        </Badge>
+                      </div>
                     )}
                   </div>
 
