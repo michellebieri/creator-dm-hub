@@ -405,12 +405,16 @@ const CreatorProfile = () => {
               const unlocked = isContent ? isUnlocked(item) : false;
               return (
                 <Card key={item.id} className="group cursor-pointer overflow-hidden hover:shadow-lg transition-all" onClick={() => isContent ? handleContentClick(item) : handleBundleClick(item)}>
-                  <div className="p-3 pb-2 space-y-1">
-                    {(isContent ? item.title : item.title) && <div className="font-semibold text-sm line-clamp-1">{isContent ? item.title : item.title}</div>}
+                  <div className="p-4 pb-3 space-y-2">
+                    {(isContent ? item.title : item.title) && (
+                      <h3 className="font-bold text-base text-primary line-clamp-2 leading-tight">
+                        {isContent ? item.title : item.title}
+                      </h3>
+                    )}
                     {isContent ? (
-                      item.caption && <p className="text-xs text-muted-foreground line-clamp-2">{item.caption}</p>
+                      item.caption && <p className="text-sm text-foreground/80 line-clamp-2 leading-relaxed">{item.caption}</p>
                     ) : (
-                      item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                      item.description && <p className="text-sm text-foreground/80 line-clamp-2 leading-relaxed">{item.description}</p>
                     )}
                   </div>
                   <div className="relative aspect-square bg-muted">
