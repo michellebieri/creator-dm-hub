@@ -350,6 +350,7 @@ export default function ContentVault() {
               <ContentBundleManager 
                 creatorId={user?.id || ''} 
                 unlockables={unlockables}
+                onBundleChange={fetchData}
               />
             </DialogContent>
           </Dialog>

@@ -35,9 +35,10 @@ interface Bundle {
 interface ContentBundleManagerProps {
   creatorId: string;
   unlockables: Unlockable[];
+  onBundleChange?: () => void;
 }
 
-export function ContentBundleManager({ creatorId, unlockables }: ContentBundleManagerProps) {
+export function ContentBundleManager({ creatorId, unlockables, onBundleChange }: ContentBundleManagerProps) {
   const [bundles, setBundles] = useState<Bundle[]>([]);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -218,6 +219,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
     }
 
     fetchBundles();
+    onBundleChange?.();
     setShowDialog(false);
     resetForm();
     setIsCreating(false);
@@ -247,6 +249,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
     });
 
     fetchBundles();
+    onBundleChange?.();
   };
 
   const toggleActive = async (id: string, currentState: boolean) => {
@@ -265,6 +268,7 @@ export function ContentBundleManager({ creatorId, unlockables }: ContentBundleMa
     }
 
     fetchBundles();
+    onBundleChange?.();
   };
 
   const toggleContentSelection = (id: string) => {
