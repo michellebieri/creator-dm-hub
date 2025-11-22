@@ -117,32 +117,144 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
       const isCustomer = conversation.customer_id === user.id;
 
-      // If customer is sending, deduct from wallet
-      if (isCustomer && creatorId) {
-        // Get creator's price per message
-        const { data: creatorSettings } = await supabase
-          .from('creator_settings')
-          .select('price_per_message')
-          .eq('user_id', creatorId)
+      // Creator sending - no credit deduction
+      if (!isCustomer) {
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content,
+            message_type: messageType,
+            voice_url: voiceUrl,
+            voice_duration: voiceDuration,
+            is_paid: false,
+          })
+          .select()
           .single();
 
-        const pricePerMessage = creatorSettings?.price_per_message || 5.00;
+        if (error) throw error;
+        
+        toast.success("Message sent");
+        setSending(false);
+        return data;
+      }
 
-        // Get user's wallet balance
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('wallet_balance')
-          .eq('id', user.id)
-          .single();
+      // Customer sending - implement hierarchical payment check
+      if (!creatorId) throw new Error('Creator ID required');
 
-        const currentBalance = parseFloat(String(profile?.wallet_balance || 0));
+      // Get creator's price per message
+      const { data: creatorSettings } = await supabase
+        .from('creator_settings')
+        .select('price_per_message')
+        .eq('user_id', creatorId)
+        .single();
 
-        if (currentBalance < pricePerMessage) {
-          toast.error("Insufficient balance. Please add funds to your wallet.");
-          setSending(false);
-          return;
+      const pricePerMessage = creatorSettings?.price_per_message || 5.00;
+
+      // STEP 1: Check for active subscription with message allowance
+      const { data: activeSubscription } = await supabase
+        .from('creator_subscriptions')
+        .select('*, subscription_tiers!inner(free_messages_per_month, unlimited_messages)')
+        .eq('customer_id', user.id)
+        .eq('status', 'active')
+        .gte('current_period_end', new Date().toISOString())
+        .maybeSingle();
+
+      if (activeSubscription?.subscription_tiers) {
+        const tierData = activeSubscription.subscription_tiers as any;
+        const hasUnlimitedMessages = tierData.unlimited_messages === true;
+        const freeMessagesPerMonth = tierData.free_messages_per_month || 0;
+
+        if (hasUnlimitedMessages || freeMessagesPerMonth > 0) {
+          // Check if messages remain in subscription
+          const { count: usedMessages } = await supabase
+            .from('messages')
+            .select('*', { count: 'exact', head: true })
+            .eq('sender_id', user.id)
+            .eq('is_paid', true)
+            .gte('created_at', activeSubscription.current_period_start || new Date().toISOString());
+
+          const remainingMessages = hasUnlimitedMessages ? 999 : (freeMessagesPerMonth - (usedMessages || 0));
+
+          if (remainingMessages > 0) {
+            // Use subscription message
+            const { data: messageData, error: messageError } = await supabase
+              .from('messages')
+              .insert({
+                conversation_id: conversationId,
+                sender_id: user.id,
+                content,
+                message_type: messageType,
+                voice_url: voiceUrl,
+                voice_duration: voiceDuration,
+                is_paid: true,
+              })
+              .select()
+              .single();
+
+            if (messageError) throw messageError;
+
+            const successMessage = hasUnlimitedMessages 
+              ? "Message sent (unlimited messages)" 
+              : `Message sent (${remainingMessages - 1} subscription messages remaining)`;
+            toast.success(successMessage);
+            setSending(false);
+            return messageData;
+          }
         }
+      }
 
+      // STEP 2: Check for message bundle credits
+      const { data: bundleCredits } = await supabase
+        .from('customer_credits')
+        .select('*')
+        .eq('customer_id', user.id)
+        .eq('creator_id', creatorId)
+        .gt('credits_remaining', 0)
+        .maybeSingle();
+
+      if (bundleCredits && bundleCredits.credits_remaining > 0) {
+        // Deduct bundle credit
+        const { error: deductError } = await supabase
+          .from('customer_credits')
+          .update({ credits_remaining: bundleCredits.credits_remaining - 1 })
+          .eq('id', bundleCredits.id);
+
+        if (deductError) throw deductError;
+
+        // Send message
+        const { data: messageData, error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content,
+            message_type: messageType,
+            voice_url: voiceUrl,
+            voice_duration: voiceDuration,
+            is_paid: true,
+          })
+          .select()
+          .single();
+
+        if (messageError) throw messageError;
+
+        toast.success(`Message sent (${bundleCredits.credits_remaining - 1} bundle credits remaining)`);
+        setSending(false);
+        return messageData;
+      }
+
+      // STEP 3: Check for pay-per-message wallet balance
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('wallet_balance')
+        .eq('id', user.id)
+        .single();
+
+      const currentBalance = parseFloat(String(profile?.wallet_balance || 0));
+
+      if (currentBalance >= pricePerMessage) {
         const newBalance = currentBalance - pricePerMessage;
 
         // Update balance
@@ -151,13 +263,9 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
           .update({ wallet_balance: newBalance })
           .eq('id', user.id);
 
-        if (balanceError) {
-          toast.error("Failed to process payment. Please try again.");
-          setSending(false);
-          return;
-        }
+        if (balanceError) throw balanceError;
 
-        // Record transaction
+        // Record wallet transaction
         await supabase
           .from('wallet_transactions')
           .insert({
@@ -219,26 +327,10 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         return messageData;
       }
 
-      // Creator sending - no credit deduction
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content,
-          message_type: messageType,
-          voice_url: voiceUrl,
-          voice_duration: voiceDuration,
-          is_paid: false,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      toast.success("Message sent");
+      // STEP 4: Block message - no entitlements available
+      toast.error("You need a subscription, message bundle, or credits to send messages. Please purchase one to continue.");
       setSending(false);
-      return data;
+      return;
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error("Failed to send message");

@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { MessageCircle, Users, DollarSign, TrendingUp, Calendar, ChevronLeft } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, Calendar, ChevronLeft } from 'lucide-react';
 import { format, subDays, startOfDay } from 'date-fns';
 
 interface DailyStats {
   date: string;
-  messages: number;
+  customers: number;
   revenue: number;
 }
 
@@ -17,10 +17,10 @@ const AnalyticsDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
-    totalMessages: 0,
     totalCustomers: 0,
-    avgResponseTime: 0,
-    conversionRate: 0,
+    totalRevenue: 0,
+    arpu: 0,
+    customerGrowthRate: 0,
   });
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,19 +36,51 @@ const AnalyticsDashboard = () => {
 
     const fetchAnalytics = async () => {
       try {
-        // Fetch total messages
-        const { count: messageCount } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('sender_id', user.id);
+        // Fetch all completed transactions for this creator
+        const { data: allTransactions } = await supabase
+          .from('transactions')
+          .select('customer_id, amount, created_at')
+          .eq('creator_id', user.id)
+          .eq('status', 'completed')
+          .gt('amount', 0);
 
-        // Fetch unique customers
-        const { data: conversations } = await supabase
-          .from('conversations')
+        // Calculate unique customers (only those who made a financial transaction)
+        const uniqueCustomerIds = new Set(allTransactions?.map(t => t.customer_id) || []);
+        const totalCustomers = uniqueCustomerIds.size;
+
+        // Calculate total revenue
+        const totalRevenue = allTransactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+
+        // Calculate ARPU (Average Revenue Per User)
+        const arpu = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
+
+        // Calculate customer growth rate (last 30 days vs previous 30 days)
+        const thirtyDaysAgo = subDays(new Date(), 30);
+        const sixtyDaysAgo = subDays(new Date(), 60);
+
+        const { data: recentCustomerTxns } = await supabase
+          .from('transactions')
           .select('customer_id')
-          .eq('creator_id', user.id);
+          .eq('creator_id', user.id)
+          .eq('status', 'completed')
+          .gt('amount', 0)
+          .gte('created_at', thirtyDaysAgo.toISOString());
 
-        const uniqueCustomers = new Set(conversations?.map(c => c.customer_id)).size;
+        const { data: previousCustomerTxns } = await supabase
+          .from('transactions')
+          .select('customer_id')
+          .eq('creator_id', user.id)
+          .eq('status', 'completed')
+          .gt('amount', 0)
+          .gte('created_at', sixtyDaysAgo.toISOString())
+          .lt('created_at', thirtyDaysAgo.toISOString());
+
+        const recentCustomerCount = new Set(recentCustomerTxns?.map(t => t.customer_id) || []).size;
+        const previousCustomerCount = new Set(previousCustomerTxns?.map(t => t.customer_id) || []).size;
+
+        const customerGrowthRate = previousCustomerCount > 0 
+          ? ((recentCustomerCount - previousCustomerCount) / previousCustomerCount) * 100 
+          : 0;
 
         // Fetch daily stats for last 7 days
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -62,37 +94,31 @@ const AnalyticsDashboard = () => {
           const nextDay = new Date(date);
           nextDay.setDate(nextDay.getDate() + 1);
 
-          // Messages count
-          const { count: msgCount } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('sender_id', user.id)
-            .gte('created_at', date)
-            .lt('created_at', nextDay.toISOString());
-
-          // Revenue for that day
-          const { data: txData } = await supabase
+          // Get transactions for this day
+          const { data: dayTxns } = await supabase
             .from('transactions')
-            .select('net_amount')
+            .select('customer_id, amount')
             .eq('creator_id', user.id)
             .eq('status', 'completed')
+            .gt('amount', 0)
             .gte('created_at', date)
             .lt('created_at', nextDay.toISOString());
 
-          const revenue = txData?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+          const dailyCustomers = new Set(dayTxns?.map(t => t.customer_id) || []).size;
+          const dailyRevenue = dayTxns?.reduce((sum, t) => sum + t.amount, 0) || 0;
 
           dailyData.push({
             date: format(new Date(date), 'MMM dd'),
-            messages: msgCount || 0,
-            revenue,
+            customers: dailyCustomers,
+            revenue: dailyRevenue,
           });
         }
 
         setStats({
-          totalMessages: messageCount || 0,
-          totalCustomers: uniqueCustomers,
-          avgResponseTime: 0, // Placeholder
-          conversionRate: 0, // Placeholder
+          totalCustomers,
+          totalRevenue,
+          arpu,
+          customerGrowthRate,
         });
 
         setDailyStats(dailyData);
@@ -111,7 +137,7 @@ const AnalyticsDashboard = () => {
   }
 
   const maxRevenue = Math.max(...dailyStats.map(d => d.revenue), 1);
-  const maxMessages = Math.max(...dailyStats.map(d => d.messages), 1);
+  const maxCustomers = Math.max(...dailyStats.map(d => d.customers), 1);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-background to-emerald-50/50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20">
@@ -129,29 +155,20 @@ const AnalyticsDashboard = () => {
         {/* Colorful Header */}
         <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
           <h1 className="text-4xl font-bold mb-2">Analytics Dashboard</h1>
-          <p className="text-green-50">Monitor your performance and engagement metrics</p>
+          <p className="text-green-50">Monitor your performance and revenue metrics</p>
         </div>
 
         {/* Stats Cards with Colors */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="p-6 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-green-500">
-                <MessageCircle className="h-5 w-5 text-white" />
-              </div>
-              <h3 className="text-sm font-medium text-muted-foreground">Total Messages</h3>
-            </div>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400">{stats.totalMessages}</p>
-          </Card>
-
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           <Card className="p-6 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-emerald-500">
                 <Users className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-sm font-medium text-muted-foreground">Customers</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Total Customers</h3>
             </div>
             <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.totalCustomers}</p>
+            <p className="text-xs text-muted-foreground mt-1">Users with completed purchases</p>
           </Card>
 
           <Card className="p-6 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
@@ -159,13 +176,12 @@ const AnalyticsDashboard = () => {
               <div className="p-2 rounded-lg bg-green-500">
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-sm font-medium text-muted-foreground">Avg Transaction</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Avg Revenue Per User</h3>
             </div>
             <p className="text-3xl font-bold text-green-600 dark:text-green-400">
-              ${stats.totalCustomers > 0 
-                ? (dailyStats.reduce((sum, d) => sum + d.revenue, 0) / stats.totalCustomers).toFixed(2)
-                : '0.00'}
+              ${stats.arpu.toFixed(2)}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">Total revenue / customers</p>
           </Card>
 
           <Card className="p-6 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
@@ -173,11 +189,12 @@ const AnalyticsDashboard = () => {
               <div className="p-2 rounded-lg bg-emerald-500">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
-              <h3 className="text-sm font-medium text-muted-foreground">Growth Rate</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Customer Growth Rate</h3>
             </div>
             <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-              {stats.totalCustomers > 0 ? '0%' : 'N/A'}
+              {stats.totalCustomers > 0 ? `${stats.customerGrowthRate.toFixed(1)}%` : 'N/A'}
             </p>
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days vs previous</p>
           </Card>
         </div>
 
@@ -190,17 +207,17 @@ const AnalyticsDashboard = () => {
           </div>
           <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Messages</h3>
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">New Customers</h3>
               <div className="space-y-2">
                 {dailyStats.map((day) => (
                   <div key={day.date} className="flex items-center gap-3">
                     <div className="w-20 text-sm text-muted-foreground">{day.date}</div>
                     <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
-                        style={{ width: `${(day.messages / maxMessages) * 100}%` }}
+                        className="bg-gradient-to-r from-emerald-500 to-green-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
+                        style={{ width: `${(day.customers / maxCustomers) * 100}%` }}
                       >
-                        {day.messages > 0 && day.messages}
+                        {day.customers > 0 && day.customers}
                       </div>
                     </div>
                   </div>
@@ -216,7 +233,7 @@ const AnalyticsDashboard = () => {
                     <div className="w-20 text-sm text-muted-foreground">{day.date}</div>
                     <div className="flex-1 bg-muted rounded-full h-8 overflow-hidden">
                       <div
-                        className="bg-gradient-to-r from-emerald-500 to-green-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-full flex items-center justify-end px-3 text-sm font-medium text-white transition-all"
                         style={{ width: `${(day.revenue / maxRevenue) * 100}%` }}
                       >
                         {day.revenue > 0 && `$${day.revenue.toFixed(2)}`}
@@ -232,24 +249,38 @@ const AnalyticsDashboard = () => {
         <Card className="p-6">
           <h2 className="text-2xl font-bold mb-4">Performance Insights</h2>
           <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-success mt-0.5" />
-              <div>
-                <p className="font-semibold">Strong Performance</p>
-                <p className="text-sm text-muted-foreground">
-                  Your message engagement is above average. Keep up the great work!
-                </p>
+            {stats.totalCustomers === 0 ? (
+              <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
+                <Users className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-semibold">Getting Started</p>
+                  <p className="text-sm text-muted-foreground">
+                    Your analytics will update once customers make their first purchase.
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
-              <MessageCircle className="h-5 w-5 text-primary mt-0.5" />
-              <div>
-                <p className="font-semibold">Response Time</p>
-                <p className="text-sm text-muted-foreground">
-                  Consider responding faster to increase customer satisfaction.
-                </p>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-success mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Revenue Tracking</p>
+                    <p className="text-sm text-muted-foreground">
+                      Total revenue: ${stats.totalRevenue.toFixed(2)} from {stats.totalCustomers} paying customer{stats.totalCustomers !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 p-4 bg-muted/50 rounded-lg">
+                  <DollarSign className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="font-semibold">Customer Value</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your average customer spends ${stats.arpu.toFixed(2)} - focus on retention to maximize lifetime value
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </Card>
       </div>
