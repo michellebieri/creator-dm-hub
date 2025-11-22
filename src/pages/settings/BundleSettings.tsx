@@ -46,6 +46,7 @@ const BundleSettings = () => {
           <ContentBundleManager 
             creatorId={user.id} 
             unlockables={unlockables}
+            onBundleChange={fetchUnlockables}
           />
         )}
       </div>
