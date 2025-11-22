@@ -119,36 +119,45 @@ const CreatorProfile = () => {
 
       const bundlesWithCounts = await Promise.all(
         (bundlesData || []).map(async (bundle) => {
-          const { count } = await supabase
+          const { data: bundleContents } = await supabase
             .from('bundle_contents')
-            .select('*', { count: 'exact', head: true })
+            .select('unlockable_id')
             .eq('bundle_id', bundle.id);
           
-          // Check if bundle is purchased (all items unlocked)
+          const content_count = bundleContents?.length || 0;
+          let thumbnail_url = bundle.thumbnail_url;
           let purchased = false;
-          if (user) {
-            const { data: bundleContents } = await supabase
-              .from('bundle_contents')
-              .select('unlockable_id')
-              .eq('bundle_id', bundle.id);
+          
+          // Get thumbnail from first unlockable if not set
+          if (!thumbnail_url && bundleContents && bundleContents.length > 0) {
+            const { data: firstUnlockable } = await supabase
+              .from('unlockables')
+              .select('media_url')
+              .eq('id', bundleContents[0].unlockable_id)
+              .single();
             
-            if (bundleContents && bundleContents.length > 0) {
-              const unlockables = await Promise.all(
-                bundleContents.map(async (content) => {
-                  const { data } = await supabase
-                    .from('unlockables')
-                    .select('unlocked_by')
-                    .eq('id', content.unlockable_id)
-                    .single();
-                  return data;
-                })
-              );
-              
-              purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
+            if (firstUnlockable) {
+              thumbnail_url = firstUnlockable.media_url;
             }
           }
           
-          return { ...bundle, content_count: count || 0, purchased };
+          // Check if bundle is purchased (all items unlocked)
+          if (user && bundleContents && bundleContents.length > 0) {
+            const unlockables = await Promise.all(
+              bundleContents.map(async (content) => {
+                const { data } = await supabase
+                  .from('unlockables')
+                  .select('unlocked_by')
+                  .eq('id', content.unlockable_id)
+                  .single();
+                return data;
+              })
+            );
+            
+            purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
+          }
+          
+          return { ...bundle, content_count, thumbnail_url, purchased };
         })
       );
       setBundles(bundlesWithCounts);
