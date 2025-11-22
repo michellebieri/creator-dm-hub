@@ -366,7 +366,6 @@ const CreatorProfile = () => {
           {profile.bio && <p className="text-sm text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
           <div className="flex items-center gap-3 mb-4">
             <Badge variant="secondary">${pricePerMessage} / message</Badge>
-            <Badge variant="outline">{followersCount} {followersCount === 1 ? 'Follower' : 'Followers'}</Badge>
           </div>
           <div className="flex gap-2 w-full max-w-xs">
             <Button onClick={handleStartConversation} size="lg" className="flex-1">
