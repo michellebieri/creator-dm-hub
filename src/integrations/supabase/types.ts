@@ -1276,6 +1276,53 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_methods: {
+        Row: {
+          brand: string
+          created_at: string | null
+          exp_month: number
+          exp_year: number
+          id: string
+          is_default: boolean | null
+          last4: string
+          stripe_payment_method_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brand: string
+          created_at?: string | null
+          exp_month: number
+          exp_year: number
+          id?: string
+          is_default?: boolean | null
+          last4: string
+          stripe_payment_method_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brand?: string
+          created_at?: string | null
+          exp_month?: number
+          exp_year?: number
+          id?: string
+          is_default?: boolean | null
+          last4?: string
+          stripe_payment_method_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payouts: {
         Row: {
           amount: number
@@ -1442,6 +1489,7 @@ export type Database = {
           id: string
           language_preference: string | null
           role: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id: string | null
           theme_preference: string | null
           updated_at: string
           username: string
@@ -1455,6 +1503,7 @@ export type Database = {
           id: string
           language_preference?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
           theme_preference?: string | null
           updated_at?: string
           username: string
@@ -1468,6 +1517,7 @@ export type Database = {
           id?: string
           language_preference?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          stripe_customer_id?: string | null
           theme_preference?: string | null
           updated_at?: string
           username?: string

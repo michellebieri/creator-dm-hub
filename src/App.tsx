@@ -44,6 +44,7 @@ import SocialsSettings from "./pages/settings/SocialsSettings";
 import ProfileSettings2 from "./pages/settings/ProfileSettings";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import AccountManagement from "./pages/settings/AccountManagement";
+import PaymentMethods from "./pages/PaymentMethods";
 
 const queryClient = new QueryClient();
 
@@ -225,6 +226,11 @@ const App = () => {
             <Route path="/subscriptions" element={
               <ProtectedRoute>
                 <SubscribersList />
+              </ProtectedRoute>
+            } />
+            <Route path="/payment-methods" element={
+              <ProtectedRoute>
+                <PaymentMethods />
               </ProtectedRoute>
             } />
             <Route path="/earnings" element={
