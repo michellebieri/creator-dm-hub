@@ -48,6 +48,12 @@ interface Bundle {
 
 type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
 
+// Helper function to calculate original price from discounted price
+const calculateOriginalPrice = (finalPrice: number, discountPercentage: number): number => {
+  if (!discountPercentage || discountPercentage <= 0) return finalPrice;
+  return Math.round(finalPrice / (1 - discountPercentage / 100));
+};
+
 const CreatorProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -186,25 +192,74 @@ const CreatorProfile = () => {
   };
 
   const handlePurchaseBundle = async () => {
-    if (!selectedBundle) return;
+    if (!selectedBundle || !user || !profile) return;
     
     setPurchasingBundle(true);
     try {
-      const { data, error } = await supabase.functions.invoke('create-bundle-payment', {
-        body: { bundleId: selectedBundle.id },
+      // Check if user has sufficient balance
+      if (balance < selectedBundle.price) {
+        toast({ 
+          title: "Insufficient balance", 
+          description: `You need $${selectedBundle.price.toFixed(2)} to purchase this bundle. Your current balance is $${balance.toFixed(2)}.`,
+          variant: "destructive" 
+        });
+        setShowAddFunds(true);
+        setPurchasingBundle(false);
+        return;
+      }
+
+      // Process payment using wallet
+      const success = await spend(selectedBundle.price, 'bundle_purchase', `Purchased bundle: ${selectedBundle.title}`, profile.id);
+      if (!success) {
+        toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
+        setPurchasingBundle(false);
+        return;
+      }
+
+      // Get all content in the bundle and unlock it
+      const { data: bundleContents, error: contentsError } = await supabase
+        .from('bundle_contents')
+        .select('unlockable_id')
+        .eq('bundle_id', selectedBundle.id);
+
+      if (contentsError) throw contentsError;
+
+      // Unlock all items in the bundle
+      if (bundleContents && bundleContents.length > 0) {
+        for (const content of bundleContents) {
+          const { data: unlockable } = await supabase
+            .from('unlockables')
+            .select('unlocked_by')
+            .eq('id', content.unlockable_id)
+            .single();
+
+          const updatedUnlockedBy = [...(unlockable?.unlocked_by || []), user.id];
+          await supabase
+            .from('unlockables')
+            .update({ unlocked_by: updatedUnlockedBy })
+            .eq('id', content.unlockable_id);
+        }
+      }
+
+      // Record transaction
+      await supabase.from('transactions').insert({
+        customer_id: user.id,
+        creator_id: profile.id,
+        amount: selectedBundle.price,
+        net_amount: selectedBundle.price * 0.85,
+        platform_fee: selectedBundle.price * 0.15,
+        processor_fee: 0,
+        transaction_type: 'unlockable',
+        status: 'completed',
       });
 
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast({ title: 'Redirecting to payment...', description: 'Opening checkout in a new tab' });
-        setBundlePurchaseDialogOpen(false);
-        setSelectedBundle(null);
-      }
-    } catch (error) {
+      toast({ title: "Bundle purchased!", description: "All content in this bundle is now unlocked" });
+      setBundlePurchaseDialogOpen(false);
+      setSelectedBundle(null);
+      fetchCreatorData();
+    } catch (error: any) {
       console.error('Error purchasing bundle:', error);
-      toast({ title: 'Error', description: 'Failed to start purchase', variant: 'destructive' });
+      toast({ title: "Error", description: "Failed to purchase bundle", variant: "destructive" });
     } finally {
       setPurchasingBundle(false);
     }
@@ -354,7 +409,9 @@ const CreatorProfile = () => {
                       {!isContent && item.discount_percentage && item.discount_percentage > 0 ? (
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm line-through text-muted-foreground">${(item.original_price || 0).toFixed(2)}</span>
+                            <span className="text-sm line-through text-muted-foreground">
+                              ${calculateOriginalPrice(item.price, item.discount_percentage).toFixed(2)}
+                            </span>
                             <Badge variant="destructive" className="text-xs">{item.discount_percentage}% OFF</Badge>
                           </div>
                           <span className="text-lg font-bold text-primary">${item.price.toFixed(2)}</span>
@@ -442,28 +499,63 @@ const CreatorProfile = () => {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">{selectedBundle.title}</h3>
+                {selectedBundle.description && (
+                  <p className="text-sm text-muted-foreground mt-1">{selectedBundle.description}</p>
+                )}
                 <p className="text-sm text-muted-foreground mt-2">
                   This bundle contains {selectedBundle.content_count} exclusive items
                 </p>
               </div>
-              <div className="flex items-center justify-between py-4 border-y">
-                <span className="text-muted-foreground">Price</span>
-                <span className="text-2xl font-bold text-primary">${selectedBundle.price.toFixed(2)}</span>
+              <div className="py-4 border-y space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Price</span>
+                  {selectedBundle.discount_percentage && selectedBundle.discount_percentage > 0 ? (
+                    <div className="text-right">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm line-through text-muted-foreground">
+                          ${calculateOriginalPrice(selectedBundle.price, selectedBundle.discount_percentage).toFixed(2)}
+                        </span>
+                        <Badge variant="destructive" className="text-xs">{selectedBundle.discount_percentage}% OFF</Badge>
+                      </div>
+                      <div className="text-2xl font-bold text-primary">${selectedBundle.price.toFixed(2)}</div>
+                    </div>
+                  ) : (
+                    <span className="text-2xl font-bold text-primary">${selectedBundle.price.toFixed(2)}</span>
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Your balance</span>
+                  <span className="font-semibold">${balance.toFixed(2)}</span>
+                </div>
               </div>
               
-              <Button onClick={handlePurchaseBundle} disabled={purchasingBundle} className="w-full" size="lg">
-                {purchasingBundle ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-4 w-4 mr-2" />
-                    Purchase Bundle
-                  </>
-                )}
-              </Button>
+              {balance >= selectedBundle.price ? (
+                <Button onClick={handlePurchaseBundle} disabled={purchasingBundle} className="w-full" size="lg">
+                  {purchasingBundle ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
+                  ) : (
+                    <>Purchase Bundle for ${selectedBundle.price.toFixed(2)}</>
+                  )}
+                </Button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-destructive/10 p-4 text-center">
+                    <p className="text-sm text-destructive font-medium">
+                      Insufficient balance. You need ${(selectedBundle.price - balance).toFixed(2)} more.
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={() => { 
+                      setBundlePurchaseDialogOpen(false); 
+                      setShowAddFunds(true); 
+                    }} 
+                    variant="outline" 
+                    className="w-full"
+                  >
+                    Add Funds
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
