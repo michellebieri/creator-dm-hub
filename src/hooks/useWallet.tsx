@@ -67,13 +67,30 @@ export const useWallet = () => {
     }
 
     try {
+      // Ensure we have a valid session before calling the edge function
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to continue",
+          variant: "destructive",
+        });
+        return null;
+      }
+
       const { data, error } = await supabase.functions.invoke('add-funds', {
         body: { amount },
       });
 
-      if (error) throw error;
-      return data?.url;
+      if (error) {
+        console.error("Edge function error:", error);
+        throw error;
+      }
+      
+      return data?.clientSecret;
     } catch (error: any) {
+      console.error("Add funds error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to initiate payment",
