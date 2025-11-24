@@ -18,7 +18,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { EmbeddedPaymentForm } from '@/components/EmbeddedPaymentForm';
 import { supabase } from '@/integrations/supabase/client';
 
-const stripePromise = loadStripe('pk_live_51KJa0iHBEe0ePTRxLfnSn02kit9LiRIKjmDAyZAg50yWiwiwej93OEsmZYDsSjChdXzeNrXCVlbifNJLeQ67zT8E00WdXKm0Y6');
+const stripePromise = loadStripe('pk_test_51KJa0iHBEe0ePTRxZRxHQbGZrDBPKKxBIVhLpZ1xV8LDI89zBQxmFPhMLhBanJ805tTGcNsjJYcsuCF1LyrGeDMo00HQQ5Jf3m');
 
 interface CreditCheckDialogProps {
   open: boolean;
