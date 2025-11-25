@@ -177,24 +177,27 @@ const Conversations = () => {
       ? conversation.creator_id 
       : conversation.customer_id;
 
-    // Get creator settings to check message price
-    const { data: creatorSettings } = await supabase
-      .from('creator_settings')
-      .select('price_per_message')
-      .eq('user_id', otherUserId)
-      .single();
+    // Creators don't need to pay for messages - skip balance check
+    if (!isCreator) {
+      // Get creator settings to check message price
+      const { data: creatorSettings } = await supabase
+        .from('creator_settings')
+        .select('price_per_message')
+        .eq('user_id', otherUserId)
+        .single();
 
-    const messagePrice = creatorSettings?.price_per_message || 5;
+      const messagePrice = creatorSettings?.price_per_message || 5;
 
-    // Check if user has sufficient balance
-    if (balance < messagePrice) {
-      setSelectedCreatorId(otherUserId);
-      setShowAddFunds(true);
-      return;
+      // Check if user has sufficient balance
+      if (balance < messagePrice) {
+        setSelectedCreatorId(otherUserId);
+        setShowAddFunds(true);
+        return;
+      }
     }
 
-    // Navigate to chat
-    navigate(`/messages?creator=${otherUserId}`);
+    // Navigate to chat - pass the conversation id for proper context
+    navigate(`/messages?creator=${otherUserId}&conversation=${conversation.id}`);
   };
 
   const handleArchive = async (e: React.MouseEvent, conversationId: string) => {

@@ -105,55 +105,79 @@ const MessagingInterface = () => {
     if (!creatorId || !user) return;
 
     const fetchData = async () => {
-      // Check if current user is the creator
+      // Check if current user is a creator (by role)
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
       
-      setIsCreator(profile?.role === 'creator' && user.id === creatorId);
+      const userIsCreator = profile?.role === 'creator';
+      setIsCreator(userIsCreator);
 
-      // Fetch creator profile info
-      const { data: creatorData } = await supabase
+      // Fetch the other user's profile info (the person we're chatting with)
+      const { data: otherUserData } = await supabase
         .from('profiles')
         .select('display_name, avatar_url, username')
         .eq('id', creatorId)
         .single();
       
-      if (creatorData) {
-        setCreatorProfile(creatorData);
+      if (otherUserData) {
+        setCreatorProfile(otherUserData);
       }
 
-      // Fetch or create conversation
-      let { data: conversation } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId)
-        .maybeSingle();
+      // Fetch or find conversation based on who the current user is
+      let conversation;
+      
+      if (userIsCreator) {
+        // If current user is creator, the creatorId param is actually the customer
+        // Look for conversation where current user is creator and creatorId is customer
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('creator_id', user.id)
+          .eq('customer_id', creatorId)
+          .maybeSingle();
+        conversation = conv;
+      } else {
+        // Current user is a customer messaging a creator
+        const { data: conv } = await supabase
+          .from('conversations')
+          .select('id')
+          .eq('customer_id', user.id)
+          .eq('creator_id', creatorId)
+          .maybeSingle();
+        conversation = conv;
+      }
 
       if (conversation) {
         setConversationId(conversation.id);
       }
 
-      // Fetch packs and creator settings
-      const { data: packsData } = await supabase
-        .from('message_packs')
-        .select('*')
-        .eq('creator_id', creatorId)
-        .eq('is_active', true);
+      // Only fetch packs and pricing if current user is NOT a creator (they need to pay)
+      if (!userIsCreator) {
+        // Fetch packs for the creator
+        const { data: packsData } = await supabase
+          .from('message_packs')
+          .select('*')
+          .eq('creator_id', creatorId)
+          .eq('is_active', true);
 
-      setPacks(packsData || []);
+        setPacks(packsData || []);
 
-      // Fetch creator's price per message
-      const { data: creatorSettings } = await supabase
-        .from('creator_settings')
-        .select('price_per_message')
-        .eq('user_id', creatorId)
-        .single();
+        // Fetch creator's price per message
+        const { data: creatorSettings } = await supabase
+          .from('creator_settings')
+          .select('price_per_message')
+          .eq('user_id', creatorId)
+          .single();
 
-      setPricePerMessage(creatorSettings?.price_per_message || 0);
+        setPricePerMessage(creatorSettings?.price_per_message || 0);
+      } else {
+        // Creators don't pay, so set price to 0
+        setPricePerMessage(0);
+        setPacks([]);
+      }
     };
 
     fetchData();
@@ -173,12 +197,15 @@ const MessagingInterface = () => {
       // Create conversation if doesn't exist
       let convId = conversationId;
       if (!convId) {
+        // If current user is creator, they are creator_id and the other user is customer_id
+        // If current user is customer, they are customer_id and the other user is creator_id
+        const conversationData = isCreator 
+          ? { creator_id: user.id, customer_id: creatorId }
+          : { customer_id: user.id, creator_id: creatorId };
+
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert({
-            customer_id: user.id,
-            creator_id: creatorId,
-          })
+          .insert(conversationData)
           .select('id')
           .single();
 
@@ -190,10 +217,8 @@ const MessagingInterface = () => {
       // Send message using the hook (handles credit deduction)
       await sendMessage(message);
 
-      // Send notification to recipient (async, don't wait)
-      const recipientId = isCreator ? 
-        (await supabase.from('conversations').select('customer_id').eq('id', convId).single()).data?.customer_id :
-        creatorId;
+      // Send notification to recipient (the other user = creatorId param)
+      const recipientId = creatorId;
       
       if (recipientId) {
         // Send email notification
@@ -246,12 +271,14 @@ const MessagingInterface = () => {
       // Create conversation if doesn't exist
       let convId = conversationId;
       if (!convId) {
+        // If current user is creator, they are creator_id and the other user is customer_id
+        const conversationData = isCreator 
+          ? { creator_id: user.id, customer_id: creatorId }
+          : { customer_id: user.id, creator_id: creatorId };
+
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert({
-            customer_id: user.id,
-            creator_id: creatorId,
-          })
+          .insert(conversationData)
           .select('id')
           .single();
 
@@ -278,10 +305,8 @@ const MessagingInterface = () => {
       // Send voice message using the hook (handles credit deduction)
       await sendMessage('Voice message', 'voice', publicUrl, duration);
 
-      // Send notification
-      const recipientId = isCreator ? 
-        (await supabase.from('conversations').select('customer_id').eq('id', convId).single()).data?.customer_id :
-        creatorId;
+      // Send notification to recipient (the other user = creatorId param)
+      const recipientId = creatorId;
       
       if (recipientId) {
         supabase.functions.invoke('send-notification', {
