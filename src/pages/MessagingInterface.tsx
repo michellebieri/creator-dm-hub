@@ -658,9 +658,11 @@ const MessagingInterface = () => {
                 className="min-h-[40px] max-h-[200px] resize-none bg-background text-foreground placeholder:text-muted-foreground overflow-y-auto"
                 rows={1}
               />
-              <div className={`text-xs text-right ${message.length >= MAX_MESSAGE_LENGTH - 50 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {message.length}/{MAX_MESSAGE_LENGTH}
-              </div>
+              {message.length > 0 && (
+                <div className={`text-xs text-right ${message.length >= MAX_MESSAGE_LENGTH - 50 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {message.length}/{MAX_MESSAGE_LENGTH}
+                </div>
+              )}
             </div>
             <Button 
               onClick={handleSend} 
