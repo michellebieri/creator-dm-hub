@@ -306,69 +306,66 @@ const Conversations = () => {
               return (
                 <Card
                   key={conversation.id}
-                  className="p-4 hover:shadow-medium transition-all"
+                  className="p-4 hover:shadow-medium transition-all cursor-pointer"
+                  onClick={() => handleChatClick(conversation)}
                 >
                   <div className="flex items-center gap-4">
                     <div 
-                      className="flex items-center gap-4 flex-1 cursor-pointer"
-                      onClick={() => handleViewProfile(conversation)}
-                    >
-                      <div className="relative">
-                        <Avatar className="h-12 w-12">
-                          <AvatarImage src={otherUser?.avatar_url} />
-                          <AvatarFallback>
-                            {otherUser?.display_name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-1 -right-1">
-                          <OnlineStatusBadge userId={otherUser?.id || ''} size="md" />
-                        </div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold truncate">
-                            {otherUser?.display_name}
-                          </h3>
-                          <Badge variant="secondary" className="text-xs">
-                            @{otherUser?.username}
-                          </Badge>
-                          {conversation.unread_count > 0 && (
-                            <Badge variant="default" className="ml-auto text-xs">
-                              {conversation.unread_count}
-                            </Badge>
-                          )}
-                        </div>
-                        {conversation.last_message ? (
-                          <p className="text-sm text-muted-foreground">
-                            {conversation.last_message.content.length > 35 
-                              ? `${conversation.last_message.content.slice(0, 35).trim()}…` 
-                              : conversation.last_message.content}
-                          </p>
-                        ) : (
-                          <p className="text-sm text-muted-foreground italic">
-                            No messages yet
-                          </p>
-                        )}
-                        {conversation.last_message && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {formatDistanceToNow(new Date(conversation.last_message.created_at), {
-                              addSuffix: true,
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
+                      className="relative cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleChatClick(conversation);
+                        handleViewProfile(conversation);
                       }}
                     >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Chat
-                    </Button>
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={otherUser?.avatar_url} />
+                        <AvatarFallback>
+                          {otherUser?.display_name.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-1 -right-1">
+                        <OnlineStatusBadge userId={otherUser?.id || ''} size="md" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 
+                          className="font-semibold truncate cursor-pointer hover:underline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewProfile(conversation);
+                          }}
+                        >
+                          {otherUser?.display_name}
+                        </h3>
+                        <Badge variant="secondary" className="text-xs">
+                          @{otherUser?.username}
+                        </Badge>
+                        {conversation.unread_count > 0 && (
+                          <Badge variant="default" className="ml-auto text-xs">
+                            {conversation.unread_count}
+                          </Badge>
+                        )}
+                      </div>
+                      {conversation.last_message ? (
+                        <p className="text-sm text-muted-foreground">
+                          {conversation.last_message.content.length > 35 
+                            ? `${conversation.last_message.content.slice(0, 35).trim()}…` 
+                            : conversation.last_message.content}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          No messages yet
+                        </p>
+                      )}
+                      {conversation.last_message && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {formatDistanceToNow(new Date(conversation.last_message.created_at), {
+                            addSuffix: true,
+                          })}
+                        </div>
+                      )}
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
