@@ -184,13 +184,22 @@ const MessagingInterface = () => {
   }, [creatorId, user]);
 
   const handleSend = async () => {
-    if (!message.trim() || !creatorId || !user) return;
+    const trimmedMessage = message.trim();
+    
+    // Guard against duplicate sends and empty messages
+    if (!trimmedMessage || !creatorId || !user || sending || messageSending) return;
 
     // Creators don't need balance to send messages
     if (!isCreator && balance < pricePerMessage) {
       setShowAddFunds(true);
       return;
     }
+
+    // Clear message immediately to prevent duplicates
+    const messageToSend = trimmedMessage;
+    setMessage('');
+    clearDraft();
+    stopTyping();
 
     setSending(true);
     try {
@@ -215,7 +224,7 @@ const MessagingInterface = () => {
       }
 
       // Send message using the hook (handles credit deduction)
-      await sendMessage(message);
+      await sendMessage(messageToSend);
 
       // Send notification to recipient (the other user = creatorId param)
       const recipientId = creatorId;
@@ -227,7 +236,7 @@ const MessagingInterface = () => {
             type: 'new_message',
             recipientId,
             senderName: user.user_metadata?.display_name || 'Someone',
-            messagePreview: message.substring(0, 100),
+            messagePreview: messageToSend.substring(0, 100),
           },
         }).catch(err => console.log('Email notification error:', err));
 
@@ -242,11 +251,9 @@ const MessagingInterface = () => {
           },
         }).catch(err => console.log('In-app notification error:', err));
       }
-
-      setMessage('');
-      clearDraft();
-      stopTyping();
     } catch (error: any) {
+      // Restore message on error
+      setMessage(messageToSend);
       toast({
         title: "Failed to send",
         description: error.message,
@@ -626,7 +633,7 @@ const MessagingInterface = () => {
               disabled={sending || (balance < pricePerMessage && !isCreator)}
             />
             <Input
-              placeholder="Type your message..."
+              placeholder="Type a message..."
               value={message}
               onChange={(e) => {
                 const newValue = e.target.value;
@@ -638,19 +645,19 @@ const MessagingInterface = () => {
                   stopTyping();
                 }
               }}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSend();
-                  stopTyping();
                 }
               }}
               onBlur={() => stopTyping()}
-              className="flex-1"
+              disabled={sending || messageSending}
+              className="flex-1 bg-background text-foreground placeholder:text-muted-foreground"
             />
             <Button 
               onClick={handleSend} 
-              disabled={sending || !message.trim() || (balance < pricePerMessage && !isCreator)}
+              disabled={sending || messageSending || !message.trim() || (balance < pricePerMessage && !isCreator)}
               size="icon"
               className="shrink-0"
             >
