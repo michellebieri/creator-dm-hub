@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UnlockableContent } from '@/components/UnlockableContent';
@@ -46,6 +46,8 @@ const MessagingInterface = () => {
   const creatorId = searchParams.get('creator');
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const MAX_MESSAGE_LENGTH = 700;
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
@@ -191,6 +193,10 @@ const MessagingInterface = () => {
     const messageToSend = trimmedMessage;
     setMessage('');
     stopTyping();
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
 
     setSending(true);
     try {
@@ -615,27 +621,47 @@ const MessagingInterface = () => {
               onSendVoice={handleSendVoice}
               disabled={sending || (balance < pricePerMessage && !isCreator)}
             />
-            <Input
-              placeholder="Type a message..."
-              value={message}
-              onChange={(e) => {
-                setMessage(e.target.value);
-                if (e.target.value && userDisplayName) {
-                  startTyping(userDisplayName);
-                } else {
-                  stopTyping();
-                }
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSend();
-                }
-              }}
-              onBlur={() => stopTyping()}
-              disabled={sending || messageSending}
-              className="flex-1 bg-background text-foreground placeholder:text-muted-foreground"
-            />
+            <div className="flex-1 flex flex-col gap-1">
+              <Textarea
+                ref={textareaRef}
+                placeholder="Type a message..."
+                value={message}
+                maxLength={MAX_MESSAGE_LENGTH}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  setMessage(newValue);
+                  if (newValue && userDisplayName) {
+                    startTyping(userDisplayName);
+                  } else {
+                    stopTyping();
+                  }
+                  // Auto-resize textarea
+                  if (textareaRef.current) {
+                    textareaRef.current.style.height = 'auto';
+                    const scrollHeight = textareaRef.current.scrollHeight;
+                    const maxHeight = 200; // ~8 lines
+                    textareaRef.current.style.height = `${Math.min(scrollHeight, maxHeight)}px`;
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                    // Reset textarea height after sending
+                    if (textareaRef.current) {
+                      textareaRef.current.style.height = 'auto';
+                    }
+                  }
+                }}
+                onBlur={() => stopTyping()}
+                disabled={sending || messageSending}
+                className="min-h-[40px] max-h-[200px] resize-none bg-background text-foreground placeholder:text-muted-foreground overflow-y-auto"
+                rows={1}
+              />
+              <div className={`text-xs text-right ${message.length >= MAX_MESSAGE_LENGTH - 50 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {message.length}/{MAX_MESSAGE_LENGTH}
+              </div>
+            </div>
             <Button 
               onClick={handleSend} 
               disabled={sending || messageSending || !message.trim() || (balance < pricePerMessage && !isCreator)}
