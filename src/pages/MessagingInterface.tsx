@@ -59,6 +59,7 @@ const MessagingInterface = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const [showAddFunds, setShowAddFunds] = useState(false);
+  const [creatorProfile, setCreatorProfile] = useState<{ display_name: string; avatar_url: string | null; username: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { messages, loading: messagesLoading, refetch, sendMessage, sending: messageSending } = useMessages(conversationId, creatorId);
@@ -115,6 +116,17 @@ const MessagingInterface = () => {
         .single();
       
       setIsCreator(profile?.role === 'creator' && user.id === creatorId);
+
+      // Fetch creator profile info
+      const { data: creatorData } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url, username')
+        .eq('id', creatorId)
+        .single();
+      
+      if (creatorData) {
+        setCreatorProfile(creatorData);
+      }
 
       // Fetch or create conversation
       let { data: conversation } = await supabase
@@ -322,13 +334,28 @@ const MessagingInterface = () => {
   if (loading) return null;
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b bg-card px-4 py-3">
+      <header className="border-b bg-card px-4 py-3 sticky top-0 z-10">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h2 className="font-semibold">Messages</h2>
+            {creatorProfile && !isCreator ? (
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  {creatorProfile.avatar_url && (
+                    <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
+                  )}
+                  <AvatarFallback>{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="font-semibold">{creatorProfile.display_name}</h2>
+                  <p className="text-xs text-muted-foreground">@{creatorProfile.username}</p>
+                </div>
+              </div>
+            ) : (
+              <h2 className="font-semibold">Messages</h2>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {conversationId && user?.id && (
@@ -386,10 +413,30 @@ const MessagingInterface = () => {
                 <p className="text-muted-foreground text-center">Loading messages...</p>
               </Card>
             ) : messages.length === 0 ? (
-              <Card className="p-4">
-                <p className="text-muted-foreground text-center">
-                  No messages yet. Send your first message!
-                </p>
+              <Card className="p-8 text-center">
+                {creatorProfile && !isCreator ? (
+                  <>
+                    <Avatar className="h-16 w-16 mx-auto mb-4">
+                      {creatorProfile.avatar_url && (
+                        <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
+                      )}
+                      <AvatarFallback className="text-xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <h3 className="font-semibold text-lg mb-2">Start chatting with {creatorProfile.display_name}</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Send your first message below to start the conversation
+                    </p>
+                    {pricePerMessage > 0 && (
+                      <p className="text-xs text-muted-foreground mt-2">
+                        ${pricePerMessage.toFixed(2)} per message
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">
+                    No messages yet. Send your first message!
+                  </p>
+                )}
               </Card>
             ) : (
               messages.map((msg) => (
@@ -401,8 +448,11 @@ const MessagingInterface = () => {
                   } ${highlightedMessageId === msg.id ? 'bg-accent/20 rounded-lg p-2 transition-colors' : ''}`}
                 >
                   {msg.sender_id !== user?.id && (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>C</AvatarFallback>
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      {creatorProfile?.avatar_url && (
+                        <img src={creatorProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                      )}
+                      <AvatarFallback>{creatorProfile?.display_name?.charAt(0).toUpperCase() || 'C'}</AvatarFallback>
                     </Avatar>
                   )}
                   <div className="space-y-2 max-w-md">
