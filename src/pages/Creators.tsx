@@ -102,30 +102,8 @@ const Creators = () => {
   const proceedToChat = async () => {
     if (!user || !selectedCreator) return;
 
-    const { data: existingConv } = await supabase
-      .from('conversations')
-      .select('id')
-      .eq('creator_id', selectedCreator.id)
-      .eq('customer_id', user.id)
-      .single();
-
-    if (existingConv) {
-      navigate('/conversations');
-    } else {
-      const { data: newConv, error } = await supabase
-        .from('conversations')
-        .insert({
-          creator_id: selectedCreator.id,
-          customer_id: user.id,
-          status: 'active'
-        })
-        .select()
-        .single();
-
-      if (!error && newConv) {
-        navigate('/conversations');
-      }
-    }
+    // Navigate directly to the chat page with the creator
+    navigate(`/messages?creator=${selectedCreator.id}`);
   };
 
   const filteredCreators = creators.filter(creator =>
