@@ -332,7 +332,7 @@ const Conversations = () => {
                           <Badge variant="secondary" className="text-xs">
                             @{otherUser?.username}
                           </Badge>
-                          {conversation.unread_count && conversation.unread_count > 0 && (
+                          {conversation.unread_count > 0 && (
                             <Badge variant="default" className="ml-auto text-xs">
                               {conversation.unread_count}
                             </Badge>
