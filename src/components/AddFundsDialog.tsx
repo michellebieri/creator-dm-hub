@@ -56,7 +56,7 @@ export function AddFundsDialog({
     }
   }, [open, user, onOpenChange, navigate, toast]);
 
-  const presetAmounts = [10, 25, 50, 100];
+  const presetAmounts = [20, 50, 100, 200];
   const shortfall = requiredAmount ? Math.max(0, requiredAmount - currentBalance) : 0;
 
   const handleSelectAmount = async (amount: number) => {
@@ -117,6 +117,8 @@ export function AddFundsDialog({
     if (onSuccess) {
       onSuccess(newBalance);
     }
+    // Redirect to wallet overview after successful payment
+    navigate('/wallet');
   };
 
   const handleCancel = () => {
