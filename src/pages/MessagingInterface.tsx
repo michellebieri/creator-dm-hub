@@ -22,7 +22,7 @@ import { ConversationExport } from '@/components/ConversationExport';
 import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
-import { DraftsManager } from '@/components/DraftsManager';
+
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
@@ -34,7 +34,7 @@ import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
-import { useMessageDrafts } from '@/hooks/useMessageDrafts';
+
 import { useMessageEdit } from '@/hooks/useMessageEdit';
 
 const MessagingInterface = () => {
@@ -64,18 +64,10 @@ const MessagingInterface = () => {
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
-  const { draft, saveDraft, clearDraft, lastSaved } = useMessageDrafts(conversationId, user?.id || null);
   const { canEdit } = useMessageEdit();
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
-
-  // Sync message state with draft
-  useEffect(() => {
-    if (draft && !message) {
-      setMessage(draft);
-    }
-  }, [draft]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -198,7 +190,6 @@ const MessagingInterface = () => {
     // Clear message immediately to prevent duplicates
     const messageToSend = trimmedMessage;
     setMessage('');
-    clearDraft();
     stopTyping();
 
     setSending(true);
@@ -347,7 +338,6 @@ const MessagingInterface = () => {
 
     if (success) {
       setMessage('');
-      clearDraft();
     }
   };
 
@@ -393,7 +383,7 @@ const MessagingInterface = () => {
                 <ConversationStats conversationId={conversationId} userId={user.id} />
               </>
             )}
-            {user?.id && <DraftsManager userId={user.id} />}
+            
             <Button 
               variant="ghost" 
               size="icon"
@@ -606,19 +596,12 @@ const MessagingInterface = () => {
               />
             </div>
           )}
-          {lastSaved && message && (
-            <div className="mb-2 text-xs text-muted-foreground flex items-center gap-2">
-              <div className="h-1.5 w-1.5 bg-primary rounded-full animate-pulse" />
-              Draft saved {new Date(lastSaved).toLocaleTimeString()}
-            </div>
-          )}
           <div className="flex gap-2 items-center">
             {isCreator && user?.id && (
               <MessageTemplateSelector
                 creatorId={user.id}
                 onSelectTemplate={(content) => {
                   setMessage(content);
-                  saveDraft(content);
                 }}
               />
             )}
@@ -636,10 +619,8 @@ const MessagingInterface = () => {
               placeholder="Type a message..."
               value={message}
               onChange={(e) => {
-                const newValue = e.target.value;
-                setMessage(newValue);
-                saveDraft(newValue);
-                if (newValue && userDisplayName) {
+                setMessage(e.target.value);
+                if (e.target.value && userDisplayName) {
                   startTyping(userDisplayName);
                 } else {
                   stopTyping();
