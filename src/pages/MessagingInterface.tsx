@@ -330,7 +330,7 @@ const MessagingInterface = () => {
 
   if (loading) return null;
   return (
-    <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
+    <div className="h-[calc(100dvh-3.5rem-5rem)] flex flex-col bg-background overflow-hidden">
       <header className="border-b bg-card px-4 py-3 shrink-0 z-10">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
