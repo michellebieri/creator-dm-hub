@@ -141,14 +141,20 @@ const Vault = () => {
 
       setCreators(uniqueCreators);
 
-      // Fetch purchased bundles (transactions with pack_id)
+      // Fetch purchased bundles - get transactions first, then bundles
       const { data: bundleTransactions } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          created_at,
-          amount,
-          content_bundles:pack_id (
+        .select('id, created_at, amount, pack_id')
+        .eq('customer_id', user.id)
+        .eq('transaction_type', 'pack')
+        .not('pack_id', 'is', null);
+
+      if (bundleTransactions && bundleTransactions.length > 0) {
+        const bundleIds = bundleTransactions.map((t: any) => t.pack_id);
+        
+        const { data: bundles } = await supabase
+          .from('content_bundles')
+          .select(`
             id,
             title,
             description,
@@ -161,26 +167,38 @@ const Vault = () => {
               avatar_url,
               username
             )
-          )
-        `)
-        .eq('customer_id', user.id)
-        .eq('transaction_type', 'pack')
-        .not('pack_id', 'is', null);
+          `)
+          .in('id', bundleIds);
 
-      const formattedBundles = bundleTransactions
-        ?.filter((t: any) => t.content_bundles)
-        .map((t: any) => ({
-          id: t.content_bundles.id,
-          title: t.content_bundles.title,
-          description: t.content_bundles.description,
-          thumbnail_url: t.content_bundles.thumbnail_url,
-          price: t.content_bundles.price,
-          purchased_at: t.created_at,
-          creator: t.content_bundles.profiles,
-          content_count: 0, // Would need to count bundle_contents
-        })) || [];
+        // Get content count for each bundle
+        const { data: bundleContentCounts } = await supabase
+          .from('bundle_contents')
+          .select('bundle_id')
+          .in('bundle_id', bundleIds);
 
-      setPurchasedBundles(formattedBundles);
+        const contentCountMap: Record<string, number> = {};
+        bundleContentCounts?.forEach((bc: any) => {
+          contentCountMap[bc.bundle_id] = (contentCountMap[bc.bundle_id] || 0) + 1;
+        });
+
+        const formattedBundles = bundles?.map((bundle: any) => {
+          const transaction = bundleTransactions.find((t: any) => t.pack_id === bundle.id);
+          return {
+            id: bundle.id,
+            title: bundle.title,
+            description: bundle.description,
+            thumbnail_url: bundle.thumbnail_url,
+            price: bundle.price,
+            purchased_at: transaction?.created_at || bundle.created_at,
+            creator: bundle.profiles,
+            content_count: contentCountMap[bundle.id] || 0,
+          };
+        }) || [];
+
+        setPurchasedBundles(formattedBundles);
+      } else {
+        setPurchasedBundles([]);
+      }
     } catch (error) {
       console.error('Error fetching vault data:', error);
     } finally {

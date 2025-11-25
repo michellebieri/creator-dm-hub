@@ -96,12 +96,25 @@ const PaymentSuccess = () => {
             <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
             <p className="text-muted-foreground mb-6">
               {searchParams.get('bundle_id') 
-                ? 'Your content bundle has been unlocked.'
+                ? 'Your content bundle has been unlocked. View it in your vault!'
                 : 'Funds have been added to your wallet and can be used across all creators.'}
             </p>
-            <Button onClick={() => navigate('/messages')} className="w-full">
-              {searchParams.get('bundle_id') ? 'View Content' : 'Start Chatting'}
-            </Button>
+            <div className="flex flex-col gap-3">
+              {searchParams.get('bundle_id') ? (
+                <>
+                  <Button onClick={() => navigate('/vault')} className="w-full">
+                    View in My Vault
+                  </Button>
+                  <Button onClick={() => navigate('/messages')} variant="outline" className="w-full">
+                    Back to Messages
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => navigate('/messages')} className="w-full">
+                  Start Chatting
+                </Button>
+              )}
+            </div>
           </>
         ) : (
           <>
