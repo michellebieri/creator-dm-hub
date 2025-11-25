@@ -119,53 +119,62 @@ const MyLibrary = () => {
 
       setUnlockedContent(formattedUnlocked);
 
-      // Fetch purchased bundles from transactions
-      const { data: bundleTransactions, error: bundleError } = await supabase
+      // Fetch purchased bundles from transactions with pack_id
+      const { data: bundleTransactions } = await supabase
         .from('transactions')
-        .select(`
-          created_at,
-          creator_id
-        `)
+        .select('id, created_at, pack_id')
         .eq('customer_id', user.id)
-        .eq('transaction_type', 'unlockable')
-        .eq('status', 'completed');
+        .eq('transaction_type', 'pack')
+        .not('pack_id', 'is', null);
 
-      if (bundleError) throw bundleError;
+      if (bundleTransactions && bundleTransactions.length > 0) {
+        const bundleIds = bundleTransactions.map(t => t.pack_id);
+        
+        // Fetch bundle details
+        const { data: bundles } = await supabase
+          .from('content_bundles')
+          .select('id, title, description, thumbnail_url, price, creator_id')
+          .in('id', bundleIds);
 
-      // Get unique bundle purchases (simplified - in production you'd track bundle_id in transactions)
-      const bundleCreators = [...new Set(bundleTransactions?.map(t => t.creator_id) || [])];
-      
-      // For now, show bundles from creators user has purchased from
-      const { data: bundles } = await supabase
-        .from('content_bundles')
-        .select(`
-          id,
-          title,
-          description,
-          thumbnail_url,
-          price,
-          creator_id
-        `)
-        .in('creator_id', bundleCreators)
-        .eq('is_active', true);
+        // Get creator names for bundles
+        const bundleCreatorIds = [...new Set(bundles?.map(b => b.creator_id) || [])];
+        const { data: bundleCreators } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', bundleCreatorIds);
 
-      const formattedBundles = await Promise.all(
-        (bundles || []).map(async (bundle) => {
-          const { count } = await supabase
-            .from('bundle_contents')
-            .select('id', { count: 'exact', head: true })
-            .eq('bundle_id', bundle.id);
+        const bundleCreatorMap = new Map(bundleCreators?.map(c => [c.id, c.display_name]) || []);
 
+        // Get content counts
+        const { data: bundleContentCounts } = await supabase
+          .from('bundle_contents')
+          .select('bundle_id')
+          .in('bundle_id', bundleIds);
+
+        const contentCountMap: Record<string, number> = {};
+        bundleContentCounts?.forEach(bc => {
+          contentCountMap[bc.bundle_id] = (contentCountMap[bc.bundle_id] || 0) + 1;
+        });
+
+        const formattedBundles = bundles?.map(bundle => {
+          const transaction = bundleTransactions.find(t => t.pack_id === bundle.id);
           return {
-            ...bundle,
-            creator_name: creatorMap.get(bundle.creator_id) || 'Unknown',
-            purchased_at: bundleTransactions?.find(t => t.creator_id === bundle.creator_id)?.created_at || '',
-            content_count: count || 0,
+            id: bundle.id,
+            title: bundle.title,
+            description: bundle.description,
+            thumbnail_url: bundle.thumbnail_url,
+            price: bundle.price,
+            creator_id: bundle.creator_id,
+            creator_name: bundleCreatorMap.get(bundle.creator_id) || 'Unknown',
+            purchased_at: transaction?.created_at || '',
+            content_count: contentCountMap[bundle.id] || 0,
           };
-        })
-      );
+        }) || [];
 
-      setPurchasedBundles(formattedBundles);
+        setPurchasedBundles(formattedBundles);
+      } else {
+        setPurchasedBundles([]);
+      }
     } catch (error) {
       console.error('Error fetching library:', error);
       toast.error('Failed to load library');
