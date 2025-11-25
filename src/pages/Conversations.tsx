@@ -339,8 +339,10 @@ const Conversations = () => {
                           )}
                         </div>
                         {conversation.last_message ? (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {conversation.last_message.content}
+                          <p className="text-sm text-muted-foreground">
+                            {conversation.last_message.content.length > 35 
+                              ? `${conversation.last_message.content.slice(0, 35).trim()}…` 
+                              : conversation.last_message.content}
                           </p>
                         ) : (
                           <p className="text-sm text-muted-foreground italic">
