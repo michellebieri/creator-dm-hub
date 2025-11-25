@@ -47,7 +47,7 @@ const MessagingInterface = () => {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const MAX_MESSAGE_LENGTH = 700;
+  const MAX_MESSAGE_LENGTH = 350;
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
   const [isCreator, setIsCreator] = useState(false);
