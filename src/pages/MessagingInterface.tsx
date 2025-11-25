@@ -330,7 +330,7 @@ const MessagingInterface = () => {
 
   if (loading) return null;
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background overflow-hidden">
       <header className="border-b bg-card px-4 py-3 shrink-0 z-10">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
@@ -541,7 +541,7 @@ const MessagingInterface = () => {
         </div>
       </div>
 
-      <div className="border-t bg-card px-4 py-3 shrink-0 mt-auto">
+      <div className="border-t bg-card px-4 py-3 shrink-0">
         <div className="max-w-4xl mx-auto">
           {/* Insufficient balance warning */}
           {creatorId && !isCreator && balance < pricePerMessage && (
