@@ -19,7 +19,7 @@ import { MessageCircle, MessageSquare, MoreVertical, Archive, ArchiveRestore, In
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { useConversationArchive } from '@/hooks/useConversationArchive';
-import { DraftsManager } from '@/components/DraftsManager';
+
 import { ConversationStats } from '@/components/ConversationStats';
 import { useToast } from '@/hooks/use-toast';
 import { useWallet } from '@/hooks/useWallet';
@@ -266,7 +266,7 @@ const Conversations = () => {
               <Archive className="h-4 w-4 mr-2" />
               Archived
             </Button>
-            {user?.id && <DraftsManager userId={user.id} />}
+            
           </div>
           
           <input
