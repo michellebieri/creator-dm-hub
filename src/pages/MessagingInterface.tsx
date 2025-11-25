@@ -330,7 +330,7 @@ const MessagingInterface = () => {
 
   if (loading) return null;
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="fixed inset-0 flex flex-col bg-background">
       <header className="border-b bg-card px-4 py-3 shrink-0 z-10">
         <div className="flex items-center justify-between max-w-4xl mx-auto">
           <div className="flex items-center gap-3">
@@ -373,7 +373,7 @@ const MessagingInterface = () => {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-4 py-6 min-h-0">
+      <div className="flex-1 overflow-y-auto px-4 py-6 pb-4">
         <div className="max-w-4xl mx-auto space-y-4">
           {isCreator && user?.id && (
             <ScheduledMessagesList senderId={user.id} />
@@ -541,7 +541,7 @@ const MessagingInterface = () => {
         </div>
       </div>
 
-      <div className="border-t bg-card px-4 py-3 shrink-0">
+      <div className="border-t bg-card px-4 py-3 shrink-0 mt-auto">
         <div className="max-w-4xl mx-auto">
           {/* Insufficient balance warning */}
           {creatorId && !isCreator && balance < pricePerMessage && (
