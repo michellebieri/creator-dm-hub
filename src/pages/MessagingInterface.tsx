@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { MessagePackPurchase } from '@/components/MessagePackPurchase';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
 import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
@@ -25,7 +24,6 @@ import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { DraftsManager } from '@/components/DraftsManager';
 import { BulkContentUpload } from '@/components/BulkContentUpload';
-import { WalletBalance } from '@/components/WalletBalance';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -38,7 +36,6 @@ import { useScheduledMessages } from '@/hooks/useScheduledMessages';
 import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 import { useMessageDrafts } from '@/hooks/useMessageDrafts';
 import { useMessageEdit } from '@/hooks/useMessageEdit';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const MessagingInterface = () => {
   const { user, loading } = useAuth();
@@ -377,24 +374,7 @@ const MessagingInterface = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {creatorId && !isCreator && (
-            <>
-              {balance < pricePerMessage && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Add funds to your wallet below to start chatting
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <WalletBalance />
-              
-              <MessagePackPurchase creatorId={creatorId} packs={packs} />
-            </>
-          )}
-
+        <div className="max-w-4xl mx-auto space-y-4">
           {isCreator && user?.id && (
             <ScheduledMessagesList senderId={user.id} />
           )}
@@ -413,22 +393,22 @@ const MessagingInterface = () => {
                 <p className="text-muted-foreground text-center">Loading messages...</p>
               </Card>
             ) : messages.length === 0 ? (
-              <Card className="p-8 text-center">
+              <div className="flex flex-col items-center justify-center py-8 text-center">
                 {creatorProfile && !isCreator ? (
                   <>
-                    <Avatar className="h-16 w-16 mx-auto mb-4">
+                    <Avatar className="h-20 w-20 mb-4">
                       {creatorProfile.avatar_url && (
                         <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
                       )}
-                      <AvatarFallback className="text-xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback className="text-2xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
-                    <h3 className="font-semibold text-lg mb-2">Start chatting with {creatorProfile.display_name}</h3>
-                    <p className="text-muted-foreground text-sm">
-                      Send your first message below to start the conversation
+                    <h3 className="font-semibold text-lg mb-1">Chat with {creatorProfile.display_name}</h3>
+                    <p className="text-muted-foreground text-sm mb-2">
+                      Type your message below to start the conversation
                     </p>
                     {pricePerMessage > 0 && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        ${pricePerMessage.toFixed(2)} per message
+                      <p className="text-xs text-muted-foreground">
+                        ${pricePerMessage.toFixed(2)} per message • Balance: ${balance.toFixed(2)}
                       </p>
                     )}
                   </>
@@ -437,7 +417,7 @@ const MessagingInterface = () => {
                     No messages yet. Send your first message!
                   </p>
                 )}
-              </Card>
+              </div>
             ) : (
               messages.map((msg) => (
                 <div
@@ -561,8 +541,25 @@ const MessagingInterface = () => {
         </div>
       </div>
 
-      <div className="border-t bg-card px-4 py-4">
+      <div className="border-t bg-card px-4 py-3">
         <div className="max-w-4xl mx-auto">
+          {/* Insufficient balance warning */}
+          {creatorId && !isCreator && balance < pricePerMessage && (
+            <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-sm">
+                    Add funds to send messages (${pricePerMessage.toFixed(2)}/msg)
+                  </span>
+                </div>
+                <Button size="sm" onClick={() => setShowAddFunds(true)}>
+                  Add Funds
+                </Button>
+              </div>
+            </div>
+          )}
+          
           {isCreator && conversationId && (
             <div className="mb-3 flex justify-end gap-2">
               <UnlockableUpload 
@@ -583,7 +580,7 @@ const MessagingInterface = () => {
               Draft saved {new Date(lastSaved).toLocaleTimeString()}
             </div>
           )}
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             {isCreator && user?.id && (
               <MessageTemplateSelector
                 creatorId={user.id}
@@ -617,17 +614,20 @@ const MessagingInterface = () => {
                 }
               }}
               onKeyPress={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
                   handleSend();
                   stopTyping();
                 }
               }}
               onBlur={() => stopTyping()}
+              className="flex-1"
             />
             <Button 
               onClick={handleSend} 
               disabled={sending || !message.trim() || (balance < pricePerMessage && !isCreator)}
-              title={balance < pricePerMessage && !isCreator ? 'Add funds to send messages' : ''}
+              size="icon"
+              className="shrink-0"
             >
               <Send className="h-4 w-4" />
             </Button>
