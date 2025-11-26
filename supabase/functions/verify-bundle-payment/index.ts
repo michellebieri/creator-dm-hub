@@ -135,7 +135,7 @@ serve(async (req) => {
     }
     logStep("Content unlocked", { unlockedCount });
 
-    // Create transaction record with pack_id pointing to bundle
+    // Create transaction record with bundle_id pointing to bundle
     const platformFee = bundle.price * 0.15;
     const netAmount = bundle.price * 0.85;
 
@@ -148,8 +148,8 @@ serve(async (req) => {
         net_amount: netAmount,
         platform_fee: platformFee,
         processor_fee: 0,
-        transaction_type: 'pack', // Use 'pack' so Vault can find it
-        pack_id: bundleId, // Store bundle ID in pack_id field
+        transaction_type: 'pack',
+        bundle_id: bundleId,
         status: 'completed',
         stripe_payment_id: session.payment_intent as string,
       });
