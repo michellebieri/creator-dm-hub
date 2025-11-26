@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, UserCheck } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, Check } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +14,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { ContentGridSkeleton } from '@/components/ui/skeleton';
 import { useFollowing } from '@/hooks/useFollowing';
+import { ContentViewer } from '@/components/ContentViewer';
 
 interface Profile {
   id: string;
@@ -79,6 +80,8 @@ const CreatorProfile = () => {
   const [pricePerMessage, setPricePerMessage] = useState<number>(5);
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [itemsToShow, setItemsToShow] = useState(20);
+  const [contentViewerOpen, setContentViewerOpen] = useState(false);
+  const [viewerContent, setViewerContent] = useState<ContentItem[]>([]);
 
   useEffect(() => {
     fetchCreatorData();
@@ -144,20 +147,34 @@ const CreatorProfile = () => {
             }
           }
           
-          // Check if bundle is purchased (all items unlocked)
-          if (user && bundleContents && bundleContents.length > 0) {
-            const unlockables = await Promise.all(
-              bundleContents.map(async (content) => {
-                const { data } = await supabase
-                  .from('unlockables')
-                  .select('unlocked_by')
-                  .eq('id', content.unlockable_id)
-                  .single();
-                return data;
-              })
-            );
+          // Check if bundle is purchased - first check transactions, then check if all items unlocked
+          if (user) {
+            // Method 1: Check if there's a completed transaction for this bundle
+            const { data: bundleTransaction } = await supabase
+              .from('transactions')
+              .select('id')
+              .eq('customer_id', user.id)
+              .eq('pack_id', bundle.id)
+              .eq('status', 'completed')
+              .maybeSingle();
             
-            purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
+            if (bundleTransaction) {
+              purchased = true;
+            } else if (bundleContents && bundleContents.length > 0) {
+              // Method 2: Check if all items are individually unlocked
+              const unlockables = await Promise.all(
+                bundleContents.map(async (content) => {
+                  const { data } = await supabase
+                    .from('unlockables')
+                    .select('unlocked_by')
+                    .eq('id', content.unlockable_id)
+                    .single();
+                  return data;
+                })
+              );
+              
+              purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
+            }
           }
           
           return { ...bundle, content_count, thumbnail_urls, purchased };
@@ -183,6 +200,13 @@ const CreatorProfile = () => {
   };
 
   const handleContentClick = (item: ContentItem) => {
+    // If user owns content, open viewer directly - no unlock dialog
+    if (user && item.unlocked_by?.includes(user.id)) {
+      setViewerContent([item]);
+      setContentViewerOpen(true);
+      return;
+    }
+    // Otherwise show unlock dialog
     setSelectedContent(item);
     setUnlockDialogOpen(true);
   };
@@ -224,9 +248,41 @@ const CreatorProfile = () => {
     }
   };
 
-  const handleBundleClick = (bundle: Bundle) => {
+  const handleBundleClick = async (bundle: Bundle) => {
+    // If already purchased, open content viewer directly with bundle contents
+    if (bundle.purchased && user) {
+      try {
+        // Fetch all content in this bundle
+        const { data: bundleContents } = await supabase
+          .from('bundle_contents')
+          .select('unlockable_id')
+          .eq('bundle_id', bundle.id);
+
+        if (bundleContents && bundleContents.length > 0) {
+          const unlockableIds = bundleContents.map(c => c.unlockable_id);
+          const { data: unlockables } = await supabase
+            .from('unlockables')
+            .select('id, media_url, media_type, title, caption')
+            .in('id', unlockableIds);
+
+          if (unlockables && unlockables.length > 0) {
+            setViewerContent(unlockables.map(u => ({
+              ...u,
+              price: 0,
+              created_at: '',
+              unlocked_by: [user.id]
+            })));
+            setContentViewerOpen(true);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching bundle contents:', error);
+      }
+    }
+    
+    // Otherwise show purchase dialog
     setSelectedBundle(bundle);
-    // If already purchased, still open dialog but it will show "Already Purchased" state
     setBundlePurchaseDialogOpen(true);
   };
 
@@ -555,6 +611,7 @@ const CreatorProfile = () => {
         </>
         )}
       </div>
+      {/* Unlock Dialog - only shown for content user doesn't own */}
       <Dialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Unlock Content</DialogTitle></DialogHeader>
@@ -575,9 +632,7 @@ const CreatorProfile = () => {
                 <span className="text-2xl font-bold text-primary">${selectedContent.price.toFixed(2)}</span>
               </div>
               
-              {selectedContent.unlocked_by?.includes(user?.id || '') ? (
-                <div className="text-center py-4"><Badge variant="secondary" className="text-sm">Already Unlocked</Badge><p className="text-sm text-muted-foreground mt-2">You can view this in your library</p></div>
-              ) : balance >= selectedContent.price ? (
+              {balance >= selectedContent.price ? (
                 <Button onClick={handleUnlockContent} disabled={unlocking} className="w-full" size="lg">
                   {unlocking ? (<><Loader2 className="h-4 w-4 mr-2 animate-spin" />Unlocking...</>) : (<>Unlock for ${selectedContent.price.toFixed(2)}</>)}
                 </Button>
@@ -699,6 +754,14 @@ const CreatorProfile = () => {
         requiredAmount={selectedContent?.price}
         currentBalance={balance}
         onSuccess={handleFundsAdded}
+      />
+
+      {/* Content Viewer for owned content */}
+      <ContentViewer
+        open={contentViewerOpen}
+        onOpenChange={setContentViewerOpen}
+        content={viewerContent}
+        initialIndex={0}
       />
     </div>
   );

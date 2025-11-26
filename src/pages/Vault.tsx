@@ -9,11 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Music, Package, Vault as VaultIcon, Download, ChevronLeft } from 'lucide-react';
+import { Image, Video, Music, Package, Vault as VaultIcon, ChevronLeft, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 import ContentVault from './ContentVault';
+import { ContentViewer } from '@/components/ContentViewer';
 
 interface Creator {
   id: string;
@@ -27,6 +28,7 @@ interface PurchasedContent {
   media_type: string;
   media_url: string;
   caption: string | null;
+  title?: string | null;
   price: number;
   created_at: string;
   unlocked_at: string;
@@ -42,6 +44,7 @@ interface PurchasedBundle {
   purchased_at: string;
   creator: Creator;
   content_count: number;
+  contents?: PurchasedContent[];
 }
 
 const Vault = () => {
@@ -53,6 +56,9 @@ const Vault = () => {
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
   const [purchasedContent, setPurchasedContent] = useState<PurchasedContent[]>([]);
   const [purchasedBundles, setPurchasedBundles] = useState<PurchasedBundle[]>([]);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerContent, setViewerContent] = useState<PurchasedContent[]>([]);
+  const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
 
   useEffect(() => {
     if (user && !isCreator) {
@@ -227,6 +233,45 @@ const Vault = () => {
     }
   };
 
+  const handleBundleClick = async (bundle: PurchasedBundle) => {
+    if (!user) return;
+    
+    try {
+      // Fetch all content in this bundle
+      const { data: bundleContents } = await supabase
+        .from('bundle_contents')
+        .select('unlockable_id')
+        .eq('bundle_id', bundle.id);
+
+      if (bundleContents && bundleContents.length > 0) {
+        const unlockableIds = bundleContents.map(c => c.unlockable_id);
+        const { data: unlockables } = await supabase
+          .from('unlockables')
+          .select('id, media_url, media_type, title, caption, creator_id')
+          .in('id', unlockableIds);
+
+        if (unlockables && unlockables.length > 0) {
+          setViewerContent(unlockables.map(u => ({
+            id: u.id,
+            media_type: u.media_type,
+            media_url: u.media_url,
+            caption: u.caption,
+            title: u.title,
+            price: 0,
+            created_at: '',
+            unlocked_at: '',
+            creator: bundle.creator
+          })));
+          setViewerInitialIndex(0);
+          setViewerOpen(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bundle contents:', error);
+      toast.error('Failed to load bundle content');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-5rem)]">
@@ -333,22 +378,37 @@ const Vault = () => {
           {['all', 'image', 'video'].map((type) => (
             <TabsContent key={type} value={type}>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filterContent(type).map((item) => (
-                  <Card key={item.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                {filterContent(type).map((item, index) => (
+                  <Card 
+                    key={item.id} 
+                    className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                    onClick={() => {
+                      const filtered = filterContent(type);
+                      setViewerContent(filtered);
+                      setViewerInitialIndex(index);
+                      setViewerOpen(true);
+                    }}
+                  >
                     <CardContent className="p-0">
                       <div className="relative aspect-square bg-muted">
                         {item.media_type === 'image' ? (
                           <img
                             src={item.media_url}
                             alt={item.caption || 'Content'}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                           />
                         ) : item.media_type === 'video' ? (
-                          <video
-                            src={item.media_url}
-                            className="w-full h-full object-cover"
-                            controls
-                          />
+                          <div className="relative w-full h-full">
+                            <video
+                              src={item.media_url}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center">
+                                <Play className="h-6 w-6 text-black ml-1" />
+                              </div>
+                            </div>
+                          </div>
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
                             <Music className="w-12 h-12 text-muted-foreground" />
@@ -385,14 +445,18 @@ const Vault = () => {
           <TabsContent value="bundles">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {purchasedBundles.map((bundle) => (
-                <Card key={bundle.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card 
+                  key={bundle.id} 
+                  className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group"
+                  onClick={() => handleBundleClick(bundle)}
+                >
                   <CardContent className="p-0">
                     <div className="relative aspect-video bg-muted">
                       {bundle.thumbnail_url ? (
                         <img
                           src={bundle.thumbnail_url}
                           alt={bundle.title}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -402,7 +466,7 @@ const Vault = () => {
                       <div className="absolute top-2 right-2">
                         <Badge variant="secondary" className="gap-1">
                           <Package className="w-3 h-3" />
-                          Bundle
+                          {bundle.content_count} items
                         </Badge>
                       </div>
                     </div>
@@ -413,7 +477,7 @@ const Vault = () => {
                       )}
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{format(new Date(bundle.purchased_at), 'MMM d, yyyy')}</span>
-                        <span>${bundle.price}</span>
+                        <Badge variant="outline" className="text-xs">Tap to view</Badge>
                       </div>
                     </div>
                   </CardContent>
@@ -423,6 +487,14 @@ const Vault = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Full-screen Content Viewer */}
+      <ContentViewer
+        open={viewerOpen}
+        onOpenChange={setViewerOpen}
+        content={viewerContent}
+        initialIndex={viewerInitialIndex}
+      />
     </div>
   );
 };
