@@ -226,14 +226,45 @@ const CreatorProfile = () => {
 
   const handleBundleClick = (bundle: Bundle) => {
     setSelectedBundle(bundle);
+    // If already purchased, still open dialog but it will show "Already Purchased" state
     setBundlePurchaseDialogOpen(true);
   };
 
   const handlePurchaseBundle = async () => {
     if (!selectedBundle || !user || !profile) return;
     
+    // CRITICAL: Check if user already owns this bundle
+    if (selectedBundle.purchased) {
+      toast({ 
+        title: "Already Purchased", 
+        description: "You already own this bundle. View it in your vault.",
+      });
+      setBundlePurchaseDialogOpen(false);
+      return;
+    }
+    
     setPurchasingBundle(true);
     try {
+      // Double-check ownership at transaction level to prevent race conditions
+      const { data: existingTransaction } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('customer_id', user.id)
+        .eq('pack_id', selectedBundle.id)
+        .eq('status', 'completed')
+        .maybeSingle();
+      
+      if (existingTransaction) {
+        toast({ 
+          title: "Already Purchased", 
+          description: "You already own this bundle.",
+        });
+        setBundlePurchaseDialogOpen(false);
+        fetchCreatorData(); // Refresh to show correct status
+        setPurchasingBundle(false);
+        return;
+      }
+
       // Check if user has sufficient balance
       if (balance < selectedBundle.price) {
         toast({ 
@@ -271,15 +302,18 @@ const CreatorProfile = () => {
             .eq('id', content.unlockable_id)
             .single();
 
-          const updatedUnlockedBy = [...(unlockable?.unlocked_by || []), user.id];
-          await supabase
-            .from('unlockables')
-            .update({ unlocked_by: updatedUnlockedBy })
-            .eq('id', content.unlockable_id);
+          // Check if already unlocked to avoid duplicates in array
+          const currentUnlockedBy = unlockable?.unlocked_by || [];
+          if (!currentUnlockedBy.includes(user.id)) {
+            await supabase
+              .from('unlockables')
+              .update({ unlocked_by: [...currentUnlockedBy, user.id] })
+              .eq('id', content.unlockable_id);
+          }
         }
       }
 
-      // Record transaction
+      // Record transaction with pack_id to track bundle ownership
       await supabase.from('transactions').insert({
         customer_id: user.id,
         creator_id: profile.id,
@@ -287,9 +321,34 @@ const CreatorProfile = () => {
         net_amount: selectedBundle.price * 0.85,
         platform_fee: selectedBundle.price * 0.15,
         processor_fee: 0,
-        transaction_type: 'unlockable',
+        transaction_type: 'pack',
+        pack_id: selectedBundle.id,
         status: 'completed',
       });
+
+      // Send notification to creator
+      try {
+        const { data: customerProfile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+        
+        const customerName = customerProfile?.display_name || 'A customer';
+        
+        await supabase.functions.invoke('create-notification', {
+          body: {
+            userId: profile.id,
+            type: 'bundle_purchase',
+            title: 'Bundle Purchased! 🎉',
+            message: `${customerName} purchased your bundle "${selectedBundle.title}" for $${selectedBundle.price.toFixed(2)}`,
+            link: '/earnings',
+          },
+        });
+      } catch (notifError) {
+        console.error('Failed to send notification:', notifError);
+        // Non-fatal, continue
+      }
 
       toast({ title: "Bundle purchased!", description: "All content in this bundle is now unlocked" });
       setBundlePurchaseDialogOpen(false);
@@ -476,6 +535,8 @@ const CreatorProfile = () => {
                       )}
                       {isContent && !unlocked && <Badge variant="outline" className="text-xs gap-1"><Lock className="h-3 w-3" />Locked</Badge>}
                       {isContent && unlocked && <Badge variant="secondary" className="text-xs">Unlocked</Badge>}
+                      {!isContent && item.purchased && <Badge variant="secondary" className="text-xs">Purchased</Badge>}
+                      {!isContent && !item.purchased && <Badge variant="outline" className="text-xs gap-1"><Lock className="h-3 w-3" />Locked</Badge>}
                     </div>
                   </div>
                 </Card>
@@ -583,7 +644,23 @@ const CreatorProfile = () => {
                 </div>
               </div>
               
-              {balance >= selectedBundle.price ? (
+              {selectedBundle.purchased ? (
+                <div className="space-y-3">
+                  <div className="rounded-lg bg-primary/10 p-4 text-center">
+                    <Badge variant="secondary" className="text-sm mb-2">Already Purchased</Badge>
+                    <p className="text-sm text-muted-foreground">You already own this bundle. View it in your vault.</p>
+                  </div>
+                  <Button 
+                    onClick={() => { 
+                      setBundlePurchaseDialogOpen(false); 
+                      navigate('/vault'); 
+                    }} 
+                    className="w-full"
+                  >
+                    View in My Vault
+                  </Button>
+                </div>
+              ) : balance >= selectedBundle.price ? (
                 <Button onClick={handlePurchaseBundle} disabled={purchasingBundle} className="w-full" size="lg">
                   {purchasingBundle ? (
                     <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Processing...</>
