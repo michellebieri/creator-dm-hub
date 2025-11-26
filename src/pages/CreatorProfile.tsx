@@ -147,14 +147,14 @@ const CreatorProfile = () => {
             }
           }
           
-          // Check if bundle is purchased - first check transactions, then check if all items unlocked
+      // Check if bundle is purchased - check transactions table for bundle_id
           if (user) {
-            // Method 1: Check if there's a completed transaction for this bundle
+            // Check if there's a completed transaction for this bundle
             const { data: bundleTransaction } = await supabase
               .from('transactions')
               .select('id')
               .eq('customer_id', user.id)
-              .eq('pack_id', bundle.id)
+              .eq('bundle_id', bundle.id)
               .eq('status', 'completed')
               .maybeSingle();
             
@@ -306,7 +306,7 @@ const CreatorProfile = () => {
         .from('transactions')
         .select('id')
         .eq('customer_id', user.id)
-        .eq('pack_id', selectedBundle.id)
+        .eq('bundle_id', selectedBundle.id)
         .eq('status', 'completed')
         .maybeSingle();
       
@@ -369,8 +369,8 @@ const CreatorProfile = () => {
         }
       }
 
-      // Record transaction with pack_id to track bundle ownership
-      await supabase.from('transactions').insert({
+      // Record transaction with bundle_id to track bundle ownership
+      const { error: txError } = await supabase.from('transactions').insert({
         customer_id: user.id,
         creator_id: profile.id,
         amount: selectedBundle.price,
@@ -378,9 +378,13 @@ const CreatorProfile = () => {
         platform_fee: selectedBundle.price * 0.15,
         processor_fee: 0,
         transaction_type: 'pack',
-        pack_id: selectedBundle.id,
+        bundle_id: selectedBundle.id,
         status: 'completed',
       });
+      
+      if (txError) {
+        console.error('Transaction insert error:', txError);
+      }
 
       // Send notification to creator
       try {

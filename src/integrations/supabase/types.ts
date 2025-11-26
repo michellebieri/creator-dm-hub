@@ -1949,6 +1949,7 @@ export type Database = {
       transactions: {
         Row: {
           amount: number
+          bundle_id: string | null
           created_at: string
           creator_id: string
           customer_id: string
@@ -1964,6 +1965,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          bundle_id?: string | null
           created_at?: string
           creator_id: string
           customer_id: string
@@ -1979,6 +1981,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bundle_id?: string | null
           created_at?: string
           creator_id?: string
           customer_id?: string
@@ -1993,6 +1996,13 @@ export type Database = {
           transaction_type?: Database["public"]["Enums"]["transaction_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "transactions_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "content_bundles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "transactions_creator_id_fkey"
             columns: ["creator_id"]
