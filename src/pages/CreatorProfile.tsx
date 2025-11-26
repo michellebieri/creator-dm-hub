@@ -85,7 +85,7 @@ const CreatorProfile = () => {
 
   useEffect(() => {
     fetchCreatorData();
-  }, [id]);
+  }, [id, user?.id]);
 
   const fetchCreatorData = async () => {
     if (!id) return;
