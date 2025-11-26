@@ -31,7 +31,7 @@ const EarningsDashboard = () => {
         // Fetch transactions
         const { data: txData, error: txError } = await supabase
           .from('transactions')
-          .select('*')
+          .select('*, customer:customer_id(display_name)')
           .eq('creator_id', user.id)
           .eq('status', 'completed')
           .order('created_at', { ascending: false })
@@ -39,7 +39,21 @@ const EarningsDashboard = () => {
 
         if (txError) throw txError;
 
-        setTransactions(txData || []);
+        // Enrich transactions with bundle/content names
+        const enrichedTx = await Promise.all((txData || []).map(async (tx) => {
+          let itemName = '';
+          if (tx.pack_id) {
+            const { data: bundle } = await supabase
+              .from('content_bundles')
+              .select('title')
+              .eq('id', tx.pack_id)
+              .single();
+            itemName = bundle?.title || 'Bundle';
+          }
+          return { ...tx, itemName };
+        }));
+
+        setTransactions(enrichedTx);
 
         // Calculate stats
         const total = txData?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
@@ -148,8 +162,16 @@ const EarningsDashboard = () => {
                   className="flex justify-between items-center p-4 border border-lime-100 dark:border-lime-900 rounded-xl hover:bg-lime-50/50 dark:hover:bg-lime-950/20 transition-colors"
                 >
                   <div>
-                    <p className="font-semibold capitalize">{tx.transaction_type}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-semibold capitalize">
+                      {tx.transaction_type === 'pack' ? 'Bundle Purchase' : tx.transaction_type.replace('_', ' ')}
+                    </p>
+                    {tx.itemName && (
+                      <p className="text-sm font-medium text-primary">{tx.itemName}</p>
+                    )}
+                    {tx.customer?.display_name && (
+                      <p className="text-xs text-muted-foreground">From: {tx.customer.display_name}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
                       {new Date(tx.created_at).toLocaleString()}
                     </p>
                   </div>
