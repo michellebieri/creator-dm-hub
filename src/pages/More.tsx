@@ -101,11 +101,6 @@ const More = () => {
               <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
               <MenuItem title="Followers & Subscribers" icon={List} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
             </Card>
-
-            <Card className="m-4 overflow-hidden">
-              <MenuItem title="Dashboard" icon={BarChart3} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/dashboard')} />
-              <MenuItem title="Analytics" icon={PieChart} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/analytics')} />
-            </Card>
           </>
         )}
 

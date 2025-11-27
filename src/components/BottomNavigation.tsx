@@ -13,14 +13,14 @@ export const BottomNavigation = () => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50 safe-area-bottom">
       <div className="flex items-center justify-around h-16 max-w-screen-lg mx-auto px-2">
-        <Link to="/dashboard" className="flex flex-col items-center justify-center flex-1">
+        <Link to={isCreator ? "/earnings" : "/dashboard"} className="flex flex-col items-center justify-center flex-1">
           {isCreator ? (
-            <BarChart3 className={`h-6 w-6 ${isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
+            <BarChart3 className={`h-6 w-6 ${isActive('/earnings') ? 'text-primary' : 'text-muted-foreground'}`} />
           ) : (
             <Home className={`h-6 w-6 ${isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
           )}
-          <span className={`text-xs mt-1 ${isActive('/dashboard') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-            Dashboard
+          <span className={`text-xs mt-1 ${isActive(isCreator ? '/earnings' : '/dashboard') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+            {isCreator ? 'Revenue' : 'Dashboard'}
           </span>
         </Link>
         
