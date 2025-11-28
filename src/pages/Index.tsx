@@ -81,23 +81,34 @@ const Index = () => {
               }
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              {!isCreator && (
+              {!isCreator && user && (
                 <Button 
                   size="lg" 
                   className="gradient-primary text-primary-foreground text-lg px-8"
-                  onClick={() => navigate('/browse')}
+                  onClick={() => navigate('/dashboard')}
                 >
-                  Browse Creators
+                  Find Creator
                 </Button>
               )}
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="text-lg px-8"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-              >
-                How It Works
-              </Button>
+              {!isCreator && !user && (
+                <>
+                  <Button 
+                    size="lg" 
+                    className="gradient-primary text-primary-foreground text-lg px-8"
+                    onClick={() => navigate('/browse')}
+                  >
+                    Browse Creators
+                  </Button>
+                  <Button 
+                    size="lg" 
+                    variant="outline" 
+                    className="text-lg px-8"
+                    onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                  >
+                    How It Works
+                  </Button>
+                </>
+              )}
             </div>
             {isCreator ? (
               <div className="flex flex-wrap justify-center gap-4 max-w-3xl mx-auto">
