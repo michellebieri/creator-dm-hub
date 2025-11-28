@@ -79,10 +79,8 @@ const More = () => {
     iconBg: string;
     iconColor: string;
   }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      onClick={() => { window.location.href = href; }}
       className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
     >
       <div className="flex items-center gap-3">
@@ -92,7 +90,7 @@ const More = () => {
         <span className="text-base font-medium">{title}</span>
       </div>
       <ChevronRight className="h-5 w-5 text-muted-foreground" />
-    </a>
+    </button>
   );
 
   return (
