@@ -109,7 +109,21 @@ const More = () => {
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => window.open('https://wa.me/971585189982', '_blank', 'noopener,noreferrer')} />
+          <MenuItem 
+            title="Support" 
+            icon={HelpCircle} 
+            iconBg="bg-blue-500/10" 
+            iconColor="text-blue-500" 
+            onClick={() => {
+              const link = document.createElement('a');
+              link.href = 'https://wa.me/971585189982';
+              link.target = '_blank';
+              link.rel = 'noopener noreferrer';
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+            }} 
+          />
         </Card>
 
         <Card className="m-4 overflow-hidden">
