@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { CreatorSearchBar } from '@/components/CreatorSearchBar';
 import { Heart, MessageCircle, Lock, Home } from 'lucide-react';
 import { format } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -311,23 +312,34 @@ const Dashboard = () => {
   if (creators.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="mb-8">
+          <CreatorSearchBar prominent />
+        </div>
         <EmptyState
           icon={Home}
           title="Welcome to your Dashboard!"
-          description="Start browsing creators and send a message to see their content in your feed."
+          description="You haven't connected with any creators yet. Search for a creator to get started!"
           action={{
             label: "Browse Creators",
             onClick: () => navigate('/browse')
           }}
         />
+        <div className="text-center mt-4 text-sm text-muted-foreground">
+          <p>Example: @michelle</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background pb-4">
+      {/* Search Bar */}
+      <div className="border-b border-border bg-card sticky top-0 z-10 px-4 pt-4 pb-3">
+        <CreatorSearchBar />
+      </div>
+      
       {/* Stories/Quick Access */}
-      <div className="border-b border-border bg-card sticky top-0 z-10">
+      <div className="border-b border-border bg-card">
         <ScrollArea className="w-full">
           <div className="flex gap-4 p-4 pb-3">
             {creators.map((creator) => (

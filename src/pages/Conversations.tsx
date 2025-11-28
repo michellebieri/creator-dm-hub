@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { CreatorSearchBar } from '@/components/CreatorSearchBar';
 import { OnlineStatusBadge } from '@/components/OnlineStatusBadge';
 import {
   DropdownMenu,
@@ -249,6 +250,12 @@ const Conversations = () => {
         </div>
 
         <div className="mb-6 space-y-4">
+          {!isCreator && (
+            <div className="mb-4">
+              <CreatorSearchBar prominent={filteredConversations.length === 0} />
+            </div>
+          )}
+          
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               variant={showArchived ? 'outline' : 'default'}
@@ -286,15 +293,22 @@ const Conversations = () => {
               description="Try adjusting your search terms"
             />
           ) : (
-            <EmptyState
-              icon={MessageCircle}
-              title="No messages yet"
-              description={isCreator ? "Your messages will appear here" : "Start messaging creators to see your messages here"}
-              action={!isCreator ? {
-                label: 'Browse Creators',
-                onClick: () => navigate('/browse'),
-              } : undefined}
-            />
+            <div>
+              <EmptyState
+                icon={MessageCircle}
+                title="No messages yet"
+                description={isCreator ? "Your messages will appear here" : "Search for a creator to start your first conversation"}
+                action={!isCreator ? {
+                  label: 'Browse Creators',
+                  onClick: () => navigate('/browse'),
+                } : undefined}
+              />
+              {!isCreator && (
+                <div className="text-center mt-4 text-sm text-muted-foreground">
+                  <p>Example: @michelle</p>
+                </div>
+              )}
+            </div>
           )
         ) : (
           <div className="space-y-3">
