@@ -109,7 +109,7 @@ const More = () => {
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('#')} />
+          <MenuItem title="Support" icon={HelpCircle} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => window.open('https://wa.me/971585189982', '_blank')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
