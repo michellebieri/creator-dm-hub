@@ -110,7 +110,6 @@ const More = () => {
 
         <Card className="m-4 overflow-hidden">
           <MenuItem title="Support" icon={HelpCircle} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('#')} />
-          <MenuItem title="Switch account" icon={RefreshCw} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('#')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
