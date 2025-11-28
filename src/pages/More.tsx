@@ -66,6 +66,35 @@ const More = () => {
     </button>
   );
 
+  const MenuItemLink = ({ 
+    title, 
+    icon: Icon, 
+    href,
+    iconBg,
+    iconColor
+  }: { 
+    title: string; 
+    icon: any; 
+    href: string;
+    iconBg: string;
+    iconColor: string;
+  }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-between w-full px-4 py-4 hover:bg-muted/50 transition-colors"
+    >
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <span className="text-base font-medium">{title}</span>
+      </div>
+      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+    </a>
+  );
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background border-b border-border">
@@ -109,20 +138,12 @@ const More = () => {
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem 
+          <MenuItemLink 
             title="Support" 
             icon={HelpCircle} 
             iconBg="bg-blue-500/10" 
             iconColor="text-blue-500" 
-            onClick={() => {
-              const link = document.createElement('a');
-              link.href = 'https://wa.me/971585189982';
-              link.target = '_blank';
-              link.rel = 'noopener noreferrer';
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-            }} 
+            href="https://wa.me/971585189982"
           />
         </Card>
 
