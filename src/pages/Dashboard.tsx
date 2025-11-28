@@ -324,9 +324,6 @@ const Dashboard = () => {
             onClick: () => navigate('/browse')
           }}
         />
-        <div className="text-center mt-4 text-sm text-muted-foreground">
-          <p>Example: @michelle</p>
-        </div>
       </div>
     );
   }
@@ -336,33 +333,6 @@ const Dashboard = () => {
       {/* Search Bar */}
       <div className="border-b border-border bg-card sticky top-0 z-10 px-4 pt-4 pb-3">
         <CreatorSearchBar />
-      </div>
-      
-      {/* Stories/Quick Access */}
-      <div className="border-b border-border bg-card">
-        <ScrollArea className="w-full">
-          <div className="flex gap-4 p-4 pb-3">
-            {creators.map((creator) => (
-              <button
-                key={creator.id}
-                onClick={() => navigate(`/creator/${creator.username}`)}
-                className="flex flex-col items-center gap-2 min-w-[80px] hover:opacity-75 transition-opacity"
-              >
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-primary to-accent p-0.5">
-                    <Avatar className="w-full h-full border-2 border-background">
-                      <AvatarImage src={creator.avatar_url || ''} alt={creator.display_name} />
-                      <AvatarFallback>{creator.display_name[0]}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                </div>
-                <span className="text-xs text-muted-foreground line-clamp-1 max-w-[80px]">
-                  {creator.display_name}
-                </span>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
       </div>
 
       {/* Feed */}
