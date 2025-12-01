@@ -32,6 +32,7 @@ import ResetPassword from "./pages/ResetPassword";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CreatorProfile from "./pages/CreatorProfile";
+import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
 import Lists from "./pages/Lists";
 import Nudges from "./pages/Nudges";
@@ -72,6 +73,11 @@ const App = () => {
             {/* Browse and creator profile pages */}
             <Route path="/browse" element={<Creators />} />
             <Route path="/creator/:id" element={<CreatorProfile />} />
+            <Route path="/customer/:id" element={
+              <ProtectedRoute requireCreator>
+                <CustomerProfile />
+              </ProtectedRoute>
+            } />
             
             {/* Dashboard route - different for creators vs customers */}
             <Route path="/dashboard" element={
