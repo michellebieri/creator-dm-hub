@@ -37,12 +37,14 @@ interface Conversation {
     username: string;
     display_name: string;
     avatar_url?: string;
+    role: 'creator' | 'customer';
   };
   customer?: {
     id: string;
     username: string;
     display_name: string;
     avatar_url?: string;
+    role: 'creator' | 'customer';
   };
   last_message?: {
     content: string;
@@ -167,10 +169,19 @@ const Conversations = () => {
   }, [user, showArchived]);
 
   const handleViewProfile = (conversation: Conversation) => {
-    const otherUserId = user?.id === conversation.customer_id 
-      ? conversation.creator_id 
-      : conversation.customer_id;
-    navigate(`/creator/${otherUserId}`);
+    const otherUser = user?.id === conversation.customer_id 
+      ? conversation.creator 
+      : conversation.customer;
+    
+    // Only navigate if the other user is a creator
+    if (otherUser?.role === 'creator') {
+      navigate(`/creator/${otherUser.username}`);
+    } else {
+      toast({
+        title: "Profile not available",
+        description: "Customer profiles are not viewable",
+      });
+    }
   };
 
   const handleChatClick = async (conversation: Conversation) => {
