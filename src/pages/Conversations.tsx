@@ -342,13 +342,7 @@ const Conversations = () => {
                   onClick={() => handleChatClick(conversation)}
                 >
                   <div className="flex items-center gap-4">
-                    <div 
-                      className="relative cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewProfile(conversation);
-                      }}
-                    >
+                    <div className="relative">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={otherUser?.avatar_url} />
                         <AvatarFallback>
@@ -361,13 +355,7 @@ const Conversations = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 
-                          className="font-semibold truncate cursor-pointer hover:underline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewProfile(conversation);
-                          }}
-                        >
+                        <h3 className="font-semibold truncate">
                           {otherUser?.display_name}
                         </h3>
                         <Badge variant="secondary" className="text-xs">
