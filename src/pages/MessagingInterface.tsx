@@ -365,8 +365,19 @@ const MessagingInterface = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            {creatorProfile && !isCreator ? (
-              <div className="flex items-center gap-3">
+            {creatorProfile ? (
+              <div 
+                className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => {
+                  if (isCreator) {
+                    // Creator viewing customer profile
+                    navigate(`/customer/${creatorId}`);
+                  } else {
+                    // Customer viewing creator profile
+                    navigate(`/creator/${creatorProfile.username}`);
+                  }
+                }}
+              >
                 <Avatar className="h-10 w-10">
                   {creatorProfile.avatar_url && (
                     <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
