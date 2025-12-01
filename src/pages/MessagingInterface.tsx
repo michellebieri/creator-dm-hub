@@ -368,23 +368,29 @@ const MessagingInterface = () => {
             {creatorProfile ? (
               <div 
                 className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log('Profile clicked!', { isCreator, creatorId, creatorProfile });
+                  
                   if (isCreator) {
                     // Creator viewing customer profile
+                    console.log('Navigating to customer profile:', `/customer/${creatorId}`);
                     navigate(`/customer/${creatorId}`);
                   } else {
                     // Customer viewing creator profile
+                    console.log('Navigating to creator profile:', `/creator/${creatorProfile.username}`);
                     navigate(`/creator/${creatorProfile.username}`);
                   }
                 }}
               >
-                <Avatar className="h-10 w-10">
+                <Avatar className="h-10 w-10 pointer-events-none">
                   {creatorProfile.avatar_url && (
                     <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
                   )}
                   <AvatarFallback>{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <div>
+                <div className="pointer-events-none">
                   <h2 className="font-semibold">{creatorProfile.display_name}</h2>
                   <p className="text-xs text-muted-foreground">@{creatorProfile.username}</p>
                 </div>
