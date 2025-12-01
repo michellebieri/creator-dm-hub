@@ -173,14 +173,21 @@ const Conversations = () => {
       ? conversation.creator 
       : conversation.customer;
     
-    // Only navigate if the other user is a creator
-    if (otherUser?.role === 'creator') {
+    if (!otherUser) return;
+    
+    // Navigate to appropriate profile based on role
+    if (otherUser.role === 'creator') {
       navigate(`/creator/${otherUser.username}`);
     } else {
-      toast({
-        title: "Profile not available",
-        description: "Customer profiles are not viewable",
-      });
+      // For creators viewing customers, show customer profile with payment history
+      if (isCreator) {
+        navigate(`/customer/${otherUser.id}`);
+      } else {
+        toast({
+          title: "Profile not available",
+          description: "Customer profiles are not viewable",
+        });
+      }
     }
   };
 
