@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, MessageSquare, Clock, Calendar, TrendingUp, ArrowUpDown } from 'lucide-react';
+import { BarChart3, MessageSquare, Clock, Calendar, TrendingUp, ArrowUpDown, DollarSign } from 'lucide-react';
 import { useConversationStats } from '@/hooks/useConversationStats';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -130,6 +130,20 @@ export const ConversationStats = ({ conversationId, userId }: ConversationStatsP
                 </Card>
               )}
             </div>
+
+            {/* Total Paid */}
+            <Card className="p-4 bg-accent/10">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <p className="text-sm font-medium">Total Paid</p>
+              </div>
+              <p className="text-2xl font-bold">
+                ${stats.totalPaid.toFixed(2)}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Total amount paid
+              </p>
+            </Card>
 
             {/* Unread Badge */}
             {stats.unreadCount > 0 && (

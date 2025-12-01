@@ -9,6 +9,7 @@ interface ConversationStats {
   lastActivity: string | null;
   mostActiveDay: string | null;
   unreadCount: number;
+  totalPaid: number;
 }
 
 export const useConversationStats = (conversationId: string | null, userId: string | null) => {
@@ -23,6 +24,15 @@ export const useConversationStats = (conversationId: string | null, userId: stri
 
     const fetchStats = async () => {
       try {
+        // Fetch conversation to get customer_id and creator_id
+        const { data: conversation, error: convError } = await supabase
+          .from('conversations')
+          .select('customer_id, creator_id')
+          .eq('id', conversationId)
+          .single();
+
+        if (convError) throw convError;
+
         // Fetch all messages
         const { data: messages, error } = await supabase
           .from('messages')
@@ -31,6 +41,18 @@ export const useConversationStats = (conversationId: string | null, userId: stri
           .order('created_at', { ascending: true });
 
         if (error) throw error;
+
+        // Fetch total payments from customer to creator in this conversation
+        const { data: transactions, error: transError } = await supabase
+          .from('transactions')
+          .select('amount')
+          .eq('customer_id', conversation.customer_id)
+          .eq('creator_id', conversation.creator_id)
+          .eq('status', 'completed');
+
+        if (transError) throw transError;
+
+        const totalPaid = transactions?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
 
         if (!messages || messages.length === 0) {
           setStats({
@@ -41,6 +63,7 @@ export const useConversationStats = (conversationId: string | null, userId: stri
             lastActivity: null,
             mostActiveDay: null,
             unreadCount: 0,
+            totalPaid,
           });
           setLoading(false);
           return;
@@ -93,6 +116,7 @@ export const useConversationStats = (conversationId: string | null, userId: stri
           lastActivity,
           mostActiveDay,
           unreadCount,
+          totalPaid,
         });
       } catch (error) {
         console.error('Error fetching conversation stats:', error);
