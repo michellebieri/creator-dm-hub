@@ -25,7 +25,7 @@ import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
-import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, User } from 'lucide-react';
+import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -366,30 +366,17 @@ const MessagingInterface = () => {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             {creatorProfile ? (
-              <div className="flex items-center gap-3 flex-1">
+              <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
                   {creatorProfile.avatar_url && (
                     <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
                   )}
                   <AvatarFallback>{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
+                <div>
                   <h2 className="font-semibold">{creatorProfile.display_name}</h2>
                   <p className="text-xs text-muted-foreground">@{creatorProfile.username}</p>
                 </div>
-                {isCreator && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.log('View Profile clicked, navigating to:', `/customer/${creatorId}`);
-                      navigate(`/customer/${creatorId}`);
-                    }}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    View Profile
-                  </Button>
-                )}
               </div>
             ) : (
               <h2 className="font-semibold">Messages</h2>
