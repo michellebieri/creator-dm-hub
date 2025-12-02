@@ -49,6 +49,8 @@ interface FeedPost {
   is_bundle?: boolean;
   thumbnail_urls?: string[];
   content_count?: number;
+  like_count?: number;
+  is_liked?: boolean;
 }
 
 const Dashboard = () => {
@@ -63,6 +65,7 @@ const Dashboard = () => {
   const [showAddFunds, setShowAddFunds] = useState(false);
   const [showConfirmUnlock, setShowConfirmUnlock] = useState(false);
   const [selectedPost, setSelectedPost] = useState<FeedPost | null>(null);
+  const [likingPosts, setLikingPosts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (user && !isCreator) {
@@ -130,6 +133,26 @@ const Dashboard = () => {
         .order('created_at', { ascending: false })
         .limit(50);
 
+      // Get likes for unlockables
+      const unlockableIds = unlockables?.map((u: any) => u.id) || [];
+      const { data: likes } = await supabase
+        .from('content_likes')
+        .select('unlockable_id')
+        .in('unlockable_id', unlockableIds);
+      
+      const { data: userLikes } = await supabase
+        .from('content_likes')
+        .select('unlockable_id')
+        .eq('user_id', user.id)
+        .in('unlockable_id', unlockableIds);
+      
+      const likeCounts = (likes || []).reduce((acc: Record<string, number>, like: any) => {
+        acc[like.unlockable_id] = (acc[like.unlockable_id] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const userLikedSet = new Set((userLikes || []).map((l: any) => l.unlockable_id));
+
       const formattedPosts = unlockables?.map((post: any) => ({
         id: post.id,
         media_type: post.media_type,
@@ -140,6 +163,8 @@ const Dashboard = () => {
         creator: post.profiles,
         is_unlocked: post.unlocked_by?.includes(user.id) || false,
         is_bundle: false,
+        like_count: likeCounts[post.id] || 0,
+        is_liked: userLikedSet.has(post.id),
       })) || [];
 
       // Get bundles from these creators
@@ -230,6 +255,50 @@ const Dashboard = () => {
     }
     setSelectedPost(post);
     setShowConfirmUnlock(true);
+  };
+
+  const handleLikeToggle = async (post: FeedPost) => {
+    if (!user || post.is_bundle) return;
+    
+    setLikingPosts(prev => new Set(prev).add(post.id));
+    
+    try {
+      if (post.is_liked) {
+        // Unlike
+        await supabase
+          .from('content_likes')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('unlockable_id', post.id);
+        
+        // Update local state
+        setFeedPosts(prev => prev.map(p => 
+          p.id === post.id 
+            ? { ...p, is_liked: false, like_count: Math.max(0, (p.like_count || 0) - 1) }
+            : p
+        ));
+      } else {
+        // Like
+        await supabase
+          .from('content_likes')
+          .insert({ user_id: user.id, unlockable_id: post.id });
+        
+        // Update local state
+        setFeedPosts(prev => prev.map(p => 
+          p.id === post.id 
+            ? { ...p, is_liked: true, like_count: (p.like_count || 0) + 1 }
+            : p
+        ));
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error);
+    } finally {
+      setLikingPosts(prev => {
+        const next = new Set(prev);
+        next.delete(post.id);
+        return next;
+      });
+    }
   };
 
   const confirmUnlock = async () => {
@@ -446,17 +515,24 @@ const Dashboard = () => {
 
                   {/* Post Actions */}
                   <div className="p-4 space-y-2">
-                    <div className="flex items-center gap-4">
-                      <button className="hover:opacity-75 transition-opacity">
-                        <Heart className="w-6 h-6" />
-                      </button>
-                      <button 
-                        className="hover:opacity-75 transition-opacity"
-                        onClick={() => navigate('/conversations')}
-                      >
-                        <MessageCircle className="w-6 h-6" />
-                      </button>
-                    </div>
+                    {!post.is_bundle && (
+                      <div className="flex items-center gap-4">
+                        <button 
+                          className="hover:opacity-75 transition-opacity disabled:opacity-50"
+                          onClick={() => handleLikeToggle(post)}
+                          disabled={likingPosts.has(post.id)}
+                        >
+                          <Heart 
+                            className={`w-6 h-6 ${post.is_liked ? 'fill-red-500 text-red-500' : ''}`} 
+                          />
+                        </button>
+                        {(post.like_count || 0) > 0 && (
+                          <span className="text-sm text-muted-foreground">
+                            {post.like_count} {post.like_count === 1 ? 'like' : 'likes'}
+                          </span>
+                        )}
+                      </div>
+                    )}
                     
                     {post.caption && (
                       <p className="text-sm">
