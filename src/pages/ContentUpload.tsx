@@ -17,6 +17,7 @@ export default function ContentUpload() {
   const [uploading, setUploading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [price, setPrice] = useState('9.99');
+  const [freeForSubscribers, setFreeForSubscribers] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
   const [debugErrors, setDebugErrors] = useState<Array<{
@@ -231,6 +232,7 @@ export default function ContentUpload() {
                   media_url: publicUrl,
                   media_type: mediaType,
                   price: priceValue,
+                  free_for_subscribers: freeForSubscribers,
                 });
 
               if (unlockableError) {
@@ -395,6 +397,22 @@ export default function ContentUpload() {
               This price will apply to all selected files
             </p>
           </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="freeForSubscribers"
+              checked={freeForSubscribers}
+              onChange={(e) => setFreeForSubscribers(e.target.checked)}
+              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+            />
+            <Label htmlFor="freeForSubscribers" className="text-sm font-normal cursor-pointer">
+              Free for Subscribers
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-2">
+            Subscribers can view this content without paying
+          </p>
 
           {uploading && (
             <div className="space-y-2">

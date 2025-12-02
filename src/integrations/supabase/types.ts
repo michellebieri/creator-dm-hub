@@ -2039,6 +2039,7 @@ export type Database = {
           created_at: string
           creator_id: string
           expires_at: string | null
+          free_for_subscribers: boolean | null
           id: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
@@ -2052,6 +2053,7 @@ export type Database = {
           created_at?: string
           creator_id: string
           expires_at?: string | null
+          free_for_subscribers?: boolean | null
           id?: string
           media_type: Database["public"]["Enums"]["media_type"]
           media_url: string
@@ -2065,6 +2067,7 @@ export type Database = {
           created_at?: string
           creator_id?: string
           expires_at?: string | null
+          free_for_subscribers?: boolean | null
           id?: string
           media_type?: Database["public"]["Enums"]["media_type"]
           media_url?: string

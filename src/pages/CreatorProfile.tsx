@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, Check, ExternalLink } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, Check, ExternalLink, Crown } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +15,8 @@ import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { ContentGridSkeleton } from '@/components/ui/skeleton';
 import { useFollowing } from '@/hooks/useFollowing';
 import { ContentViewer } from '@/components/ContentViewer';
+import { SubscriptionTiersDisplay } from '@/components/SubscriptionTiersDisplay';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Profile {
   id: string;
@@ -33,6 +35,7 @@ interface ContentItem {
   caption?: string;
   created_at: string;
   unlocked_by: string[] | null;
+  free_for_subscribers?: boolean;
 }
 
 interface Bundle {
@@ -65,6 +68,7 @@ const CreatorProfile = () => {
   const { balance, spend } = useWallet();
   const [creatorUserId, setCreatorUserId] = useState<string | null>(null);
   const { isFollowing, followersCount, loading: followLoading, toggleFollow } = useFollowing(user?.id, creatorUserId);
+  const { isSubscribed } = useSubscription(user?.id, creatorUserId);
   
   const [profile, setProfile] = useState<Profile | null>(null);
   const [content, setContent] = useState<ContentItem[]>([]);
@@ -122,7 +126,7 @@ const CreatorProfile = () => {
 
       const { data: contentData } = await supabase
         .from('unlockables')
-        .select('id, media_url, media_type, price, title, caption, created_at, unlocked_by, creator_id')
+        .select('id, media_url, media_type, price, title, caption, created_at, unlocked_by, creator_id, free_for_subscribers')
         .eq('creator_id', profileData.id)
         .order('created_at', { ascending: false })
         .limit(itemsToShow);
@@ -229,8 +233,14 @@ const CreatorProfile = () => {
   };
 
   const handleContentClick = (item: ContentItem) => {
-    // If user owns content, open viewer directly - no unlock dialog
+    // If user owns content or is subscribed with free access, open viewer directly
     if (user && item.unlocked_by?.includes(user.id)) {
+      setViewerContent([item]);
+      setContentViewerOpen(true);
+      return;
+    }
+    // Subscriber has free access to subscriber-only content
+    if (user && isSubscribed && item.free_for_subscribers) {
       setViewerContent([item]);
       setContentViewerOpen(true);
       return;
@@ -506,7 +516,15 @@ const CreatorProfile = () => {
   }
   if (!profile) return null;
 
-  const isUnlocked = (item: ContentItem) => user && item.unlocked_by?.includes(user.id);
+  // Check if content is accessible: user owns it OR (user is subscribed AND content is free for subscribers)
+  const isUnlocked = (item: ContentItem) => {
+    if (!user) return false;
+    // Already purchased
+    if (item.unlocked_by?.includes(user.id)) return true;
+    // Subscriber has free access
+    if (isSubscribed && item.free_for_subscribers) return true;
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -571,7 +589,13 @@ const CreatorProfile = () => {
           <div className="flex items-center gap-3 mb-4">
             <Badge variant="secondary">${pricePerMessage} / message</Badge>
           </div>
-          <div className="flex gap-2 w-full max-w-xs">
+          
+          {/* Subscription Tiers */}
+          {creatorUserId && user?.id !== creatorUserId && (
+            <SubscriptionTiersDisplay creatorId={creatorUserId} creatorName={profile.display_name} />
+          )}
+          
+          <div className="flex gap-2 w-full max-w-xs mt-4">
             <Button onClick={handleStartConversation} size="lg" className="flex-1">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
