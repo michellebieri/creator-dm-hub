@@ -71,6 +71,7 @@ const Lists = () => {
           )
         `)
         .eq('following_id', user.id)
+        .neq('follower_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
