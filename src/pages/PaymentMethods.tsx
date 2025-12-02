@@ -35,14 +35,16 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
     style: {
       base: {
         fontSize: '16px',
-        color: 'hsl(var(--foreground))',
+        color: '#1a1a1a',
         fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontSmoothing: 'antialiased',
         '::placeholder': {
-          color: 'hsl(var(--muted-foreground))',
+          color: '#6b7280',
         },
       },
       invalid: {
-        color: 'hsl(var(--destructive))',
+        color: '#ef4444',
+        iconColor: '#ef4444',
       },
     },
   };
