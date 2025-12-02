@@ -128,23 +128,32 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
 
         <div className="space-y-2">
           <Label>Card Number</Label>
-          <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-            <CardNumberElement options={elementOptions} />
+          <div 
+            className="p-3 border border-input rounded-lg bg-white dark:bg-slate-900 min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 relative"
+            style={{ isolation: 'isolate', pointerEvents: 'auto' }}
+          >
+            <CardNumberElement options={elementOptions} className="w-full" />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Expiration Date</Label>
-            <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-              <CardExpiryElement options={elementOptions} />
+            <div 
+              className="p-3 border border-input rounded-lg bg-white dark:bg-slate-900 min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 relative"
+              style={{ isolation: 'isolate', pointerEvents: 'auto' }}
+            >
+              <CardExpiryElement options={elementOptions} className="w-full" />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>CVC</Label>
-            <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
-              <CardCvcElement options={elementOptions} />
+            <div 
+              className="p-3 border border-input rounded-lg bg-white dark:bg-slate-900 min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 relative"
+              style={{ isolation: 'isolate', pointerEvents: 'auto' }}
+            >
+              <CardCvcElement options={elementOptions} className="w-full" />
             </div>
           </div>
         </div>
@@ -344,7 +353,10 @@ const PaymentMethods = () => {
       </div>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent 
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>Add Payment Method</DialogTitle>
           </DialogHeader>
