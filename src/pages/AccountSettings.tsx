@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, User, MessageSquare, Layers, Package, Share2, Settings, Bell, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, User, MessageSquare, Layers, Package, Share2, Bell, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 
@@ -12,7 +12,6 @@ const AccountSettings = () => {
     { title: 'Subscription', icon: Layers, path: '/settings/subscription', bgColor: 'bg-purple-500/10', iconColor: 'text-purple-500' },
     { title: 'Bundle', icon: Package, path: '/settings/bundle', bgColor: 'bg-pink-500/10', iconColor: 'text-pink-500' },
     { title: 'Socials', icon: Share2, path: '/settings/socials', bgColor: 'bg-muted', iconColor: 'text-muted-foreground' },
-    { title: 'Management', icon: Settings, path: '/settings/management', bgColor: 'bg-muted', iconColor: 'text-muted-foreground' },
   ];
 
   const userSections = [
