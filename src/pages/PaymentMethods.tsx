@@ -31,15 +31,18 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
   const [billingZip, setBillingZip] = useState('');
   const { toast } = useToast();
 
+  // Detect if dark mode is active
+  const isDarkMode = document.documentElement.classList.contains('dark');
+  
   const elementOptions = {
     style: {
       base: {
         fontSize: '16px',
-        color: '#1a1a1a',
+        color: isDarkMode ? '#f8fafc' : '#1a1a1a',
         fontFamily: 'system-ui, -apple-system, sans-serif',
         fontSmoothing: 'antialiased',
         '::placeholder': {
-          color: '#6b7280',
+          color: isDarkMode ? '#94a3b8' : '#6b7280',
         },
       },
       invalid: {
@@ -125,7 +128,7 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
 
         <div className="space-y-2">
           <Label>Card Number</Label>
-          <div className="p-3 border border-border rounded-lg bg-background">
+          <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
             <CardNumberElement options={elementOptions} />
           </div>
         </div>
@@ -133,14 +136,14 @@ const AddPaymentMethodForm = ({ onSuccess, onCancel }: { onSuccess: () => void; 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Expiration Date</Label>
-            <div className="p-3 border border-border rounded-lg bg-background">
+            <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               <CardExpiryElement options={elementOptions} />
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>CVC</Label>
-            <div className="p-3 border border-border rounded-lg bg-background">
+            <div className="p-3 border border-input rounded-lg bg-card min-h-[44px] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
               <CardCvcElement options={elementOptions} />
             </div>
           </div>
