@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, Check } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft, Lock, Image as ImageIcon, Video as VideoIcon, Package, UserPlus, Check, ExternalLink } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -82,6 +82,7 @@ const CreatorProfile = () => {
   const [itemsToShow, setItemsToShow] = useState(20);
   const [contentViewerOpen, setContentViewerOpen] = useState(false);
   const [viewerContent, setViewerContent] = useState<ContentItem[]>([]);
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchCreatorData();
@@ -101,10 +102,23 @@ const CreatorProfile = () => {
 
       const { data: settingsData } = await supabase
         .from('creator_settings')
-        .select('price_per_message')
+        .select('price_per_message, social_facebook, social_instagram, social_tiktok, social_youtube, social_twitch, social_twitter, social_snapchat, social_other_url')
         .eq('user_id', profileData.id)
         .single();
-      if (settingsData) setPricePerMessage(settingsData.price_per_message);
+      if (settingsData) {
+        setPricePerMessage(settingsData.price_per_message);
+        // Extract social links
+        const socials: Record<string, string> = {};
+        if (settingsData.social_facebook) socials.facebook = settingsData.social_facebook;
+        if (settingsData.social_instagram) socials.instagram = settingsData.social_instagram;
+        if (settingsData.social_tiktok) socials.tiktok = settingsData.social_tiktok;
+        if (settingsData.social_youtube) socials.youtube = settingsData.social_youtube;
+        if (settingsData.social_twitch) socials.twitch = settingsData.social_twitch;
+        if (settingsData.social_twitter) socials.twitter = settingsData.social_twitter;
+        if (settingsData.social_snapchat) socials.snapchat = settingsData.social_snapchat;
+        if (settingsData.social_other_url) socials.other = settingsData.social_other_url;
+        setSocialLinks(socials);
+      }
 
       const { data: contentData } = await supabase
         .from('unlockables')
@@ -512,6 +526,48 @@ const CreatorProfile = () => {
           <h2 className="text-2xl font-bold mb-1">{profile.display_name}</h2>
           <p className="text-muted-foreground mb-2">@{profile.username}</p>
           {profile.bio && <p className="text-sm text-muted-foreground max-w-md mb-4">{profile.bio}</p>}
+          
+          {/* Social Links */}
+          {Object.keys(socialLinks).length > 0 && (
+            <div className="flex flex-wrap justify-center gap-3 mb-4">
+              {Object.entries(socialLinks).map(([platform, url]) => {
+                const platformNames: Record<string, string> = {
+                  facebook: 'Facebook',
+                  instagram: 'Instagram', 
+                  tiktok: 'TikTok',
+                  youtube: 'YouTube',
+                  twitch: 'Twitch',
+                  twitter: 'X (Twitter)',
+                  snapchat: 'Snapchat',
+                  other: 'Website'
+                };
+                // Extract username from URL
+                const getHandle = (url: string) => {
+                  try {
+                    const urlObj = new URL(url);
+                    const path = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+                    return path.replace('@', '') || urlObj.hostname;
+                  } catch {
+                    return url;
+                  }
+                };
+                return (
+                  <a
+                    key={platform}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span className="font-medium">{platformNames[platform]}:</span>
+                    <span>{getHandle(url)}</span>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+          
           <div className="flex items-center gap-3 mb-4">
             <Badge variant="secondary">${pricePerMessage} / message</Badge>
           </div>
