@@ -3,12 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Check, Loader2 } from 'lucide-react';
+import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
-import { AddFundsDialog } from '@/components/AddFundsDialog';
+import { useSearchParams } from 'react-router-dom';
 
 interface SubscriptionTier {
   id: string;
@@ -28,8 +27,8 @@ interface SubscriptionTiersDisplayProps {
 
 export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: SubscriptionTiersDisplayProps) => {
   const { user } = useAuth();
-  const { balance, spend } = useWallet();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +36,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
-  const [showAddFunds, setShowAddFunds] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     fetchTiers();
@@ -45,6 +44,46 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
       checkSubscription();
     }
   }, [creatorId, user]);
+
+  // Handle subscription success from URL params
+  useEffect(() => {
+    const subscriptionStatus = searchParams.get('subscription');
+    const tierId = searchParams.get('tier');
+    
+    if (subscriptionStatus === 'success' && tierId && user) {
+      verifyAndCreateSubscription(tierId);
+    }
+  }, [searchParams, user]);
+
+  const verifyAndCreateSubscription = async (tierId: string) => {
+    setVerifying(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data, error } = await supabase.functions.invoke('verify-subscription', {
+        body: { tierId, creatorId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+
+      if (data?.subscribed) {
+        toast({
+          title: "Subscription Active!",
+          description: `You are now subscribed to ${creatorName}`,
+        });
+        setIsSubscribed(true);
+        checkSubscription();
+      }
+    } catch (error: any) {
+      console.error('Error verifying subscription:', error);
+    } finally {
+      setVerifying(false);
+      // Clean up URL params
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  };
 
   const fetchTiers = async () => {
     try {
@@ -75,14 +114,17 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         .from('creator_subscriptions')
         .select('*, subscription_tiers(*)')
         .eq('customer_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'canceling'])
         .maybeSingle();
 
       if (data && data.subscription_tiers) {
         const tier = data.subscription_tiers as any;
         if (tier.creator_id === creatorId) {
-          setIsSubscribed(true);
-          setCurrentSubscription(data);
+          const periodEnd = new Date(data.current_period_end);
+          if (periodEnd > new Date()) {
+            setIsSubscribed(true);
+            setCurrentSubscription(data);
+          }
         }
       }
     } catch (error) {
@@ -96,76 +138,66 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
       return;
     }
 
-    if (balance < tier.price) {
-      setSelectedTier(tier);
-      setShowAddFunds(true);
-      return;
-    }
-
     setSelectedTier(tier);
     setSubscribing(true);
 
     try {
-      // Process payment
-      const success = await spend(tier.price, 'subscription', `Subscribed to ${creatorName}: ${tier.name}`, creatorId);
-      if (!success) {
-        toast({ title: "Payment failed", description: "Could not process subscription payment", variant: "destructive" });
-        return;
-      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
 
-      // Calculate subscription period
-      const now = new Date();
-      const periodEnd = new Date(now);
-      if (tier.billing_interval === 'yearly') {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      } else {
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-      }
-
-      // Create subscription record
-      const { error } = await supabase
-        .from('creator_subscriptions')
-        .insert({
-          customer_id: user.id,
-          tier_id: tier.id,
-          status: 'active',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        });
+      const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
+        body: { tierId: tier.id, creatorId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
       if (error) throw error;
 
-      toast({ title: "Subscribed!", description: `You are now subscribed to ${creatorName}'s ${tier.name} tier` });
-      setIsSubscribed(true);
-      setDialogOpen(false);
-      checkSubscription();
+      if (data?.url) {
+        // Open Stripe Checkout in new tab
+        window.open(data.url, '_blank');
+        toast({
+          title: "Checkout opened",
+          description: "Complete your subscription in the new tab",
+        });
+      }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to subscribe", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to start checkout", variant: "destructive" });
     } finally {
       setSubscribing(false);
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!currentSubscription) return;
-
+  const handleManageSubscription = async () => {
     try {
-      const { error } = await supabase
-        .from('creator_subscriptions')
-        .update({ status: 'canceled' })
-        .eq('id', currentSubscription.id);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { data, error } = await supabase.functions.invoke('subscription-portal', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
       if (error) throw error;
 
-      toast({ title: "Subscription canceled", description: "Your subscription has been canceled" });
-      setIsSubscribed(false);
-      setCurrentSubscription(null);
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
     } catch (error: any) {
-      toast({ title: "Error", description: "Failed to cancel subscription", variant: "destructive" });
+      toast({ title: "Error", description: error.message || "Failed to open portal", variant: "destructive" });
     }
   };
 
-  if (loading) return null;
+  const getBenefitsList = (tier: SubscriptionTier) => {
+    const benefits = [];
+    if (tier.unlimited_messages) {
+      benefits.push({ icon: MessageCircle, text: 'Unlimited free messages' });
+    } else if (tier.free_messages_per_month && tier.free_messages_per_month > 0) {
+      benefits.push({ icon: MessageCircle, text: `${tier.free_messages_per_month} free messages per month` });
+    }
+    benefits.push({ icon: Lock, text: 'Access to exclusive content' });
+    return benefits;
+  };
+
+  if (loading || verifying) return null;
   if (tiers.length === 0) return null;
 
   return (
@@ -175,7 +207,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="bg-primary/10 text-primary">
               <Crown className="h-3 w-3 mr-1" />
-              Subscribed
+              {currentSubscription?.status === 'canceling' ? 'Subscribed (Canceling)' : 'Subscribed'}
             </Badge>
             <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)}>
               Manage
@@ -208,16 +240,23 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                     </p>
                     {currentSubscription.current_period_end && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        Renews: {new Date(currentSubscription.current_period_end).toLocaleDateString()}
+                        {currentSubscription.status === 'canceling' ? 'Access until: ' : 'Renews: '}
+                        {new Date(currentSubscription.current_period_end).toLocaleDateString()}
                       </p>
                     )}
                   </div>
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-600">Active</Badge>
+                  <Badge variant="secondary" className={currentSubscription.status === 'canceling' ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600'}>
+                    {currentSubscription.status === 'canceling' ? 'Canceling' : 'Active'}
+                  </Badge>
                 </div>
               </Card>
-              <Button variant="destructive" onClick={handleCancelSubscription} className="w-full">
-                Cancel Subscription
+              <Button variant="outline" onClick={handleManageSubscription} className="w-full">
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Manage Subscription
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                Manage billing, update payment method, or cancel subscription
+              </p>
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
@@ -236,23 +275,13 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                     {tier.description && (
                       <p className="text-sm text-muted-foreground">{tier.description}</p>
                     )}
-                    <ul className="space-y-1">
-                      {tier.unlimited_messages && (
-                        <li className="text-sm flex items-center gap-2">
+                    <ul className="space-y-2">
+                      {getBenefitsList(tier).map((benefit, i) => (
+                        <li key={i} className="text-sm flex items-center gap-2">
                           <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                          Unlimited free messages
+                          {benefit.text}
                         </li>
-                      )}
-                      {!tier.unlimited_messages && tier.free_messages_per_month && tier.free_messages_per_month > 0 && (
-                        <li className="text-sm flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                          {tier.free_messages_per_month} free messages per month
-                        </li>
-                      )}
-                      <li className="text-sm flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                        Access to exclusive content
-                      </li>
+                      ))}
                     </ul>
                     <Button 
                       onClick={() => handleSubscribe(tier)} 
@@ -271,19 +300,6 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
           )}
         </DialogContent>
       </Dialog>
-
-      <AddFundsDialog
-        open={showAddFunds}
-        onOpenChange={setShowAddFunds}
-        requiredAmount={selectedTier?.price}
-        currentBalance={balance}
-        onSuccess={() => {
-          setShowAddFunds(false);
-          if (selectedTier) {
-            handleSubscribe(selectedTier);
-          }
-        }}
-      />
     </>
   );
 };
