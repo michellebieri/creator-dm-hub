@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { Crown, Calendar, DollarSign, X, ChevronLeft } from 'lucide-react';
+import { Crown, Calendar, DollarSign, X, ChevronLeft, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -25,6 +25,7 @@ interface Subscription {
   creator_id: string;
   creator_name: string;
   creator_avatar: string | null;
+  stripe_subscription_id: string | null;
 }
 
 const Subscriptions = () => {
@@ -52,6 +53,7 @@ const Subscriptions = () => {
           current_period_start,
           current_period_end,
           tier_id,
+          stripe_subscription_id,
           subscription_tiers (
             name,
             price,
@@ -88,6 +90,7 @@ const Subscriptions = () => {
           creator_id: tier?.creator_id || '',
           creator_name: creator?.display_name || 'Unknown',
           creator_avatar: creator?.avatar_url || null,
+          stripe_subscription_id: sub.stripe_subscription_id,
         };
       }) || [];
 
@@ -100,23 +103,68 @@ const Subscriptions = () => {
     }
   };
 
-  const handleCancelSubscription = async (subscriptionId: string) => {
+  const handleCancelSubscription = async (subscriptionId: string, stripeSubId: string | null) => {
+    if (!stripeSubId) {
+      // Fallback for non-Stripe subscriptions
+      setCancelling(subscriptionId);
+      try {
+        const { error } = await supabase
+          .from('creator_subscriptions')
+          .update({ status: 'canceled' })
+          .eq('id', subscriptionId);
+
+        if (error) throw error;
+
+        toast.success('Subscription canceled successfully');
+        fetchSubscriptions();
+      } catch (error) {
+        console.error('Error canceling subscription:', error);
+        toast.error('Failed to cancel subscription');
+      } finally {
+        setCancelling(null);
+      }
+      return;
+    }
+
+    // Cancel via Stripe
     setCancelling(subscriptionId);
     try {
-      const { error } = await supabase
-        .from('creator_subscriptions')
-        .update({ status: 'canceled' })
-        .eq('id', subscriptionId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        body: { subscriptionId: stripeSubId },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
 
       if (error) throw error;
 
-      toast.success('Subscription canceled successfully');
+      toast.success(`Subscription will be canceled. Access until ${new Date(data.current_period_end).toLocaleDateString()}`);
       fetchSubscriptions();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error canceling subscription:', error);
-      toast.error('Failed to cancel subscription');
+      toast.error(error.message || 'Failed to cancel subscription');
     } finally {
       setCancelling(null);
+    }
+  };
+
+  const handleManageAll = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No session');
+
+      const { data, error } = await supabase.functions.invoke('subscription-portal', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to open billing portal');
     }
   };
 
@@ -163,6 +211,12 @@ const Subscriptions = () => {
         />
       ) : (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={handleManageAll}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Manage All in Stripe
+            </Button>
+          </div>
           {subscriptions.map((sub) => (
             <Card key={sub.id} className="border-pink-200 dark:border-pink-900 bg-gradient-to-br from-pink-50/50 to-white dark:from-pink-950/30 dark:to-background shadow-md hover:shadow-lg transition-all">
               <CardHeader>
@@ -227,7 +281,7 @@ const Subscriptions = () => {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleCancelSubscription(sub.id)}
+                          onClick={() => handleCancelSubscription(sub.id, sub.stripe_subscription_id)}
                           disabled={cancelling === sub.id}
                         >
                           {cancelling === sub.id ? 'Canceling...' : 'Cancel Subscription'}
