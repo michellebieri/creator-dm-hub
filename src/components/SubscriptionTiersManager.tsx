@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Plus, Trash2, Edit } from 'lucide-react';
+import { Plus, Trash2, Edit, MessageCircle, Lock, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface Tier {
@@ -16,7 +17,8 @@ interface Tier {
   description: string;
   price: number;
   billing_interval: string;
-  features: string[];
+  free_messages_per_month: number | null;
+  unlimited_messages: boolean;
   is_active: boolean;
 }
 
@@ -32,7 +34,8 @@ export const SubscriptionTiersManager = () => {
     description: '',
     price: '',
     billing_interval: 'monthly',
-    features: '',
+    free_messages_per_month: '',
+    unlimited_messages: false,
   });
 
   useEffect(() => {
@@ -53,7 +56,8 @@ export const SubscriptionTiersManager = () => {
       if (error) throw error;
       setTiers((data || []).map(tier => ({
         ...tier,
-        features: Array.isArray(tier.features) ? tier.features.map(f => String(f)) : [],
+        unlimited_messages: tier.unlimited_messages || false,
+        free_messages_per_month: tier.free_messages_per_month || null,
       })) as Tier[]);
     } catch (error: any) {
       toast({
@@ -76,7 +80,8 @@ export const SubscriptionTiersManager = () => {
         description: formData.description,
         price: parseFloat(formData.price),
         billing_interval: formData.billing_interval,
-        features: formData.features.split('\n').filter(f => f.trim()),
+        free_messages_per_month: formData.free_messages_per_month ? parseInt(formData.free_messages_per_month) : null,
+        unlimited_messages: formData.unlimited_messages,
         creator_id: user.id,
       };
 
@@ -100,7 +105,14 @@ export const SubscriptionTiersManager = () => {
 
       setDialogOpen(false);
       setEditingTier(null);
-      setFormData({ name: '', description: '', price: '', billing_interval: 'monthly', features: '' });
+      setFormData({ 
+        name: '', 
+        description: '', 
+        price: '', 
+        billing_interval: 'monthly', 
+        free_messages_per_month: '',
+        unlimited_messages: false,
+      });
       fetchTiers();
     } catch (error: any) {
       toast({
@@ -118,7 +130,8 @@ export const SubscriptionTiersManager = () => {
       description: tier.description || '',
       price: tier.price.toString(),
       billing_interval: tier.billing_interval,
-      features: (tier.features || []).join('\n'),
+      free_messages_per_month: tier.free_messages_per_month?.toString() || '',
+      unlimited_messages: tier.unlimited_messages || false,
     });
     setDialogOpen(true);
   };
@@ -148,57 +161,94 @@ export const SubscriptionTiersManager = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  const openCreateDialog = () => {
+    setEditingTier(null);
+    setFormData({ 
+      name: '', 
+      description: '', 
+      price: '', 
+      billing_interval: 'monthly', 
+      free_messages_per_month: '',
+      unlimited_messages: false,
+    });
+    setDialogOpen(true);
+  };
+
+  const getBenefitsList = (tier: Tier) => {
+    const benefits = [];
+    if (tier.unlimited_messages) {
+      benefits.push({ icon: MessageCircle, text: 'Unlimited free messages' });
+    } else if (tier.free_messages_per_month && tier.free_messages_per_month > 0) {
+      benefits.push({ icon: MessageCircle, text: `${tier.free_messages_per_month} free messages per month` });
+    }
+    benefits.push({ icon: Lock, text: 'Access to exclusive content' });
+    return benefits;
+  };
+
+  if (loading) return <div className="text-center py-8 text-muted-foreground">Loading...</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Subscription Tiers</h2>
-        <Button onClick={() => setDialogOpen(true)}>
+        <Button onClick={openCreateDialog}>
           <Plus className="h-4 w-4 mr-2" />
           Add Tier
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {tiers.map((tier) => (
-          <Card key={tier.id} className="p-6">
-            <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-xl font-bold">{tier.name}</h3>
-                  <p className="text-2xl font-bold mt-2">
-                    ${tier.price}
-                    <span className="text-sm text-muted-foreground">/{tier.billing_interval}</span>
-                  </p>
+      {tiers.length === 0 ? (
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground mb-4">No subscription tiers yet. Create your first tier to start offering subscriptions.</p>
+          <Button onClick={openCreateDialog}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Your First Tier
+          </Button>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {tiers.map((tier) => (
+            <Card key={tier.id} className="p-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold">{tier.name}</h3>
+                    <p className="text-2xl font-bold mt-2">
+                      ${tier.price}
+                      <span className="text-sm text-muted-foreground">/{tier.billing_interval}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" onClick={() => handleEdit(tier)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(tier.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(tier)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDelete(tier.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                {tier.description && (
+                  <p className="text-sm text-muted-foreground">{tier.description}</p>
+                )}
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Benefits</p>
+                  <ul className="space-y-2">
+                    {getBenefitsList(tier).map((benefit, i) => (
+                      <li key={i} className="text-sm flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        {benefit.text}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </div>
-              {tier.description && <p className="text-sm text-muted-foreground">{tier.description}</p>}
-              {tier.features && tier.features.length > 0 && (
-                <ul className="space-y-2">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="text-sm flex items-center">
-                      <span className="mr-2">✓</span>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>{editingTier ? 'Edit' : 'Create'} Subscription Tier</DialogTitle>
           </DialogHeader>
@@ -217,17 +267,19 @@ export const SubscriptionTiersManager = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Describe what this tier includes..."
+                rows={3}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Price</Label>
+                <Label>Price ($)</Label>
                 <Input
                   type="number"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   placeholder="9.99"
                   step="0.01"
+                  min="0"
                 />
               </div>
               <div className="space-y-2">
@@ -246,16 +298,52 @@ export const SubscriptionTiersManager = () => {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Features (one per line)</Label>
-              <Textarea
-                value={formData.features}
-                onChange={(e) => setFormData({ ...formData, features: e.target.value })}
-                placeholder="Exclusive content&#10;Priority support&#10;Monthly video calls"
-                rows={5}
-              />
+
+            <div className="space-y-4 pt-4 border-t border-border">
+              <p className="font-medium">Subscriber Benefits</p>
+              
+              <div className="space-y-2">
+                <Label>Free Messages Per Month</Label>
+                <Input
+                  type="number"
+                  value={formData.free_messages_per_month}
+                  onChange={(e) => setFormData({ ...formData, free_messages_per_month: e.target.value })}
+                  placeholder="e.g., 5"
+                  min="0"
+                  disabled={formData.unlimited_messages}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Number of free messages subscribers can send each month
+                </p>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="unlimited_messages"
+                  checked={formData.unlimited_messages}
+                  onCheckedChange={(checked) => setFormData({ 
+                    ...formData, 
+                    unlimited_messages: checked as boolean,
+                    free_messages_per_month: checked ? '' : formData.free_messages_per_month,
+                  })}
+                />
+                <Label htmlFor="unlimited_messages" className="cursor-pointer">
+                  Unlimited free messages
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2 opacity-70">
+                <Checkbox id="exclusive_content" checked disabled />
+                <Label htmlFor="exclusive_content" className="cursor-pointer">
+                  Access to exclusive content
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                All subscribers automatically get access to content marked "Free for Subscribers"
+              </p>
             </div>
-            <Button onClick={handleSave} className="w-full">
+
+            <Button onClick={handleSave} className="w-full" disabled={!formData.name || !formData.price}>
               {editingTier ? 'Update' : 'Create'} Tier
             </Button>
           </div>

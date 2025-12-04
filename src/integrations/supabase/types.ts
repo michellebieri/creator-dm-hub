@@ -1798,6 +1798,67 @@ export type Database = {
           },
         ]
       }
+      subscription_message_usage: {
+        Row: {
+          created_at: string
+          creator_id: string
+          customer_id: string
+          id: string
+          messages_allowed: number
+          messages_used: number
+          period_end: string
+          period_start: string
+          subscription_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          customer_id: string
+          id?: string
+          messages_allowed?: number
+          messages_used?: number
+          period_end: string
+          period_start: string
+          subscription_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          customer_id?: string
+          id?: string
+          messages_allowed?: number
+          messages_used?: number
+          period_end?: string
+          period_start?: string
+          subscription_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_message_usage_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_message_usage_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_message_usage_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "creator_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_tiers: {
         Row: {
           billing_interval: string
