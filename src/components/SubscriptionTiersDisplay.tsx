@@ -16,7 +16,8 @@ interface SubscriptionTier {
   description: string | null;
   price: number;
   billing_interval: string;
-  features: string[] | null;
+  free_messages_per_month: number | null;
+  unlimited_messages: boolean | null;
   is_active: boolean;
 }
 
@@ -57,7 +58,8 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
       if (error) throw error;
       setTiers((data || []).map(tier => ({
         ...tier,
-        features: Array.isArray(tier.features) ? tier.features.map(f => String(f)) : [],
+        unlimited_messages: tier.unlimited_messages || false,
+        free_messages_per_month: tier.free_messages_per_month || null,
       })));
     } catch (error) {
       console.error('Error fetching tiers:', error);
@@ -234,16 +236,24 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                     {tier.description && (
                       <p className="text-sm text-muted-foreground">{tier.description}</p>
                     )}
-                    {tier.features && tier.features.length > 0 && (
-                      <ul className="space-y-1">
-                        {tier.features.map((feature, i) => (
-                          <li key={i} className="text-sm flex items-center gap-2">
-                            <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <ul className="space-y-1">
+                      {tier.unlimited_messages && (
+                        <li className="text-sm flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          Unlimited free messages
+                        </li>
+                      )}
+                      {!tier.unlimited_messages && tier.free_messages_per_month && tier.free_messages_per_month > 0 && (
+                        <li className="text-sm flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          {tier.free_messages_per_month} free messages per month
+                        </li>
+                      )}
+                      <li className="text-sm flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        Access to exclusive content
+                      </li>
+                    </ul>
                     <Button 
                       onClick={() => handleSubscribe(tier)} 
                       disabled={subscribing}

@@ -24,11 +24,19 @@ interface Message {
   unlockables?: any;
 }
 
+interface SubscriptionMessageInfo {
+  hasSubscription: boolean;
+  hasUnlimitedMessages: boolean;
+  freeMessagesRemaining: number;
+  freeMessagesAllowed: number;
+}
+
 export const useMessages = (conversationId: string | null, creatorId?: string | null) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionMessageInfo | null>(null);
 
   const fetchMessages = async () => {
     if (!conversationId) {
@@ -53,8 +61,88 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     setLoading(false);
   };
 
+  const fetchSubscriptionInfo = async () => {
+    if (!user || !creatorId) return;
+
+    try {
+      // Get active subscription for this creator
+      const { data: subscriptions } = await supabase
+        .from('creator_subscriptions')
+        .select('*, subscription_tiers!inner(*)')
+        .eq('customer_id', user.id)
+        .eq('status', 'active')
+        .gte('current_period_end', new Date().toISOString());
+
+      if (!subscriptions || subscriptions.length === 0) {
+        setSubscriptionInfo(null);
+        return;
+      }
+
+      // Find subscription for this specific creator
+      const subscription = subscriptions.find((sub: any) => 
+        sub.subscription_tiers?.creator_id === creatorId
+      );
+
+      if (!subscription) {
+        setSubscriptionInfo(null);
+        return;
+      }
+
+      const tier = subscription.subscription_tiers as any;
+      const hasUnlimitedMessages = tier.unlimited_messages === true;
+      const freeMessagesAllowed = tier.free_messages_per_month || 0;
+
+      if (!hasUnlimitedMessages && freeMessagesAllowed === 0) {
+        setSubscriptionInfo({
+          hasSubscription: true,
+          hasUnlimitedMessages: false,
+          freeMessagesRemaining: 0,
+          freeMessagesAllowed: 0,
+        });
+        return;
+      }
+
+      // Get or create message usage record for current period
+      const { data: existingUsage } = await supabase
+        .from('subscription_message_usage')
+        .select('*')
+        .eq('subscription_id', subscription.id)
+        .eq('period_start', subscription.current_period_start)
+        .maybeSingle();
+
+      let messagesUsed = 0;
+
+      if (existingUsage) {
+        messagesUsed = existingUsage.messages_used;
+      } else {
+        // Create new usage record for this period
+        await supabase
+          .from('subscription_message_usage')
+          .insert({
+            subscription_id: subscription.id,
+            customer_id: user.id,
+            creator_id: creatorId,
+            period_start: subscription.current_period_start,
+            period_end: subscription.current_period_end,
+            messages_used: 0,
+            messages_allowed: freeMessagesAllowed,
+          });
+      }
+
+      setSubscriptionInfo({
+        hasSubscription: true,
+        hasUnlimitedMessages,
+        freeMessagesRemaining: hasUnlimitedMessages ? 999 : Math.max(0, freeMessagesAllowed - messagesUsed),
+        freeMessagesAllowed,
+      });
+    } catch (error) {
+      console.error('Error fetching subscription info:', error);
+    }
+  };
+
   useEffect(() => {
     fetchMessages();
+    fetchSubscriptionInfo();
 
     if (!conversationId) return;
 
@@ -94,7 +182,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, creatorId]);
 
   const sendMessage = async (
     content: string,
@@ -153,13 +241,16 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       const pricePerMessage = creatorSettings?.price_per_message || 5.00;
 
       // STEP 1: Check for active subscription with message allowance
-      const { data: activeSubscription } = await supabase
+      const { data: subscriptions } = await supabase
         .from('creator_subscriptions')
-        .select('*, subscription_tiers!inner(free_messages_per_month, unlimited_messages)')
+        .select('*, subscription_tiers!inner(*)')
         .eq('customer_id', user.id)
         .eq('status', 'active')
-        .gte('current_period_end', new Date().toISOString())
-        .maybeSingle();
+        .gte('current_period_end', new Date().toISOString());
+
+      const activeSubscription = subscriptions?.find((sub: any) => 
+        sub.subscription_tiers?.creator_id === creatorId
+      );
 
       if (activeSubscription?.subscription_tiers) {
         const tierData = activeSubscription.subscription_tiers as any;
@@ -167,18 +258,43 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         const freeMessagesPerMonth = tierData.free_messages_per_month || 0;
 
         if (hasUnlimitedMessages || freeMessagesPerMonth > 0) {
-          // Check if messages remain in subscription
-          const { count: usedMessages } = await supabase
-            .from('messages')
-            .select('*', { count: 'exact', head: true })
-            .eq('sender_id', user.id)
-            .eq('is_paid', true)
-            .gte('created_at', activeSubscription.current_period_start || new Date().toISOString());
+          // Get current period usage
+          const { data: usageRecord } = await supabase
+            .from('subscription_message_usage')
+            .select('*')
+            .eq('subscription_id', activeSubscription.id)
+            .eq('period_start', activeSubscription.current_period_start)
+            .maybeSingle();
 
-          const remainingMessages = hasUnlimitedMessages ? 999 : (freeMessagesPerMonth - (usedMessages || 0));
+          let messagesUsed = usageRecord?.messages_used || 0;
+          const remainingMessages = hasUnlimitedMessages ? 999 : (freeMessagesPerMonth - messagesUsed);
 
           if (remainingMessages > 0) {
-            // Use subscription message
+            // Use subscription message - update usage
+            if (usageRecord) {
+              await supabase
+                .from('subscription_message_usage')
+                .update({ 
+                  messages_used: messagesUsed + 1,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', usageRecord.id);
+            } else {
+              // Create usage record if it doesn't exist
+              await supabase
+                .from('subscription_message_usage')
+                .insert({
+                  subscription_id: activeSubscription.id,
+                  customer_id: user.id,
+                  creator_id: creatorId,
+                  period_start: activeSubscription.current_period_start,
+                  period_end: activeSubscription.current_period_end,
+                  messages_used: 1,
+                  messages_allowed: freeMessagesPerMonth,
+                });
+            }
+
+            // Send message
             const { data: messageData, error: messageError } = await supabase
               .from('messages')
               .insert({
@@ -195,10 +311,18 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
             if (messageError) throw messageError;
 
+            const newRemaining = hasUnlimitedMessages ? '∞' : (remainingMessages - 1);
             const successMessage = hasUnlimitedMessages 
-              ? "Message sent (unlimited messages)" 
-              : `Message sent (${remainingMessages - 1} subscription messages remaining)`;
+              ? "Message sent (unlimited subscription messages)" 
+              : `Message sent (${newRemaining} free messages remaining this month)`;
             toast.success(successMessage);
+            
+            // Update local subscription info
+            setSubscriptionInfo(prev => prev ? {
+              ...prev,
+              freeMessagesRemaining: hasUnlimitedMessages ? 999 : remainingMessages - 1,
+            } : null);
+
             setSending(false);
             return messageData;
           }
@@ -339,5 +463,5 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     }
   };
 
-  return { messages, loading, refetch: fetchMessages, sendMessage, sending };
+  return { messages, loading, refetch: fetchMessages, sendMessage, sending, subscriptionInfo };
 };
