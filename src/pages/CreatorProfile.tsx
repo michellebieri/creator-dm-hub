@@ -594,8 +594,8 @@ const CreatorProfile = () => {
             <Button onClick={handleStartConversation} size="lg">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
-            {/* Subscribe Button - only show when user views creator profile */}
-            {creatorUserId && user?.id !== creatorUserId && (
+            {/* Subscribe Button - always render, component handles visibility internally */}
+            {creatorUserId && (
               <SubscriptionTiersDisplay creatorId={creatorUserId} creatorName={profile.display_name} />
             )}
             {user?.id && creatorUserId && user.id !== creatorUserId && !isFollowing && (

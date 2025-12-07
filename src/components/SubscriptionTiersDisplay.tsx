@@ -3,11 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink } from 'lucide-react';
+import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
 interface SubscriptionTier {
   id: string;
@@ -28,6 +28,7 @@ interface SubscriptionTiersDisplayProps {
 export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: SubscriptionTiersDisplayProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,8 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
   const [verifying, setVerifying] = useState(false);
+  
+  const isCreator = user?.id === creatorId;
 
   useEffect(() => {
     fetchTiers();
@@ -197,7 +200,31 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     return benefits;
   };
 
-  if (loading || verifying) return null;
+  // Show loading state
+  if (loading || verifying) {
+    return (
+      <Button size="lg" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        Loading...
+      </Button>
+    );
+  }
+
+  // Creator sees their own profile - show manage button
+  if (isCreator) {
+    return (
+      <Button 
+        onClick={() => navigate('/settings/subscription')} 
+        size="lg"
+        variant="outline"
+      >
+        <Settings className="h-4 w-4 mr-2" />
+        Subscription tiers
+      </Button>
+    );
+  }
+
+  // No tiers available - don't show button for visitors
   if (tiers.length === 0) return null;
 
   return (
