@@ -590,20 +590,20 @@ const CreatorProfile = () => {
             <Badge variant="secondary">${pricePerMessage} / message</Badge>
           </div>
           
-          {/* Subscription Tiers */}
-          {creatorUserId && user?.id !== creatorUserId && (
-            <SubscriptionTiersDisplay creatorId={creatorUserId} creatorName={profile.display_name} />
-          )}
-          
-          <div className="flex gap-2 w-full max-w-xs mt-4">
-            <Button onClick={handleStartConversation} size="lg" className="flex-1">
+          <div className="flex flex-wrap gap-2 w-full max-w-md justify-center mt-4">
+            <Button onClick={handleStartConversation} size="lg">
               <MessageCircle className="h-4 w-4 mr-2" />Chat
             </Button>
+            {/* Subscribe Button - only show when user views creator profile */}
+            {creatorUserId && user?.id !== creatorUserId && (
+              <SubscriptionTiersDisplay creatorId={creatorUserId} creatorName={profile.display_name} />
+            )}
             {user?.id && creatorUserId && user.id !== creatorUserId && !isFollowing && (
               <Button 
                 onClick={toggleFollow} 
                 disabled={followLoading}
                 size="lg"
+                variant="outline"
               >
                 {followLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

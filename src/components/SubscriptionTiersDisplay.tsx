@@ -202,24 +202,23 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
 
   return (
     <>
-      <div className="mt-4">
-        {isSubscribed ? (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-primary/10 text-primary">
-              <Crown className="h-3 w-3 mr-1" />
-              {currentSubscription?.status === 'canceling' ? 'Subscribed (Canceling)' : 'Subscribed'}
-            </Badge>
-            <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)}>
-              Manage
-            </Button>
-          </div>
-        ) : (
-          <Button onClick={() => setDialogOpen(true)} className="w-full sm:w-auto">
-            <Crown className="h-4 w-4 mr-2" />
-            Subscribe
-          </Button>
-        )}
-      </div>
+      {isSubscribed ? (
+        <Button 
+          onClick={() => setDialogOpen(true)} 
+          size="lg"
+          variant="secondary"
+          className="bg-muted text-muted-foreground"
+        >
+          <Crown className="h-4 w-4 mr-2" />
+          Subscribed
+          <Check className="h-4 w-4 ml-1" />
+        </Button>
+      ) : (
+        <Button onClick={() => setDialogOpen(true)} size="lg">
+          <Crown className="h-4 w-4 mr-2" />
+          Subscribe
+        </Button>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
