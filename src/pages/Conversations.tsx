@@ -342,8 +342,14 @@ const Conversations = () => {
                   onClick={() => handleChatClick(conversation)}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="relative">
-                      <Avatar className="h-12 w-12">
+                    <div 
+                      className="relative cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewProfile(conversation);
+                      }}
+                    >
+                      <Avatar className="h-12 w-12 hover:ring-2 hover:ring-primary transition-all">
                         <AvatarImage src={otherUser?.avatar_url} />
                         <AvatarFallback>
                           {otherUser?.display_name.charAt(0).toUpperCase()}
@@ -355,7 +361,13 @@ const Conversations = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold truncate">
+                        <h3 
+                          className="font-semibold truncate cursor-pointer hover:text-primary transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewProfile(conversation);
+                          }}
+                        >
                           {otherUser?.display_name}
                         </h3>
                         <Badge variant="secondary" className="text-xs">
@@ -404,19 +416,12 @@ const Conversations = () => {
                             </div>
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={(e) => handleArchive(e, conversation.id)}>
-                          {showArchived ? (
-                            <>
-                              <ArchiveRestore className="h-4 w-4 mr-2" />
-                              Restore
-                            </>
-                          ) : (
-                            <>
-                              <Archive className="h-4 w-4 mr-2" />
-                              Archive
-                            </>
-                          )}
-                        </DropdownMenuItem>
+                        {showArchived && (
+                          <DropdownMenuItem onClick={(e) => handleArchive(e, conversation.id)}>
+                            <ArchiveRestore className="h-4 w-4 mr-2" />
+                            Restore
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
