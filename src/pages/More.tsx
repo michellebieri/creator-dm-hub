@@ -24,7 +24,8 @@ import {
   ChevronLeft,
   Newspaper,
   Receipt,
-  Wallet
+  Wallet,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -110,7 +111,10 @@ const More = () => {
           <MenuItem title="Profile" icon={User} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/profile')} />
           <MenuItem title="Vault" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/vault')} />
           {!isCreator && (
-            <MenuItem title="Wallet" icon={Wallet} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/wallet')} />
+            <>
+              <MenuItem title="Wallet" icon={Wallet} iconBg="bg-green-500/10" iconColor="text-green-500" onClick={() => navigate('/wallet')} />
+              <MenuItem title="My Subscriptions" icon={Crown} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/subscriptions')} />
+            </>
           )}
           <MenuItem title="Settings" icon={Settings} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={() => navigate('/account-settings')} />
         </Card>
@@ -128,7 +132,8 @@ const More = () => {
             <Card className="m-4 overflow-hidden">
               <MenuItem title="Content" icon={Archive} iconBg="bg-blue-500/10" iconColor="text-blue-500" onClick={() => navigate('/content-menu')} />
               <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
-              <MenuItem title="Followers & Subscribers" icon={List} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
+              <MenuItem title="Subscribers" icon={Crown} iconBg="bg-amber-500/10" iconColor="text-amber-500" onClick={() => navigate('/subscribers')} />
+              <MenuItem title="Followers" icon={Users} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
             </Card>
           </>
         )}
