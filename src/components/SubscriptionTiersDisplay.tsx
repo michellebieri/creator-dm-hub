@@ -156,12 +156,8 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
       if (error) throw error;
 
       if (data?.url) {
-        // Open Stripe Checkout in new tab
-        window.open(data.url, '_blank');
-        toast({
-          title: "Checkout opened",
-          description: "Complete your subscription in the new tab",
-        });
+        // Redirect to Stripe Checkout in same tab
+        window.location.href = data.url;
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message || "Failed to start checkout", variant: "destructive" });
