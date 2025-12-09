@@ -183,27 +183,47 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
 
     setSelectedTier(tier);
     setSubscribing(true);
+    setDialogOpen(false); // Close the dialog before redirecting
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+      if (!session) {
+        toast({ title: "Error", description: "Please sign in to subscribe", variant: "destructive" });
+        setSubscribing(false);
+        return;
+      }
+
+      console.log('[SUBSCRIPTION] Creating checkout session...', { tierId: tier.id, creatorId });
 
       const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
         body: { tierId: tier.id, creatorId },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      if (error) throw error;
+      console.log('[SUBSCRIPTION] Checkout response:', { data, error });
+
+      if (error) {
+        console.error('[SUBSCRIPTION] Error creating checkout:', error);
+        throw error;
+      }
 
       if (data?.url) {
-        // Redirect to Stripe Checkout in same tab
-        window.location.href = data.url;
+        console.log('[SUBSCRIPTION] Redirecting to:', data.url);
+        // Use location.assign for a cleaner redirect
+        window.location.assign(data.url);
+      } else {
+        throw new Error('No checkout URL received');
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to start checkout", variant: "destructive" });
-    } finally {
+      console.error('[SUBSCRIPTION] Subscribe error:', error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to start checkout. Please try again.", 
+        variant: "destructive" 
+      });
       setSubscribing(false);
     }
+    // Don't reset subscribing state here - we're redirecting away
   };
 
   const handleManageSubscription = async () => {
