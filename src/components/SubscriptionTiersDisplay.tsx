@@ -183,7 +183,6 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
 
     setSelectedTier(tier);
     setSubscribing(true);
-    setDialogOpen(false); // Close the dialog before redirecting
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -193,27 +192,34 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         return;
       }
 
-      console.log('[SUBSCRIPTION] Creating checkout session...', { tierId: tier.id, creatorId });
-
-      const { data, error } = await supabase.functions.invoke('create-subscription-checkout', {
+      console.log('[SUBSCRIPTION] Calling create-subscription-checkout edge function');
+      
+      const response = await supabase.functions.invoke('create-subscription-checkout', {
         body: { tierId: tier.id, creatorId },
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      console.log('[SUBSCRIPTION] Checkout response:', { data, error });
+      console.log('[SUBSCRIPTION] Full response:', JSON.stringify(response));
 
-      if (error) {
-        console.error('[SUBSCRIPTION] Error creating checkout:', error);
-        throw error;
+      if (response.error) {
+        console.error('[SUBSCRIPTION] Error:', response.error);
+        throw new Error(response.error.message || 'Failed to create checkout session');
       }
 
-      if (data?.url) {
-        console.log('[SUBSCRIPTION] Redirecting to:', data.url);
-        // Use location.assign for a cleaner redirect
-        window.location.assign(data.url);
-      } else {
-        throw new Error('No checkout URL received');
+      const checkoutUrl = response.data?.url;
+      console.log('[SUBSCRIPTION] Checkout URL:', checkoutUrl);
+      
+      if (!checkoutUrl) {
+        throw new Error('No checkout URL in response');
       }
+
+      // Close dialog and redirect
+      setDialogOpen(false);
+      console.log('[SUBSCRIPTION] Redirecting now...');
+      
+      // Force redirect - try multiple methods
+      window.location.href = checkoutUrl;
+      
     } catch (error: any) {
       console.error('[SUBSCRIPTION] Subscribe error:', error);
       toast({ 
@@ -222,8 +228,8 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         variant: "destructive" 
       });
       setSubscribing(false);
+      setDialogOpen(true);
     }
-    // Don't reset subscribing state here - we're redirecting away
   };
 
   const handleManageSubscription = async () => {
