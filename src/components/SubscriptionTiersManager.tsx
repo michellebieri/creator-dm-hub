@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, Trash2, Edit, MessageCircle, Lock, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
+import { Badge } from '@/components/ui/badge';
 interface Tier {
   id: string;
   name: string;
@@ -161,6 +162,31 @@ export const SubscriptionTiersManager = () => {
     }
   };
 
+  const handleToggleActive = async (tier: Tier) => {
+    try {
+      const { error } = await supabase
+        .from('subscription_tiers')
+        .update({ is_active: !tier.is_active })
+        .eq('id', tier.id);
+
+      if (error) throw error;
+
+      toast({
+        title: tier.is_active ? "Tier deactivated" : "Tier activated",
+        description: tier.is_active 
+          ? "This tier is now hidden from subscribers" 
+          : "This tier is now visible to subscribers",
+      });
+      fetchTiers();
+    } catch (error: any) {
+      toast({
+        title: "Failed to update tier",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const openCreateDialog = () => {
     setEditingTier(null);
     setFormData({ 
@@ -208,11 +234,16 @@ export const SubscriptionTiersManager = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {tiers.map((tier) => (
-            <Card key={tier.id} className="p-6">
+            <Card key={tier.id} className={`p-6 ${!tier.is_active ? 'opacity-60' : ''}`}>
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="text-xl font-bold">{tier.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold">{tier.name}</h3>
+                      <Badge variant={tier.is_active ? "default" : "secondary"}>
+                        {tier.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
                     <p className="text-2xl font-bold mt-2">
                       ${tier.price}
                       <span className="text-sm text-muted-foreground">/{tier.billing_interval}</span>
@@ -226,6 +257,17 @@ export const SubscriptionTiersManager = () => {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
+                </div>
+                
+                {/* Active/Inactive Toggle */}
+                <div className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
+                  <span className="text-sm font-medium">
+                    {tier.is_active ? "Visible to subscribers" : "Hidden from subscribers"}
+                  </span>
+                  <Switch
+                    checked={tier.is_active}
+                    onCheckedChange={() => handleToggleActive(tier)}
+                  />
                 </div>
                 {tier.description && (
                   <p className="text-sm text-muted-foreground">{tier.description}</p>
