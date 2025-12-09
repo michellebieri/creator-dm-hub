@@ -55,6 +55,13 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     
     if (subscriptionStatus === 'success' && tierId && user) {
       verifyAndCreateSubscription(tierId);
+    } else if (subscriptionStatus === 'cancelled') {
+      toast({
+        title: "Subscription cancelled",
+        description: "You cancelled the subscription checkout",
+      });
+      // Clean up URL params
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [searchParams, user]);
 
@@ -62,25 +69,58 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     setVerifying(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        setVerifying(false);
+        return;
+      }
 
-      const { data, error } = await supabase.functions.invoke('verify-subscription', {
-        body: { tierId, creatorId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (error) throw error;
-
-      if (data?.subscribed) {
-        toast({
-          title: "Subscription Active!",
-          description: `You are now subscribed to ${creatorName}`,
+      // Try to verify with retries (Stripe webhook may not have processed yet)
+      let attempts = 0;
+      const maxAttempts = 3;
+      let verified = false;
+      
+      while (attempts < maxAttempts && !verified) {
+        attempts++;
+        console.log(`[SUBSCRIPTION] Verification attempt ${attempts}/${maxAttempts}`);
+        
+        const { data, error } = await supabase.functions.invoke('verify-subscription', {
+          body: { tierId, creatorId },
+          headers: { Authorization: `Bearer ${session.access_token}` },
         });
-        setIsSubscribed(true);
-        checkSubscription();
+
+        if (error) {
+          console.error('Error verifying subscription:', error);
+        } else if (data?.subscribed) {
+          verified = true;
+          toast({
+            title: "Subscription Active!",
+            description: `You are now subscribed to ${creatorName}`,
+          });
+          setIsSubscribed(true);
+          await checkSubscription();
+        } else if (attempts < maxAttempts) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+      
+      if (!verified) {
+        // Still show success - the subscription may take a moment to process
+        toast({
+          title: "Payment successful!",
+          description: "Your subscription is being processed. It may take a moment to activate.",
+        });
+        // Refresh subscription status after a delay
+        setTimeout(() => {
+          checkSubscription();
+        }, 5000);
       }
     } catch (error: any) {
       console.error('Error verifying subscription:', error);
+      toast({
+        title: "Payment received",
+        description: "Your subscription is being processed.",
+      });
     } finally {
       setVerifying(false);
       // Clean up URL params
@@ -196,12 +236,22 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     return benefits;
   };
 
-  // Show loading state
-  if (loading || verifying) {
+  // Show loading state only for initial load, not during verification
+  if (loading) {
     return (
       <Button size="lg" disabled>
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         Loading...
+      </Button>
+    );
+  }
+
+  // Show verifying state with proper messaging
+  if (verifying) {
+    return (
+      <Button size="lg" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        Activating subscription...
       </Button>
     );
   }
