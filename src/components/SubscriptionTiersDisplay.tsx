@@ -3,11 +3,12 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink, Settings } from 'lucide-react';
+import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink, Settings, Wallet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useWallet } from '@/hooks/useWallet';
 
 interface SubscriptionTier {
   id: string;
@@ -29,7 +30,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { balance, spend } = useWallet();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -37,7 +38,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [currentSubscription, setCurrentSubscription] = useState<any>(null);
-  const [verifying, setVerifying] = useState(false);
+  const [confirmStep, setConfirmStep] = useState(false);
   
   const isCreator = user?.id === creatorId;
 
@@ -47,86 +48,6 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
       checkSubscription();
     }
   }, [creatorId, user]);
-
-  // Handle subscription success from URL params
-  useEffect(() => {
-    const subscriptionStatus = searchParams.get('subscription');
-    const tierId = searchParams.get('tier');
-    
-    if (subscriptionStatus === 'success' && tierId && user) {
-      verifyAndCreateSubscription(tierId);
-    } else if (subscriptionStatus === 'cancelled') {
-      toast({
-        title: "Subscription cancelled",
-        description: "You cancelled the subscription checkout",
-      });
-      // Clean up URL params
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [searchParams, user]);
-
-  const verifyAndCreateSubscription = async (tierId: string) => {
-    setVerifying(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        setVerifying(false);
-        return;
-      }
-
-      // Try to verify with retries (Stripe webhook may not have processed yet)
-      let attempts = 0;
-      const maxAttempts = 3;
-      let verified = false;
-      
-      while (attempts < maxAttempts && !verified) {
-        attempts++;
-        console.log(`[SUBSCRIPTION] Verification attempt ${attempts}/${maxAttempts}`);
-        
-        const { data, error } = await supabase.functions.invoke('verify-subscription', {
-          body: { tierId, creatorId },
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-
-        if (error) {
-          console.error('Error verifying subscription:', error);
-        } else if (data?.subscribed) {
-          verified = true;
-          toast({
-            title: "Subscription Active!",
-            description: `You are now subscribed to ${creatorName}`,
-          });
-          setIsSubscribed(true);
-          await checkSubscription();
-        } else if (attempts < maxAttempts) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-      }
-      
-      if (!verified) {
-        // Still show success - the subscription may take a moment to process
-        toast({
-          title: "Payment successful!",
-          description: "Your subscription is being processed. It may take a moment to activate.",
-        });
-        // Refresh subscription status after a delay
-        setTimeout(() => {
-          checkSubscription();
-        }, 5000);
-      }
-    } catch (error: any) {
-      console.error('Error verifying subscription:', error);
-      toast({
-        title: "Payment received",
-        description: "Your subscription is being processed.",
-      });
-    } finally {
-      setVerifying(false);
-      // Clean up URL params
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  };
 
   const fetchTiers = async () => {
     try {
@@ -175,80 +96,141 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     }
   };
 
-  const handleSubscribe = async (tier: SubscriptionTier) => {
+  const handleSelectTier = (tier: SubscriptionTier) => {
     if (!user) {
       toast({ title: "Sign in required", description: "Please sign in to subscribe", variant: "destructive" });
       return;
     }
-
     setSelectedTier(tier);
+    setConfirmStep(true);
+  };
+
+  const handleConfirmSubscription = async () => {
+    if (!user || !selectedTier) return;
+
+    // Check wallet balance
+    if (balance < selectedTier.price) {
+      toast({ 
+        title: "Insufficient balance", 
+        description: `You need $${selectedTier.price.toFixed(2)} in your wallet. Current balance: $${balance.toFixed(2)}`,
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setSubscribing(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Error", description: "Please sign in to subscribe", variant: "destructive" });
-        setSubscribing(false);
-        return;
+      // 1. Deduct from wallet (like content purchase)
+      const spendSuccess = await spend(
+        selectedTier.price, 
+        'subscription', 
+        `Subscription to ${creatorName} - ${selectedTier.name}`,
+        creatorId
+      );
+
+      if (!spendSuccess) {
+        throw new Error('Failed to process payment from wallet');
       }
 
-      console.log('[SUBSCRIPTION] Calling create-subscription-checkout edge function');
-      
-      const response = await supabase.functions.invoke('create-subscription-checkout', {
-        body: { tierId: tier.id, creatorId },
-        headers: { Authorization: `Bearer ${session.access_token}` },
+      // 2. Calculate subscription period
+      const now = new Date();
+      const periodEnd = new Date(now);
+      if (selectedTier.billing_interval === 'monthly') {
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+      } else if (selectedTier.billing_interval === 'yearly') {
+        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+      } else {
+        periodEnd.setMonth(periodEnd.getMonth() + 1); // default to monthly
+      }
+
+      // 3. Create subscription record
+      const { data: subscription, error: subError } = await supabase
+        .from('creator_subscriptions')
+        .insert({
+          customer_id: user.id,
+          tier_id: selectedTier.id,
+          status: 'active',
+          current_period_start: now.toISOString(),
+          current_period_end: periodEnd.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (subError) throw subError;
+
+      // 4. Create message usage tracking if tier has free messages
+      if (selectedTier.free_messages_per_month && selectedTier.free_messages_per_month > 0) {
+        await supabase
+          .from('subscription_message_usage')
+          .insert({
+            subscription_id: subscription.id,
+            customer_id: user.id,
+            creator_id: creatorId,
+            messages_allowed: selectedTier.free_messages_per_month,
+            messages_used: 0,
+            period_start: now.toISOString(),
+            period_end: periodEnd.toISOString(),
+          });
+      }
+
+      // 5. Record transaction
+      await supabase.from('transactions').insert({
+        customer_id: user.id,
+        creator_id: creatorId,
+        amount: selectedTier.price,
+        net_amount: selectedTier.price * 0.85,
+        platform_fee: selectedTier.price * 0.15,
+        processor_fee: 0,
+        transaction_type: 'subscription' as any,
+        status: 'completed',
       });
 
-      console.log('[SUBSCRIPTION] Full response:', JSON.stringify(response));
+      // 6. Notify creator
+      supabase.functions.invoke('create-notification', {
+        body: {
+          userId: creatorId,
+          type: 'new_subscriber',
+          title: 'New Subscriber!',
+          message: `Someone subscribed to your ${selectedTier.name} tier for $${selectedTier.price.toFixed(2)}`,
+          link: '/subscribers',
+        },
+      }).catch(err => console.log('Notification error:', err));
 
-      if (response.error) {
-        console.error('[SUBSCRIPTION] Error:', response.error);
-        throw new Error(response.error.message || 'Failed to create checkout session');
-      }
-
-      const checkoutUrl = response.data?.url;
-      console.log('[SUBSCRIPTION] Checkout URL:', checkoutUrl);
-      
-      if (!checkoutUrl) {
-        throw new Error('No checkout URL in response');
-      }
-
-      // Close dialog and redirect
+      // 7. Update UI
+      setIsSubscribed(true);
+      setCurrentSubscription({ ...subscription, subscription_tiers: selectedTier });
+      setConfirmStep(false);
       setDialogOpen(false);
-      console.log('[SUBSCRIPTION] Redirecting now...');
       
-      // Force redirect - try multiple methods
-      window.location.href = checkoutUrl;
-      
+      toast({
+        title: "Subscription Active!",
+        description: `You are now subscribed to ${creatorName}. Your subscription will renew on ${periodEnd.toLocaleDateString()}.`,
+      });
+
     } catch (error: any) {
-      console.error('[SUBSCRIPTION] Subscribe error:', error);
+      console.error('Subscription error:', error);
       toast({ 
         title: "Error", 
-        description: error.message || "Failed to start checkout. Please try again.", 
+        description: error.message || "Failed to activate subscription", 
         variant: "destructive" 
       });
+    } finally {
       setSubscribing(false);
-      setDialogOpen(true);
     }
   };
 
   const handleManageSubscription = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No session');
+    // For wallet-based subscriptions, just show info dialog
+    toast({
+      title: "Subscription Management",
+      description: "Your subscription will auto-renew from your wallet balance. To cancel, please contact support.",
+    });
+  };
 
-      const { data, error } = await supabase.functions.invoke('subscription-portal', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-
-      if (error) throw error;
-
-      if (data?.url) {
-        window.open(data.url, '_blank');
-      }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message || "Failed to open portal", variant: "destructive" });
-    }
+  const handleBackToTiers = () => {
+    setConfirmStep(false);
+    setSelectedTier(null);
   };
 
   const getBenefitsList = (tier: SubscriptionTier) => {
@@ -262,22 +244,11 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     return benefits;
   };
 
-  // Show loading state only for initial load, not during verification
   if (loading) {
     return (
       <Button size="lg" disabled>
         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         Loading...
-      </Button>
-    );
-  }
-
-  // Show verifying state with proper messaging
-  if (verifying) {
-    return (
-      <Button size="lg" disabled>
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        Activating subscription...
       </Button>
     );
   }
@@ -319,11 +290,17 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         </Button>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(open) => {
+        setDialogOpen(open);
+        if (!open) {
+          setConfirmStep(false);
+          setSelectedTier(null);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {isSubscribed ? 'Your Subscription' : `Subscribe to ${creatorName}`}
+              {isSubscribed ? 'Your Subscription' : confirmStep ? 'Confirm Subscription' : `Subscribe to ${creatorName}`}
             </DialogTitle>
           </DialogHeader>
 
@@ -353,10 +330,80 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                 Manage Subscription
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                Manage billing, update payment method, or cancel subscription
+                Subscription auto-renews from your wallet balance
+              </p>
+            </div>
+          ) : confirmStep && selectedTier ? (
+            // Confirmation step - like content purchase confirmation
+            <div className="space-y-6">
+              <Card className="p-4 border-primary">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-lg">{selectedTier.name}</h3>
+                    <Badge className="bg-primary/10 text-primary">
+                      ${selectedTier.price}/{selectedTier.billing_interval}
+                    </Badge>
+                  </div>
+                  
+                  <ul className="space-y-2">
+                    {getBenefitsList(selectedTier).map((benefit, i) => (
+                      <li key={i} className="text-sm flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        {benefit.text}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </Card>
+
+              <div className="p-4 bg-muted/50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Your wallet balance:</span>
+                  <span className={balance >= selectedTier.price ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                    ${balance.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between font-medium">
+                  <span>Subscription cost:</span>
+                  <span>${selectedTier.price.toFixed(2)}</span>
+                </div>
+                {balance < selectedTier.price && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Insufficient balance. Please add funds to your wallet.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={handleBackToTiers} className="flex-1">
+                  Back
+                </Button>
+                {balance < selectedTier.price ? (
+                  <Button onClick={() => navigate('/wallet')} className="flex-1">
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Add Funds
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleConfirmSubscription} 
+                    disabled={subscribing}
+                    className="flex-1"
+                  >
+                    {subscribing ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    Confirm Subscription
+                  </Button>
+                )}
+              </div>
+
+              <p className="text-xs text-center text-muted-foreground">
+                By confirming, ${selectedTier.price.toFixed(2)} will be deducted from your wallet.
+                Your subscription will auto-renew {selectedTier.billing_interval}.
               </p>
             </div>
           ) : (
+            // Tier selection
             <div className="grid gap-4 md:grid-cols-2">
               {tiers.map((tier) => (
                 <Card key={tier.id} className="p-4 hover:border-primary transition-colors">
@@ -382,13 +429,9 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                       ))}
                     </ul>
                     <Button 
-                      onClick={() => handleSubscribe(tier)} 
-                      disabled={subscribing}
+                      onClick={() => handleSelectTier(tier)} 
                       className="w-full"
                     >
-                      {subscribing && selectedTier?.id === tier.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      ) : null}
                       Subscribe
                     </Button>
                   </div>
