@@ -86,8 +86,38 @@ serve(async (req) => {
 
     const { amount } = await req.json();
     
-    if (!amount || amount <= 0) {
-      throw new Error("Invalid amount");
+    // Validate amount - minimum $1, maximum $10,000
+    const MIN_AMOUNT = 1;
+    const MAX_AMOUNT = 10000;
+    
+    if (!amount || typeof amount !== 'number' || !Number.isFinite(amount)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid amount format" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+    
+    if (amount < MIN_AMOUNT) {
+      return new Response(
+        JSON.stringify({ error: `Minimum deposit amount is $${MIN_AMOUNT}` }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
+    }
+    
+    if (amount > MAX_AMOUNT) {
+      return new Response(
+        JSON.stringify({ error: `Maximum deposit amount is $${MAX_AMOUNT}` }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        }
+      );
     }
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

@@ -12,15 +12,86 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
+    // Create client with anon key for auth verification
+    const supabaseAuth = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
+
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authentication required' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
 
     const { conversationId, senderId, recipientId } = await req.json();
 
     if (!conversationId || !senderId || !recipientId) {
       throw new Error('Missing required fields');
+    }
+
+    // Verify that the authenticated user is the sender
+    if (user.id !== senderId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You can only trigger auto-replies for your own messages' }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Use service role for database operations
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Verify the user is a participant in this conversation
+    const { data: conversation, error: convError } = await supabaseClient
+      .from('conversations')
+      .select('creator_id, customer_id')
+      .eq('id', conversationId)
+      .single();
+
+    if (convError || !conversation) {
+      return new Response(
+        JSON.stringify({ error: 'Conversation not found' }),
+        { 
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Ensure sender is part of the conversation
+    if (conversation.creator_id !== senderId && conversation.customer_id !== senderId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You are not a participant in this conversation' }),
+        { 
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Check if recipient has an active auto-reply
@@ -115,6 +186,8 @@ serve(async (req) => {
       });
 
     if (insertError) throw insertError;
+
+    console.log(`Auto-reply triggered for conversation ${conversationId} by user ${user.id}`);
 
     return new Response(
       JSON.stringify({ 
