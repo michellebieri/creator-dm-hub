@@ -101,35 +101,40 @@ export const useWallet = () => {
   };
 
   const spend = async (amount: number, transactionType: string, description: string, relatedUserId?: string) => {
-    if (!user || balance < amount) {
+    if (!user) {
       return false;
     }
 
     try {
-      const newBalance = balance - amount;
+      // Use atomic database function with row locking to prevent race conditions
+      const { data, error } = await supabase.rpc('spend_wallet_balance', {
+        p_user_id: user.id,
+        p_amount: amount,
+        p_transaction_type: transactionType,
+        p_description: description,
+        p_related_user_id: relatedUserId || null,
+      });
 
-      // Update balance
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ wallet_balance: newBalance })
-        .eq('id', user.id);
+      if (error) {
+        console.error('Error spending from wallet:', error);
+        return false;
+      }
 
-      if (updateError) throw updateError;
-
-      // Record transaction
-      const { error: transactionError } = await supabase
-        .from('wallet_transactions')
-        .insert({
-          user_id: user.id,
-          amount: -amount,
-          transaction_type: transactionType,
-          description,
-          related_user_id: relatedUserId,
-          balance_after: newBalance,
+      const result = data as { success: boolean; error?: string; new_balance?: number };
+      
+      if (!result.success) {
+        console.error('Spend failed:', result.error);
+        toast({
+          title: "Insufficient Balance",
+          description: result.error || "Not enough funds in wallet",
+          variant: "destructive",
         });
+        return false;
+      }
 
-      if (transactionError) {
-        console.error('Error recording transaction:', transactionError);
+      // Update local balance from the atomic result
+      if (result.new_balance !== undefined) {
+        setBalance(result.new_balance);
       }
 
       return true;
