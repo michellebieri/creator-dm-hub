@@ -46,10 +46,25 @@ serve(async (req) => {
       );
     }
 
-    const { packId, creatorId } = await req.json();
+    const body = await req.json();
+    const packId = body?.packId;
+    const creatorId = body?.creatorId;
     
-    if (!packId || !creatorId) {
-      throw new Error("Pack ID and Creator ID are required");
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!packId || typeof packId !== 'string' || !uuidRegex.test(packId)) {
+      return new Response(
+        JSON.stringify({ error: "Valid Pack ID is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    if (!creatorId || typeof creatorId !== 'string' || !uuidRegex.test(creatorId)) {
+      return new Response(
+        JSON.stringify({ error: "Valid Creator ID is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
     // Get pack details

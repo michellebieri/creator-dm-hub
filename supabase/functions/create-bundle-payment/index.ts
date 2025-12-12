@@ -28,10 +28,17 @@ serve(async (req) => {
       throw new Error('User not authenticated');
     }
 
-    const { bundleId } = await req.json();
+    const body = await req.json();
+    const bundleId = body?.bundleId;
     
-    if (!bundleId) {
-      throw new Error('Bundle ID is required');
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    
+    if (!bundleId || typeof bundleId !== 'string' || !uuidRegex.test(bundleId)) {
+      return new Response(
+        JSON.stringify({ error: "Valid Bundle ID is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
     // Get bundle details
