@@ -369,37 +369,25 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         return messageData;
       }
 
-      // STEP 3: Check for pay-per-message wallet balance
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('id', user.id)
-        .single();
+      // STEP 3: Check for pay-per-message wallet balance using atomic database function
+      const { data: spendResult, error: spendError } = await supabase
+        .rpc('spend_wallet_balance', {
+          p_user_id: user.id,
+          p_amount: pricePerMessage,
+          p_transaction_type: 'message',
+          p_description: 'Message to creator',
+          p_related_user_id: creatorId,
+        });
 
-      const currentBalance = parseFloat(String(profile?.wallet_balance || 0));
+      if (spendError) {
+        console.error('Wallet spend error:', spendError);
+        throw new Error('Failed to process payment');
+      }
 
-      if (currentBalance >= pricePerMessage) {
-        const newBalance = currentBalance - pricePerMessage;
+      // Cast the result to check success property
+      const result = spendResult as { success: boolean; new_balance?: number; error?: string } | null;
 
-        // Update balance
-        const { error: balanceError } = await supabase
-          .from('profiles')
-          .update({ wallet_balance: newBalance })
-          .eq('id', user.id);
-
-        if (balanceError) throw balanceError;
-
-        // Record wallet transaction
-        await supabase
-          .from('wallet_transactions')
-          .insert({
-            user_id: user.id,
-            amount: -pricePerMessage,
-            transaction_type: 'message',
-            description: `Message to creator`,
-            related_user_id: creatorId,
-            balance_after: newBalance,
-          });
+      if (result?.success) {
 
         // Send message
         const { data: messageData, error: messageError } = await supabase

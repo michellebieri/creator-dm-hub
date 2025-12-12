@@ -77,8 +77,13 @@ export default function PushNotifications() {
       await navigator.serviceWorker.ready;
 
       // Subscribe to push notifications
-      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY || 
-        'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U'; // Default key
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      
+      if (!vapidPublicKey) {
+        console.warn('VITE_VAPID_PUBLIC_KEY is not configured. Push notifications require a VAPID key pair.');
+        toast.error('Push notifications are not configured. Please contact support.');
+        return;
+      }
       
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,

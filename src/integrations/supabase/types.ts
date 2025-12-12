@@ -2497,6 +2497,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      spend_wallet_balance: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_related_user_id?: string
+          p_transaction_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "creator" | "customer"
