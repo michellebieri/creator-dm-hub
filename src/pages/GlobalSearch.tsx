@@ -39,13 +39,9 @@ const GlobalSearch = () => {
 
     setSearching(true);
     try {
-      // Search creators
+      // Search creators using secure RPC function (only returns safe public data)
       const { data: creatorsData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'creator')
-        .or(`username.ilike.%${searchQuery}%,display_name.ilike.%${searchQuery}%,bio.ilike.%${searchQuery}%`)
-        .limit(10);
+        .rpc('search_creators', { search_query: searchQuery });
 
       setCreators(creatorsData || []);
 

@@ -2490,12 +2490,68 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_conversation_partner: {
+        Args: { partner_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          username: string
+        }[]
+      }
+      get_creator_pricing: {
+        Args: { creator_id: string }
+        Returns: {
+          bulk_message_amount: number
+          bulk_message_price: number
+          first_three_free: boolean
+          gift_message_count: number
+          gift_messages: boolean
+          is_accepting_messages: boolean
+          price_per_message: number
+          user_id: string
+        }[]
+      }
+      get_public_creators: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          bio: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
+      get_public_profile: {
+        Args: { profile_id: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          username: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      search_creators: {
+        Args: { search_query?: string }
+        Returns: {
+          avatar_url: string
+          bio: string
+          display_name: string
+          id: string
+          username: string
+        }[]
       }
       spend_wallet_balance: {
         Args: {
