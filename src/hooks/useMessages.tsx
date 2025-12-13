@@ -329,23 +329,16 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         }
       }
 
-      // STEP 2: Check for message bundle credits
-      const { data: bundleCredits } = await supabase
-        .from('customer_credits')
-        .select('*')
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId)
-        .gt('credits_remaining', 0)
-        .maybeSingle();
+      // STEP 2: Check for message bundle credits using atomic function
+      const { data: bundleCreditResult, error: bundleError } = await supabase
+        .rpc('spend_bundle_credit', {
+          p_customer_id: user.id,
+          p_creator_id: creatorId,
+        });
 
-      if (bundleCredits && bundleCredits.credits_remaining > 0) {
-        // Deduct bundle credit
-        const { error: deductError } = await supabase
-          .from('customer_credits')
-          .update({ credits_remaining: bundleCredits.credits_remaining - 1 })
-          .eq('id', bundleCredits.id);
+      const bundleResult = bundleCreditResult as { success: boolean; remaining?: number; error?: string } | null;
 
-        if (deductError) throw deductError;
+      if (bundleResult?.success) {
 
         // Send message
         const { data: messageData, error: messageError } = await supabase
@@ -364,7 +357,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
         if (messageError) throw messageError;
 
-        toast.success(`Message sent (${bundleCredits.credits_remaining - 1} bundle credits remaining)`);
+        toast.success(`Message sent (${bundleResult.remaining ?? 0} bundle credits remaining)`);
         setSending(false);
         return messageData;
       }

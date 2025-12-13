@@ -64,38 +64,28 @@ export const useCredits = (creatorId: string | null) => {
     }
 
     try {
-      // Use optimistic locking to prevent race conditions
-      const { data: currentCredits, error: fetchError } = await supabase
-        .from('customer_credits')
-        .select('credits_remaining')
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId)
-        .single();
-
-      if (fetchError || !currentCredits) {
-        console.error('Error fetching current credits:', fetchError);
-        return false;
-      }
-
-      if (currentCredits.credits_remaining <= 0) {
-        console.error('Insufficient credits');
-        return false;
-      }
-
-      // Perform atomic update
-      const { error } = await supabase
-        .from('customer_credits')
-        .update({ credits_remaining: currentCredits.credits_remaining - 1 })
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId)
-        .eq('credits_remaining', currentCredits.credits_remaining); // Ensure no concurrent updates
+      // Use atomic database function to prevent race conditions
+      const { data: result, error } = await supabase
+        .rpc('spend_bundle_credit', {
+          p_customer_id: user.id,
+          p_creator_id: creatorId,
+        });
 
       if (error) {
         console.error('Error deducting credit:', error);
         return false;
       }
 
-      return true;
+      const spendResult = result as { success: boolean; remaining?: number; error?: string } | null;
+
+      if (spendResult?.success) {
+        // Update local state with the remaining credits from the atomic operation
+        setCredits(spendResult.remaining ?? 0);
+        return true;
+      }
+
+      console.error('Credit deduction failed:', spendResult?.error);
+      return false;
     } catch (error) {
       console.error('Unexpected error in deductCredit:', error);
       return false;

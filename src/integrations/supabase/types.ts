@@ -2995,6 +2995,21 @@ export type Database = {
           username: string
         }[]
       }
+      spend_bundle_credit: {
+        Args: { p_creator_id: string; p_customer_id: string }
+        Returns: Json
+      }
+      spend_subscription_message: {
+        Args: {
+          p_creator_id: string
+          p_customer_id: string
+          p_messages_allowed: number
+          p_period_end: string
+          p_period_start: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       spend_wallet_balance: {
         Args: {
           p_amount: number
