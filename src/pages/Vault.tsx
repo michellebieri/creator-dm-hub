@@ -133,14 +133,15 @@ const Vault = () => {
         price: item.price,
         created_at: item.created_at,
         unlocked_at: item.created_at, // Use created_at as proxy for unlock time
-        creator: item.profiles,
+        creator: item.profiles || { id: item.creator_id, display_name: 'Unknown', avatar_url: null, username: 'unknown' },
       })) || [];
 
       setPurchasedContent(formattedContent);
 
-      // Get unique creators
+      // Get unique creators (filter out null creators)
       const uniqueCreators = formattedContent
         .map(c => c.creator)
+        .filter((creator): creator is Creator => creator !== null && creator !== undefined)
         .filter((creator, index, self) => 
           self.findIndex(c => c.id === creator.id) === index
         );
@@ -196,7 +197,7 @@ const Vault = () => {
             thumbnail_url: bundle.thumbnail_url,
             price: bundle.price,
             purchased_at: transaction?.created_at || bundle.created_at,
-            creator: bundle.profiles,
+            creator: bundle.profiles || { id: bundle.creator_id, display_name: 'Unknown', avatar_url: null, username: 'unknown' },
             content_count: contentCountMap[bundle.id] || 0,
           };
         }) || [];
@@ -214,7 +215,7 @@ const Vault = () => {
 
   const filterContent = (type: string) => {
     let filtered = selectedCreator 
-      ? purchasedContent.filter(c => c.creator.id === selectedCreator)
+      ? purchasedContent.filter(c => c.creator?.id === selectedCreator)
       : purchasedContent;
 
     if (type !== 'all') {
