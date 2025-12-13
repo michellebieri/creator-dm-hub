@@ -11,6 +11,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Check if RESEND_API_KEY is configured
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey || resendApiKey === '' || resendApiKey === 'not_configured') {
+    console.log('RESEND_API_KEY not configured - email notifications disabled');
+    return new Response(JSON.stringify({ 
+      success: false, 
+      message: 'Email notifications disabled - RESEND_API_KEY not configured' 
+    }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    });
+  }
+
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
