@@ -8,18 +8,13 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UnlockableContent } from '@/components/UnlockableContent';
 import { UnlockableUpload } from '@/components/UnlockableUpload';
 import { MessageTemplateSelector } from '@/components/MessageTemplateSelector';
-import { MessageReactions } from '@/components/MessageReactions';
 import { VoiceRecorder } from '@/components/VoiceRecorder';
 import { VoiceMessage } from '@/components/VoiceMessage';
 import { MessageScheduler } from '@/components/MessageScheduler';
 import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
-import { MessageForward } from '@/components/MessageForward';
-import { PinnedMessages } from '@/components/PinnedMessages';
-import { MessagePinButton } from '@/components/MessagePinButton';
 import { ConversationStats } from '@/components/ConversationStats';
 import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ConversationExport } from '@/components/ConversationExport';
-import { MessageBookmarkButton } from '@/components/MessageBookmarkButton';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 
@@ -33,7 +28,6 @@ import { useWallet } from '@/hooks/useWallet';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
-import { usePinnedMessages } from '@/hooks/usePinnedMessages';
 
 import { useMessageEdit } from '@/hooks/useMessageEdit';
 
@@ -65,8 +59,12 @@ const MessagingInterface = () => {
   const { balance, spend } = useWallet();
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
-  const { pinMessage, unpinMessage } = usePinnedMessages(conversationId, user?.id || null);
   const { canEdit } = useMessageEdit();
+  
+  // Find the user's last sent message ID for edit button visibility
+  const userLastMessageId = messages
+    .filter(msg => msg.sender_id === user?.id && msg.message_type !== 'voice')
+    .slice(-1)[0]?.id || null;
   
   // Mark messages as read when viewing conversation
   useReadReceipts(conversationId, user?.id || null);
@@ -407,13 +405,7 @@ const MessagingInterface = () => {
             <ScheduledMessagesList senderId={user.id} />
           )}
 
-          {conversationId && user?.id && (
-            <PinnedMessages
-              conversationId={conversationId}
-              userId={user.id}
-              onUnpin={unpinMessage}
-            />
-          )}
+          {/* Pinned messages section removed */}
           
           <div className="space-y-4">
             {messagesLoading ? (
@@ -508,41 +500,27 @@ const MessagingInterface = () => {
                         ))}
                       </div>
                     )}
-                     <div className="flex items-center gap-2 flex-wrap">
-                       <MessageReactions messageId={msg.id} userId={user?.id || null} />
-                       {user?.id && (
-                         <>
-                           <MessageBookmarkButton messageId={msg.id} userId={user.id} />
-                           {msg.sender_id === user.id && 
-                            msg.message_type !== 'voice' && 
-                            canEdit(msg.created_at, msg.sender_id, user.id) && (
-                             <Button
-                               variant="ghost"
-                               size="sm"
-                               className="h-7 px-2 text-xs"
-                               onClick={() => setEditingMessage({ 
-                                 id: msg.id, 
-                                 content: msg.content, 
-                                 created_at: msg.created_at 
-                               })}
-                             >
-                               <Pencil className="h-3 w-3 mr-1" />
-                               Edit
-                             </Button>
-                           )}
-                           <MessagePinButton
-                             isPinned={msg.is_pinned || false}
-                             onPin={() => pinMessage(msg.id)}
-                             onUnpin={() => unpinMessage(msg.id)}
-                           />
-                           <MessageForward
-                             messageId={msg.id}
-                             messageContent={msg.content}
-                             currentUserId={user.id}
-                           />
-                         </>
-                       )}
-                     </div>
+                     {/* Edit button - only shown on sender's last message */}
+                     {user?.id && 
+                      msg.id === userLastMessageId && 
+                      msg.sender_id === user.id && 
+                      canEdit(msg.created_at, msg.sender_id, user.id) && (
+                       <div className="flex items-center gap-2 mt-1">
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           className="h-7 px-2 text-xs"
+                           onClick={() => setEditingMessage({ 
+                             id: msg.id, 
+                             content: msg.content, 
+                             created_at: msg.created_at 
+                           })}
+                         >
+                           <Pencil className="h-3 w-3 mr-1" />
+                           Edit
+                         </Button>
+                       </div>
+                     )}
                   </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
