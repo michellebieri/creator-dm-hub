@@ -71,12 +71,24 @@ serve(async (req) => {
       .eq("creator_id", user.id);
     exportData.transactionsAsCreator = creatorTransactions || [];
 
-    // Unlockables created
+    // Unlockables created - GDPR compliant: filter unlocked_by to only include requesting user
     const { data: unlockablesCreated } = await supabaseClient
       .from("unlockables")
       .select("*")
       .eq("creator_id", user.id);
-    exportData.unlockablesCreated = unlockablesCreated || [];
+    
+    // Filter out other users' data from unlocked_by arrays (GDPR compliance)
+    exportData.unlockablesCreated = (unlockablesCreated || []).map((u: any) => ({
+      ...u,
+      unlocked_by: u.unlocked_by?.includes(user.id) ? [user.id] : [],
+    }));
+
+    // Content the user has unlocked as a purchaser
+    const { data: unlockedContent } = await supabaseClient
+      .from("unlockables")
+      .select("id, title, media_type, price, creator_id, created_at")
+      .contains("unlocked_by", [user.id]);
+    exportData.contentUnlocked = unlockedContent || [];
 
     // Notifications
     const { data: notifications } = await supabaseClient

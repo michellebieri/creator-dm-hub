@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { DOMParser } from "https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts";
+import sanitizeHtml from "https://esm.sh/sanitize-html@2.11.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,26 +14,43 @@ interface EmailRequest {
   type?: string;
 }
 
-// Simple HTML sanitizer - removes script tags and dangerous attributes
-function sanitizeHtml(html: string): string {
-  // Remove script tags and their content
-  let sanitized = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-  
-  // Remove event handlers (onclick, onerror, etc.)
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
-  sanitized = sanitized.replace(/\s*on\w+\s*=\s*[^\s>]*/gi, '');
-  
-  // Remove javascript: URLs
-  sanitized = sanitized.replace(/javascript:/gi, '');
-  
-  // Remove data: URLs (can contain scripts)
-  sanitized = sanitized.replace(/data:[^"'\s]*/gi, '');
-  
-  // Remove iframe, object, embed tags
-  sanitized = sanitized.replace(/<(iframe|object|embed|form)[^>]*>.*?<\/\1>/gi, '');
-  sanitized = sanitized.replace(/<(iframe|object|embed|form)[^>]*\/?>/gi, '');
-  
-  return sanitized;
+// Sanitize HTML using battle-tested sanitize-html library
+function sanitizeEmailHtml(html: string): string {
+  return sanitizeHtml(html, {
+    allowedTags: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
+      'strong', 'em', 'b', 'i', 'u', 'span', 'div',
+      'a', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'thead', 'tbody',
+      'img', 'blockquote', 'pre', 'code'
+    ],
+    allowedAttributes: {
+      'a': ['href', 'title', 'target'],
+      'img': ['src', 'alt', 'width', 'height'],
+      'div': ['style'],
+      'span': ['style'],
+      'p': ['style'],
+      'table': ['style', 'border', 'cellpadding', 'cellspacing'],
+      'td': ['style', 'colspan', 'rowspan'],
+      'th': ['style', 'colspan', 'rowspan'],
+    },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: {
+      'a': ['http', 'https', 'mailto'],
+      'img': ['http', 'https', 'data'],
+    },
+    // Allow safe inline styles for email formatting
+    allowedStyles: {
+      '*': {
+        'color': [/^#[0-9a-fA-F]{3,6}$/, /^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/],
+        'background-color': [/^#[0-9a-fA-F]{3,6}$/, /^rgb\(\d{1,3},\s*\d{1,3},\s*\d{1,3}\)$/],
+        'text-align': [/^(left|right|center|justify)$/],
+        'font-size': [/^\d+px$/, /^\d+em$/, /^\d+%$/],
+        'font-weight': [/^(normal|bold|\d{3})$/],
+        'padding': [/^\d+px$/],
+        'margin': [/^\d+px$/],
+      }
+    }
+  });
 }
 
 serve(async (req) => {
@@ -81,8 +98,8 @@ serve(async (req) => {
       throw new Error("Invalid email format");
     }
 
-    // Sanitize HTML content to prevent XSS/injection
-    const sanitizedHtml = sanitizeHtml(html);
+    // Sanitize HTML content using battle-tested library
+    const sanitizedHtml = sanitizeEmailHtml(html);
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
