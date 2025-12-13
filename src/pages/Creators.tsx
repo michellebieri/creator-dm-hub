@@ -37,35 +37,30 @@ const Creators = () => {
 
   const fetchCreators = async () => {
     try {
-      const { data: creatorRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'creator');
+      // Use secure RPC function to get public creator data only
+      const { data: profiles, error: profilesError } = await supabase
+        .rpc('get_public_creators');
 
-      if (rolesError) throw rolesError;
+      if (profilesError) throw profilesError;
 
-      if (!creatorRoles || creatorRoles.length === 0) {
+      if (!profiles || profiles.length === 0) {
         setCreators([]);
         setLoading(false);
         return;
       }
 
-      const creatorIds = creatorRoles.map(r => r.user_id);
+      const creatorIds = profiles.map((p: any) => p.id);
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, username, display_name, bio, avatar_url')
-        .in('id', creatorIds);
-
-      if (profilesError) throw profilesError;
-
-      const { data: settings } = await supabase
-        .from('creator_settings')
-        .select('user_id, price_per_message')
-        .in('user_id', creatorIds);
+      // Get pricing info via secure RPC function
+      const pricingPromises = creatorIds.map(async (id: string) => {
+        const { data } = await supabase.rpc('get_creator_pricing', { creator_id: id });
+        return { id, pricing: data?.[0] };
+      });
+      
+      const pricingData = await Promise.all(pricingPromises);
 
       // Get follower counts for each creator
-      const followersPromises = creatorIds.map(async (creatorId) => {
+      const followersPromises = creatorIds.map(async (creatorId: string) => {
         const { count } = await supabase
           .from('user_follows')
           .select('*', { count: 'exact', head: true })
@@ -75,11 +70,11 @@ const Creators = () => {
       
       const followersData = await Promise.all(followersPromises);
 
-      const creatorsWithPricing = profiles?.map(profile => ({
+      const creatorsWithPricing = profiles.map((profile: any) => ({
         ...profile,
-        price_per_message: settings?.find(s => s.user_id === profile.id)?.price_per_message || 5,
+        price_per_message: pricingData.find(p => p.id === profile.id)?.pricing?.price_per_message || 5,
         followers_count: followersData.find(f => f.creatorId === profile.id)?.count || 0
-      })) || [];
+      }));
 
       setCreators(creatorsWithPricing);
     } catch (error) {

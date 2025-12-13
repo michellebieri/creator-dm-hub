@@ -95,34 +95,31 @@ const CreatorProfile = () => {
   const fetchCreatorData = async () => {
     if (!id) return;
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('username', id)
-        .single();
-      if (profileError) throw profileError;
+      // Use secure RPC function for public profile data
+      const { data: publicProfiles, error: profileError } = await supabase
+        .rpc('search_creators', { search_query: null });
+      
+      // Find the creator by username
+      const profileData = publicProfiles?.find((p: any) => p.username === id);
+      
+      if (!profileData) {
+        throw new Error('Creator not found');
+      }
+      
       setProfile(profileData);
       setCreatorUserId(profileData.id);
 
-      const { data: settingsData } = await supabase
-        .from('creator_settings')
-        .select('price_per_message, social_facebook, social_instagram, social_tiktok, social_youtube, social_twitch, social_twitter, social_snapchat, social_other_url')
-        .eq('user_id', profileData.id)
-        .single();
-      if (settingsData) {
-        setPricePerMessage(settingsData.price_per_message);
-        // Extract social links
-        const socials: Record<string, string> = {};
-        if (settingsData.social_facebook) socials.facebook = settingsData.social_facebook;
-        if (settingsData.social_instagram) socials.instagram = settingsData.social_instagram;
-        if (settingsData.social_tiktok) socials.tiktok = settingsData.social_tiktok;
-        if (settingsData.social_youtube) socials.youtube = settingsData.social_youtube;
-        if (settingsData.social_twitch) socials.twitch = settingsData.social_twitch;
-        if (settingsData.social_twitter) socials.twitter = settingsData.social_twitter;
-        if (settingsData.social_snapchat) socials.snapchat = settingsData.social_snapchat;
-        if (settingsData.social_other_url) socials.other = settingsData.social_other_url;
-        setSocialLinks(socials);
+      // Use secure RPC function for creator pricing (excludes sensitive data like stripe_account_id)
+      const { data: pricingData } = await supabase
+        .rpc('get_creator_pricing', { creator_id: profileData.id });
+      
+      if (pricingData && pricingData[0]) {
+        setPricePerMessage(pricingData[0].price_per_message);
       }
+      
+      // Note: Social links are intentionally NOT fetched here for public viewing
+      // They can only be accessed by the creator themselves in their settings
+      setSocialLinks({});
 
       const { data: contentData } = await supabase
         .from('unlockables')
