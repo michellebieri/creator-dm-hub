@@ -55,19 +55,35 @@ serve(async (req) => {
         });
       }
       
-      // Users can only create notifications for themselves (limited use case)
-      // Most notifications should be created by service role from other edge functions
-      const { userId } = await req.json();
+      // Parse body to check userId
+      const body = await req.json();
+      const { userId } = body;
+      
+      // Users can create notifications for themselves OR for conversation participants
       if (userId !== user.id) {
-        console.error("User attempted to create notification for another user");
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 403,
-        });
+        // Check if the user has a conversation with the target user
+        const { data: conversation, error: convError } = await supabaseClient
+          .from('conversations')
+          .select('id')
+          .or(`and(creator_id.eq.${user.id},customer_id.eq.${userId}),and(creator_id.eq.${userId},customer_id.eq.${user.id})`)
+          .limit(1)
+          .single();
+        
+        if (convError || !conversation) {
+          console.error("User attempted to create notification for non-conversation participant");
+          return new Response(JSON.stringify({ error: "Forbidden" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 403,
+          });
+        }
       }
+      
+      // Store parsed body for later use
+      (req as any)._parsedBody = body;
     }
 
-    const { userId, type, title, message, link } = await req.json();
+    // Get body (may have been parsed earlier for auth check)
+    const { userId, type, title, message, link } = (req as any)._parsedBody || await req.json();
 
     if (!userId || !type || !title || !message) {
       throw new Error("Missing required fields: userId, type, title, message");
