@@ -102,43 +102,54 @@ const CreatorProfile = () => {
       // Try multiple lookup methods for flexibility
       let profileData: any = null;
       
-      // Method 1: Try exact username match (case-insensitive) via search_creators
-      const { data: publicProfiles } = await supabase
-        .rpc('search_creators', { search_query: cleanId });
+      // Method 1: Try exact username match (case-insensitive) directly on profiles
+      const { data: exactMatch } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url, bio')
+        .ilike('username', cleanId)
+        .eq('role', 'creator')
+        .limit(1)
+        .maybeSingle();
       
-      if (publicProfiles && publicProfiles.length > 0) {
-        // First try exact match
-        profileData = publicProfiles.find((p: any) => 
-          p.username?.toLowerCase() === cleanId.toLowerCase()
-        );
-        // If no exact match, take first result (fuzzy match)
-        if (!profileData) {
-          profileData = publicProfiles[0];
-        }
+      if (exactMatch) {
+        profileData = exactMatch;
       }
       
       // Method 2: If not found and looks like UUID, try direct ID lookup
       if (!profileData && cleanId.length === 36) {
-        const { data: directProfile } = await supabase
-          .rpc('get_public_profile', { profile_id: cleanId });
-        if (directProfile && directProfile.length > 0) {
-          profileData = directProfile[0];
+        const { data: idMatch } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio')
+          .eq('id', cleanId)
+          .eq('role', 'creator')
+          .maybeSingle();
+        if (idMatch) {
+          profileData = idMatch;
         }
       }
       
-      // Method 3: Try display_name search
+      // Method 3: Try partial username or display_name search
       if (!profileData) {
-        const { data: nameProfiles } = await supabase
-          .rpc('search_creators', { search_query: cleanId });
-        if (nameProfiles && nameProfiles.length > 0) {
-          profileData = nameProfiles.find((p: any) =>
-            p.display_name?.toLowerCase().includes(cleanId.toLowerCase())
-          ) || nameProfiles[0];
+        const { data: partialMatch } = await supabase
+          .from('profiles')
+          .select('id, username, display_name, avatar_url, bio')
+          .eq('role', 'creator')
+          .or(`username.ilike.%${cleanId}%,display_name.ilike.%${cleanId}%`)
+          .limit(1)
+          .maybeSingle();
+        if (partialMatch) {
+          profileData = partialMatch;
         }
       }
       
       if (!profileData) {
-        throw new Error('Creator not found');
+        toast({
+          title: 'Creator not found',
+          description: `Could not find a creator matching "${cleanId}"`,
+          variant: 'destructive',
+        });
+        navigate('/browse');
+        return;
       }
       
       setProfile(profileData);
