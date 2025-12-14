@@ -94,13 +94,48 @@ const CreatorProfile = () => {
 
   const fetchCreatorData = async () => {
     if (!id) return;
+    
+    // Clean the identifier (remove @ if present)
+    const cleanId = id.replace('@', '');
+    
     try {
-      // Use secure RPC function for public profile data
-      const { data: publicProfiles, error: profileError } = await supabase
-        .rpc('search_creators', { search_query: null });
+      // Try multiple lookup methods for flexibility
+      let profileData: any = null;
       
-      // Find the creator by username
-      const profileData = publicProfiles?.find((p: any) => p.username === id);
+      // Method 1: Try exact username match (case-insensitive) via search_creators
+      const { data: publicProfiles } = await supabase
+        .rpc('search_creators', { search_query: cleanId });
+      
+      if (publicProfiles && publicProfiles.length > 0) {
+        // First try exact match
+        profileData = publicProfiles.find((p: any) => 
+          p.username?.toLowerCase() === cleanId.toLowerCase()
+        );
+        // If no exact match, take first result (fuzzy match)
+        if (!profileData) {
+          profileData = publicProfiles[0];
+        }
+      }
+      
+      // Method 2: If not found and looks like UUID, try direct ID lookup
+      if (!profileData && cleanId.length === 36) {
+        const { data: directProfile } = await supabase
+          .rpc('get_public_profile', { profile_id: cleanId });
+        if (directProfile && directProfile.length > 0) {
+          profileData = directProfile[0];
+        }
+      }
+      
+      // Method 3: Try display_name search
+      if (!profileData) {
+        const { data: nameProfiles } = await supabase
+          .rpc('search_creators', { search_query: cleanId });
+        if (nameProfiles && nameProfiles.length > 0) {
+          profileData = nameProfiles.find((p: any) =>
+            p.display_name?.toLowerCase().includes(cleanId.toLowerCase())
+          ) || nameProfiles[0];
+        }
+      }
       
       if (!profileData) {
         throw new Error('Creator not found');
