@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Play, Package, Lock } from 'lucide-react';
+import { Play, Package, Lock, ImageOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ContentGridItemProps {
@@ -25,6 +26,17 @@ export function ContentGridItem({
   itemCount,
   onClick
 }: ContentGridItemProps) {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
   return (
     <Card 
       className={cn(
@@ -38,17 +50,33 @@ export function ContentGridItem({
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
             <Package className="h-16 w-16 text-primary" />
           </div>
+        ) : imageError ? (
+          <div className="w-full h-full flex items-center justify-center bg-muted">
+            <ImageOff className="h-12 w-12 text-muted-foreground" />
+          </div>
         ) : (
-          <img 
-            src={thumbnailUrl} 
-            alt={title || 'Content'}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <>
+            {!imageLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted animate-pulse">
+                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+              </div>
+            )}
+            <img 
+              src={thumbnailUrl} 
+              alt={title || 'Content'}
+              className={cn(
+                "w-full h-full object-cover transition-opacity",
+                imageLoaded ? "opacity-100" : "opacity-0"
+              )}
+              loading="lazy"
+              onError={handleImageError}
+              onLoad={handleImageLoad}
+            />
+          </>
         )}
         
         {/* Overlay for videos */}
-        {type === 'video' && (
+        {type === 'video' && !imageError && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
             <Play className="h-12 w-12 text-white" fill="white" />
           </div>
