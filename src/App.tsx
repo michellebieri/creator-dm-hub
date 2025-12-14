@@ -75,6 +75,7 @@ const App = () => {
             {/* Browse and creator profile pages */}
             <Route path="/browse" element={<Creators />} />
             <Route path="/creator/:id" element={<CreatorProfile />} />
+            <Route path="/@:id" element={<CreatorProfile />} />
             <Route path="/customer/:id" element={
               <ProtectedRoute requireCreator>
                 <CustomerProfile />
