@@ -48,6 +48,8 @@ import GeneralSettings from "./pages/settings/GeneralSettings";
 import AccountManagement from "./pages/settings/AccountManagement";
 import PaymentMethods from "./pages/PaymentMethods";
 import Wallet from "./pages/Wallet";
+import CreatorRevenue from "./pages/CreatorRevenue";
+import AdminRevenue from "./pages/AdminRevenue";
 
 const queryClient = new QueryClient();
 
@@ -249,6 +251,16 @@ const App = () => {
             <Route path="/wallet" element={
               <ProtectedRoute>
                 <Wallet />
+              </ProtectedRoute>
+            } />
+            <Route path="/creator-revenue" element={
+              <ProtectedRoute requireCreator>
+                <CreatorRevenue />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin-revenue" element={
+              <ProtectedRoute>
+                <AdminRevenue />
               </ProtectedRoute>
             } />
           </Route>
