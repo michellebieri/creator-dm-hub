@@ -16,22 +16,48 @@ export const CreatorSearchBar = ({ prominent = false }: CreatorSearchBarProps) =
   const { toast } = useToast();
 
   const handleSearch = async () => {
-    const username = searchQuery.trim().replace('@', '').toLowerCase();
-    if (!username) return;
+    const searchTerm = searchQuery.trim().replace('@', '');
+    if (!searchTerm) return;
 
     setIsSearching(true);
     try {
-      const { data: creator, error } = await supabase
+      // Try exact username match first (case-insensitive)
+      let { data: creator, error } = await supabase
         .from('profiles')
         .select('username, role')
-        .eq('username', username)
+        .ilike('username', searchTerm)
         .eq('role', 'creator')
-        .single();
+        .limit(1)
+        .maybeSingle();
 
-      if (error || !creator) {
+      // If not found, try partial username match
+      if (!creator) {
+        const { data: partialMatch } = await supabase
+          .from('profiles')
+          .select('username, role')
+          .ilike('username', `%${searchTerm}%`)
+          .eq('role', 'creator')
+          .limit(1)
+          .maybeSingle();
+        creator = partialMatch;
+      }
+
+      // If still not found, try display name match
+      if (!creator) {
+        const { data: nameMatch } = await supabase
+          .from('profiles')
+          .select('username, role')
+          .ilike('display_name', `%${searchTerm}%`)
+          .eq('role', 'creator')
+          .limit(1)
+          .maybeSingle();
+        creator = nameMatch;
+      }
+
+      if (!creator) {
         toast({
           title: 'Creator not found',
-          description: `Creator '@${username}' not found. Please check the username.`,
+          description: `No creator found matching '${searchTerm}'. Try searching by username or display name.`,
           variant: 'destructive',
         });
         return;
