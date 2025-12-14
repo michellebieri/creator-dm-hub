@@ -69,13 +69,15 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          
+          {/* Public creator profile routes - accessible without login */}
+          <Route path="/creator/:id" element={<CreatorProfile />} />
+          <Route path="/@:id" element={<CreatorProfile />} />
 
           {/* Routes with bottom navigation */}
           <Route element={<AppLayout />}>
-            {/* Browse and creator profile pages */}
+            {/* Browse pages */}
             <Route path="/browse" element={<Creators />} />
-            <Route path="/creator/:id" element={<CreatorProfile />} />
-            <Route path="/@:id" element={<CreatorProfile />} />
             <Route path="/customer/:id" element={
               <ProtectedRoute requireCreator>
                 <CustomerProfile />
