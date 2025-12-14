@@ -700,6 +700,7 @@ export type Database = {
           social_twitter: string | null
           social_youtube: string | null
           stripe_account_id: string | null
+          stripe_connect_status: string | null
           updated_at: string
           user_id: string
           waitlist_status: Database["public"]["Enums"]["waitlist_status"]
@@ -729,6 +730,7 @@ export type Database = {
           social_twitter?: string | null
           social_youtube?: string | null
           stripe_account_id?: string | null
+          stripe_connect_status?: string | null
           updated_at?: string
           user_id: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
@@ -758,6 +760,7 @@ export type Database = {
           social_twitter?: string | null
           social_youtube?: string | null
           stripe_account_id?: string | null
+          stripe_connect_status?: string | null
           updated_at?: string
           user_id?: string
           waitlist_status?: Database["public"]["Enums"]["waitlist_status"]
@@ -1563,6 +1566,112 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_config: {
+        Row: {
+          created_at: string
+          id: string
+          platform_fee_percentage: number
+          platform_owner_user_id: string | null
+          platform_stripe_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform_fee_percentage?: number
+          platform_owner_user_id?: string | null
+          platform_stripe_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform_fee_percentage?: number
+          platform_owner_user_id?: string | null
+          platform_stripe_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_config_platform_owner_user_id_fkey"
+            columns: ["platform_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_config_platform_owner_user_id_fkey"
+            columns: ["platform_owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_fees: {
+        Row: {
+          created_at: string
+          creator_id: string
+          creator_net_amount: number
+          gross_amount: number
+          id: string
+          platform_fee_amount: number
+          processed_at: string | null
+          status: string
+          stripe_application_fee_id: string | null
+          stripe_transfer_id: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          creator_net_amount: number
+          gross_amount: number
+          id?: string
+          platform_fee_amount: number
+          processed_at?: string | null
+          status?: string
+          stripe_application_fee_id?: string | null
+          stripe_transfer_id?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          creator_net_amount?: number
+          gross_amount?: number
+          id?: string
+          platform_fee_amount?: number
+          processed_at?: string | null
+          status?: string
+          stripe_application_fee_id?: string | null
+          stripe_transfer_id?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_fees_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_fees_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_fees_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
             referencedColumns: ["id"]
           },
         ]
