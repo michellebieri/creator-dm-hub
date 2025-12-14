@@ -28,11 +28,13 @@ import {
   Ban,
   Mail,
   Activity,
-  Upload
+  Upload,
+  Building2
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoleCheck } from "@/hooks/useRoleCheck";
+import { usePlatformOwner } from "@/hooks/usePlatformOwner";
 import {
   Sidebar,
   SidebarContent,
@@ -50,6 +52,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const { user } = useAuth();
   const { isAdmin, isCreator: hasCreatorRole } = useRoleCheck();
+  const { isPlatformOwner } = usePlatformOwner();
   const isCollapsed = state === "collapsed";
 
   // Determine if user is creator based on their profile or role
@@ -90,6 +93,9 @@ export function AppSidebar() {
       { title: "Admin Dashboard", url: "/admin", icon: Shield },
       { title: "Admin Moderation", url: "/admin-moderation", icon: Shield },
       { title: "User Management", url: "/users", icon: Users }
+    ] : []),
+    ...(isPlatformOwner ? [
+      { title: "Platform Revenue", url: "/admin-revenue", icon: Building2 },
     ] : []),
     { title: "Search", url: "/search", icon: Search },
     { title: "Sessions", url: "/sessions", icon: Monitor },
