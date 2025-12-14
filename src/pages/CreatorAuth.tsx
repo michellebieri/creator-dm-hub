@@ -32,8 +32,6 @@ const CreatorAuth = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [emailSent, setEmailSent] = useState(false);
-  const [pendingSignupData, setPendingSignupData] = useState<any>(null);
 
   useEffect(() => {
     if (!loading && !roleLoading && user && isCreator) {
@@ -41,7 +39,7 @@ const CreatorAuth = () => {
     }
   }, [user, loading, roleLoading, isCreator, navigate]);
 
-  const handleSendVerification = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
@@ -57,24 +55,29 @@ const CreatorAuth = () => {
     try {
       signUpSchema.omit({ verificationCode: true }).parse(data);
       
-      // Store signup data for later
-      setPendingSignupData(data);
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
-      // Send verification email via Supabase
-      const { error } = await supabase.auth.signInWithOtp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
+        password: data.password,
         options: {
-          shouldCreateUser: false,
+          emailRedirectTo: redirectUrl,
+          data: {
+            username: data.username,
+            display_name: data.displayName,
+            role: 'creator'
+          }
         }
       });
 
       if (error) throw error;
 
-      setEmailSent(true);
       toast({
-        title: "Verification email sent",
-        description: "Please check your email for the verification code",
+        title: "Account created!",
+        description: "Welcome to DM.me - You can now start earning",
       });
+
+      navigate('/dashboard');
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -86,68 +89,11 @@ const CreatorAuth = () => {
         setErrors(fieldErrors);
       } else {
         toast({
-          title: "Error",
+          title: "Sign up failed",
           description: error.message,
           variant: "destructive",
         });
       }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyAndSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!pendingSignupData) return;
-
-    setIsSubmitting(true);
-    setErrors({});
-
-    const formData = new FormData(e.currentTarget);
-    const verificationCode = formData.get('verificationCode') as string;
-
-    try {
-      // Verify OTP
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        email: pendingSignupData.email,
-        token: verificationCode,
-        type: 'email',
-      });
-
-      if (verifyError) throw verifyError;
-
-      // Now create the account
-      const redirectUrl = `${window.location.origin}/dashboard`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email: pendingSignupData.email,
-        password: pendingSignupData.password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            username: pendingSignupData.username,
-            display_name: pendingSignupData.displayName,
-            role: 'creator'
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      // Role is automatically assigned by database trigger via metadata
-      
-      toast({
-        title: "Account created!",
-        description: "Welcome to DM.me - You can now start earning",
-      });
-
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast({
-        title: "Verification failed",
-        description: error.message,
-        variant: "destructive",
-      });
     } finally {
       setIsSubmitting(false);
     }
@@ -293,82 +239,52 @@ const CreatorAuth = () => {
               </TabsContent>
 
               <TabsContent value="signup">
-                {!emailSent ? (
-                  <form onSubmit={handleSendVerification} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        name="username"
-                        placeholder="creator_name"
-                        required
-                      />
-                      {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName">Display Name</Label>
-                      <Input
-                        id="displayName"
-                        name="displayName"
-                        placeholder="Creator Name"
-                        required
-                      />
-                      {errors.displayName && <p className="text-sm text-destructive">{errors.displayName}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        name="signup-email"
-                        type="email"
-                        placeholder="creator@example.com"
-                        required
-                      />
-                      {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        name="signup-password"
-                        type="password"
-                        required
-                      />
-                      {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Verification Code"}
-                    </Button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleVerifyAndSignUp} className="space-y-4">
-                    <div className="text-sm text-muted-foreground mb-4 p-4 bg-muted rounded">
-                      We've sent a verification code to <strong>{pendingSignupData?.email}</strong>. Please enter it below to complete your registration.
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationCode">Verification Code</Label>
-                      <Input
-                        id="verificationCode"
-                        name="verificationCode"
-                        placeholder="Enter 6-digit code"
-                        required
-                        maxLength={6}
-                      />
-                      {errors.verificationCode && <p className="text-sm text-destructive">{errors.verificationCode}</p>}
-                    </div>
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Create Account"}
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      className="w-full" 
-                      onClick={() => setEmailSent(false)}
-                    >
-                      Change Email
-                    </Button>
-                  </form>
-                )}
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      name="username"
+                      placeholder="creator_name"
+                      required
+                    />
+                    {errors.username && <p className="text-sm text-destructive">{errors.username}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">Display Name</Label>
+                    <Input
+                      id="displayName"
+                      name="displayName"
+                      placeholder="Creator Name"
+                      required
+                    />
+                    {errors.displayName && <p className="text-sm text-destructive">{errors.displayName}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input
+                      id="signup-email"
+                      name="signup-email"
+                      type="email"
+                      placeholder="creator@example.com"
+                      required
+                    />
+                    {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input
+                      id="signup-password"
+                      name="signup-password"
+                      type="password"
+                      required
+                    />
+                    {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Account"}
+                  </Button>
+                </form>
               </TabsContent>
             </Tabs>
 
