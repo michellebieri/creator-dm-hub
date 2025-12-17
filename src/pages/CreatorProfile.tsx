@@ -690,8 +690,8 @@ const CreatorProfile = () => {
                   <div className="relative aspect-square bg-muted">
                     {isContent ? (
                       <div className="relative w-full h-full">
-                        {item.media_type === 'image' || item.media_type === 'video' ? (
-                          <img src={item.media_url} alt={item.title || 'Content'} className={`w-full h-full object-cover ${!unlocked ? 'blur-[20px]' : ''}`} />
+                      {item.media_type === 'image' || item.media_type === 'video' ? (
+                          <img src={item.media_url} alt={item.title || 'Content'} className={`w-full h-full object-cover ${!unlocked ? 'blur-2xl' : ''}`} />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5"><Lock className="h-12 w-12 text-primary" /></div>
                         )}
@@ -708,7 +708,7 @@ const CreatorProfile = () => {
                                   <img 
                                     src={url} 
                                     alt={`Bundle item ${idx + 1}`} 
-                                    className={`w-full h-full object-cover ${(!item.purchased && profile?.id !== user?.id) ? 'blur-[20px]' : ''}`} 
+                                    className={`w-full h-full object-cover ${(!item.purchased && profile?.id !== user?.id) ? 'blur-2xl' : ''}`} 
                                   />
                                 </div>
                               ))}
@@ -775,7 +775,7 @@ const CreatorProfile = () => {
             <div className="space-y-4">
               <div className="relative aspect-square rounded-lg overflow-hidden bg-muted">
                 {selectedContent.media_type === 'image' || selectedContent.media_type === 'video' ? (
-                  <img src={selectedContent.media_url} alt={selectedContent.title || 'Content'} className="w-full h-full object-cover blur-[20px]" />
+                  <img src={selectedContent.media_url} alt={selectedContent.title || 'Content'} className="w-full h-full object-cover blur-2xl" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center"><Lock className="h-16 w-16 text-muted-foreground" /></div>
                 )}
