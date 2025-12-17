@@ -66,7 +66,8 @@ export function ContentGridItem({
               alt={title || 'Content'}
               className={cn(
                 "w-full h-full object-cover transition-opacity",
-                imageLoaded ? "opacity-100" : "opacity-0"
+                imageLoaded ? "opacity-100" : "opacity-0",
+                isLocked && "blur-2xl"
               )}
               loading="lazy"
               onError={handleImageError}
