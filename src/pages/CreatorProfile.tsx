@@ -95,8 +95,8 @@ const CreatorProfile = () => {
   const fetchCreatorData = async () => {
     if (!id) return;
     
-    // Clean the identifier (remove @ if present)
-    const cleanId = id.replace('@', '');
+    // Clean the identifier (remove @ if present at start)
+    const cleanId = id.startsWith('@') ? id.substring(1) : id;
     
     try {
       // Try multiple lookup methods for flexibility
