@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Home } from 'lucide-react';
+import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Home, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 
@@ -20,9 +20,19 @@ export const BottomNavigation = () => {
             <Home className={`h-6 w-6 ${isActive('/dashboard') ? 'text-primary' : 'text-muted-foreground'}`} />
           )}
           <span className={`text-xs mt-1 ${isActive(isCreator ? '/earnings' : '/dashboard') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-            {isCreator ? 'Revenue' : 'Dashboard'}
+            {isCreator ? 'Revenue' : 'Home'}
           </span>
         </Link>
+
+        {/* Browse Creators - only for customers */}
+        {!isCreator && (
+          <Link to="/browse" className="flex flex-col items-center justify-center flex-1">
+            <Users className={`h-6 w-6 ${isActive('/browse') ? 'text-primary' : 'text-muted-foreground'}`} />
+            <span className={`text-xs mt-1 ${isActive('/browse') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+              Discover
+            </span>
+          </Link>
+        )}
         
         <Link to="/conversations" className="flex flex-col items-center justify-center flex-1">
           <MessageCircle className={`h-6 w-6 ${isActive('/conversations') ? 'text-primary' : 'text-muted-foreground'}`} />

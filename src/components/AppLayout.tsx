@@ -23,8 +23,8 @@ export function AppLayout() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
-          <h1 className="text-xl font-bold text-primary">dm.me</h1>
-          <Button variant="ghost" size="sm">
+          <h1 className="text-xl font-bold text-primary cursor-pointer" onClick={() => navigate('/dashboard')}>dm.me</h1>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/browse')}>
             <Search className="h-5 w-5" />
           </Button>
         </div>
