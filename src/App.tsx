@@ -72,7 +72,7 @@ const App = () => {
           
           {/* Public creator profile routes - accessible without login */}
           <Route path="/creator/:id" element={<CreatorProfile />} />
-          <Route path="/@:id" element={<CreatorProfile />} />
+          <Route path="/:id" element={<CreatorProfile />} />
 
           {/* Routes with bottom navigation */}
           <Route element={<AppLayout />}>
