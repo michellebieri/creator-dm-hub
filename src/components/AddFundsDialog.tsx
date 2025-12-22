@@ -18,7 +18,7 @@ import { Loader2, Wallet, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
-const stripePromise = loadStripe('pk_test_51KJa0iHBEe0ePTRxZRxHQbGZrDBPKKxBIVhLpZ1xV8LDI89zBQxmFPhMLhBanJ805tTGcNsjJYcsuCF1LyrGeDMo00HQQ5Jf3m');
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
 
 interface AddFundsDialogProps {
   open: boolean;
