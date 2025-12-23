@@ -206,9 +206,9 @@ export const PaymentRequiredOverlay = ({
     }
   };
 
-  // Don't show if user has subscription, credits, or enough balance
+  // Show when the user is not subscribed and has no credits (even if they have wallet balance)
   const loading = subLoading || creditsLoading || loadingTiers;
-  const hasAccess = isSubscribed || credits > 0 || balance >= pricePerMessage;
+  const shouldShow = !isSubscribed && credits <= 0;
 
   if (loading) {
     return (
@@ -218,7 +218,7 @@ export const PaymentRequiredOverlay = ({
     );
   }
 
-  if (hasAccess) {
+  if (!shouldShow) {
     return null;
   }
 
