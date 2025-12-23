@@ -413,7 +413,18 @@ const MessagingInterface = () => {
             <ScheduledMessagesList senderId={user.id} />
           )}
 
-          {/* Pinned messages section removed */}
+          {/* Payment Required Overlay - Show at top for customers without subscription/credits/balance */}
+          {!isCreator && creatorProfile && (
+            <PaymentRequiredOverlay
+              creatorId={creatorId!}
+              creatorProfile={creatorProfile}
+              pricePerMessage={pricePerMessage}
+              packs={packs}
+              onSubscribed={() => {
+                refetch();
+              }}
+            />
+          )}
           
           <div className="space-y-4">
             {messagesLoading ? (
@@ -422,21 +433,8 @@ const MessagingInterface = () => {
               </Card>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                {/* Payment Required Overlay for customers without subscription/credits/balance */}
-                {!isCreator && creatorProfile && (
-                  <PaymentRequiredOverlay
-                    creatorId={creatorId!}
-                    creatorProfile={creatorProfile}
-                    pricePerMessage={pricePerMessage}
-                    packs={packs}
-                    onSubscribed={() => {
-                      refetch();
-                    }}
-                  />
-                )}
-                
                 {/* Show normal empty state only for creators or if user has payment access */}
-                {(isCreator || (balance >= pricePerMessage || pricePerMessage === 0)) && (
+                {(isCreator || (isSubscribed || credits > 0 || balance >= pricePerMessage || pricePerMessage === 0)) && (
                   creatorProfile && !isCreator ? (
                     <>
                       <Avatar className="h-20 w-20 mb-4">
