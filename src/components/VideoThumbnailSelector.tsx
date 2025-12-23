@@ -83,6 +83,15 @@ export function VideoThumbnailSelector({
     URL.revokeObjectURL(videoUrl);
     setThumbnails(newThumbnails);
     setGenerating(false);
+    
+    // Auto-select the first thumbnail as default
+    if (newThumbnails.length > 0) {
+      setSelectedIndex(0);
+      // Convert first thumbnail to blob and notify parent
+      const response = await fetch(newThumbnails[0]);
+      const blob = await response.blob();
+      onThumbnailSelect(blob);
+    }
   };
 
   const handleSelect = async (index: number) => {
