@@ -17,6 +17,7 @@ import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ConversationExport } from '@/components/ConversationExport';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
+import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
 
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
@@ -28,6 +29,8 @@ import { useWallet } from '@/hooks/useWallet';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useCredits } from '@/hooks/useCredits';
 
 import { useMessageEdit } from '@/hooks/useMessageEdit';
 
@@ -60,6 +63,11 @@ const MessagingInterface = () => {
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
   const { scheduleMessage } = useScheduledMessages(user?.id || null);
   const { canEdit } = useMessageEdit();
+  const { isSubscribed } = useSubscription(user?.id, creatorId);
+  const { credits } = useCredits(creatorId);
+  
+  // Check if user needs to pay - only for non-creators without subscription, credits, or balance
+  const needsPayment = !isCreator && !isSubscribed && credits <= 0 && balance < pricePerMessage && pricePerMessage > 0;
   
   // Find the user's last sent message ID for edit button visibility
   const userLastMessageId = messages
@@ -414,28 +422,44 @@ const MessagingInterface = () => {
               </Card>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center">
-                {creatorProfile && !isCreator ? (
-                  <>
-                    <Avatar className="h-20 w-20 mb-4">
-                      {creatorProfile.avatar_url && (
-                        <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
-                      )}
-                      <AvatarFallback className="text-2xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-semibold text-lg mb-1">Chat with {creatorProfile.display_name}</h3>
-                    <p className="text-muted-foreground text-sm mb-2">
-                      Type your message below to start the conversation
-                    </p>
-                    {pricePerMessage > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        ${pricePerMessage.toFixed(2)} per message • Balance: ${balance.toFixed(2)}
+                {/* Payment Required Overlay for customers without subscription/credits/balance */}
+                {!isCreator && creatorProfile && (
+                  <PaymentRequiredOverlay
+                    creatorId={creatorId!}
+                    creatorProfile={creatorProfile}
+                    pricePerMessage={pricePerMessage}
+                    packs={packs}
+                    onSubscribed={() => {
+                      refetch();
+                    }}
+                  />
+                )}
+                
+                {/* Show normal empty state only for creators or if user has payment access */}
+                {(isCreator || (balance >= pricePerMessage || pricePerMessage === 0)) && (
+                  creatorProfile && !isCreator ? (
+                    <>
+                      <Avatar className="h-20 w-20 mb-4">
+                        {creatorProfile.avatar_url && (
+                          <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
+                        )}
+                        <AvatarFallback className="text-2xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <h3 className="font-semibold text-lg mb-1">Chat with {creatorProfile.display_name}</h3>
+                      <p className="text-muted-foreground text-sm mb-2">
+                        Type your message below to start the conversation
                       </p>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-muted-foreground">
-                    No messages yet. Send your first message!
-                  </p>
+                      {pricePerMessage > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          ${pricePerMessage.toFixed(2)} per message • Balance: ${balance.toFixed(2)}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      No messages yet. Send your first message!
+                    </p>
+                  )
                 )}
               </div>
             ) : (
