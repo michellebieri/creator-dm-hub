@@ -2530,6 +2530,7 @@ export type Database = {
           media_url: string
           message_id: string
           price: number
+          thumbnail_url: string | null
           title: string | null
           unlocked_by: string[] | null
         }
@@ -2544,6 +2545,7 @@ export type Database = {
           media_url: string
           message_id: string
           price: number
+          thumbnail_url?: string | null
           title?: string | null
           unlocked_by?: string[] | null
         }
@@ -2558,6 +2560,7 @@ export type Database = {
           media_url?: string
           message_id?: string
           price?: number
+          thumbnail_url?: string | null
           title?: string | null
           unlocked_by?: string[] | null
         }
