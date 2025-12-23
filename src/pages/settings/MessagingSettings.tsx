@@ -138,7 +138,7 @@ const MessagingSettings = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bulk-price">Bulk message price</Label>
+              <Label htmlFor="bulk-price">Bulk message price ($)</Label>
               <Input
                 id="bulk-price"
                 type="number"
