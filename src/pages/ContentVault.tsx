@@ -27,6 +27,7 @@ interface Unlockable {
   price: number;
   caption?: string;
   title?: string;
+  thumbnail_url?: string | null;
   created_at: string;
   unlocked_by: string[] | null;
 }
@@ -515,6 +516,7 @@ export default function ContentVault() {
                       key={content.id}
                       id={content.id}
                       thumbnailUrl={content.media_url}
+                      videoThumbnailUrl={content.thumbnail_url}
                       title={content.title}
                       caption={content.caption}
                       price={content.price}

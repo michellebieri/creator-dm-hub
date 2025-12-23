@@ -6,9 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ChevronLeft, Upload, X } from 'lucide-react';
+import { ChevronLeft, Upload, X, Video } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { VideoThumbnailSelector } from '@/components/VideoThumbnailSelector';
+
+interface VideoThumbnail {
+  fileIndex: number;
+  blob: Blob;
+}
 
 export default function ContentUpload() {
   const { user } = useAuth();
@@ -20,6 +26,7 @@ export default function ContentUpload() {
   const [freeForSubscribers, setFreeForSubscribers] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
+  const [videoThumbnails, setVideoThumbnails] = useState<Map<number, Blob>>(new Map());
   const [debugErrors, setDebugErrors] = useState<Array<{
     fileName: string;
     step: string;
@@ -31,11 +38,25 @@ export default function ContentUpload() {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files).slice(0, 20);
       setFiles(selectedFiles);
+      setVideoThumbnails(new Map()); // Reset thumbnails when files change
     }
   };
 
   const removeFile = (index: number) => {
     setFiles(files.filter((_, i) => i !== index));
+    // Also remove any thumbnail for this file
+    const newThumbnails = new Map(videoThumbnails);
+    newThumbnails.delete(index);
+    // Re-index remaining thumbnails
+    const reindexed = new Map<number, Blob>();
+    newThumbnails.forEach((blob, key) => {
+      if (key > index) {
+        reindexed.set(key - 1, blob);
+      } else {
+        reindexed.set(key, blob);
+      }
+    });
+    setVideoThumbnails(reindexed);
   };
 
   const handleUpload = async () => {
@@ -218,12 +239,39 @@ export default function ContentUpload() {
 
               console.log('Message created successfully:', message.id);
 
-              // Step 6: Create unlockable
+              // Step 6: Create unlockable with optional thumbnail
               const mediaType = file.type.startsWith('image/') ? 'image' : 
                                file.type.startsWith('video/') ? 'video' :
                                file.type.startsWith('audio/') ? 'audio' : 'document';
               
-              console.log('Step 6: Creating unlockable entry...');
+              let thumbnailUrl: string | null = null;
+              
+              // Upload thumbnail if it's a video and thumbnail was selected
+              if (mediaType === 'video' && videoThumbnails.has(fileIndex)) {
+                const thumbnailBlob = videoThumbnails.get(fileIndex)!;
+                const thumbnailFileName = `${user.id}/${Date.now()}-thumbnail-${sanitizedName}.jpg`;
+                
+                console.log('Step 6a: Uploading video thumbnail...');
+                const { error: thumbUploadError } = await supabase.storage
+                  .from('unlockables')
+                  .upload(thumbnailFileName, thumbnailBlob, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: 'image/jpeg'
+                  });
+                
+                if (!thumbUploadError) {
+                  const { data: { publicUrl: thumbUrl } } = supabase.storage
+                    .from('unlockables')
+                    .getPublicUrl(thumbnailFileName);
+                  thumbnailUrl = thumbUrl;
+                  console.log('Thumbnail uploaded:', thumbnailUrl);
+                } else {
+                  console.warn('Thumbnail upload failed, continuing without:', thumbUploadError);
+                }
+              }
+              
+              console.log('Step 6b: Creating unlockable entry...');
               const { error: unlockableError } = await supabase
                 .from('unlockables')
                 .insert({
@@ -233,6 +281,7 @@ export default function ContentUpload() {
                   media_type: mediaType,
                   price: priceValue,
                   free_for_subscribers: freeForSubscribers,
+                  thumbnail_url: thumbnailUrl,
                 });
 
               if (unlockableError) {
@@ -357,25 +406,47 @@ export default function ContentUpload() {
           </div>
 
           {files.length > 0 && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Label>Selected Files ({files.length})</Label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-4 max-h-[500px] overflow-y-auto">
                 {files.map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-muted rounded-lg">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(file.size / (1024 * 1024)).toFixed(2)} MB
-                      </p>
+                  <div key={index} className="p-3 bg-muted rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {file.type.startsWith('video/') && (
+                          <Video className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{file.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(file.size / (1024 * 1024)).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        disabled={uploading}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(index)}
-                      disabled={uploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+                    
+                    {/* Video Thumbnail Selector */}
+                    {file.type.startsWith('video/') && (
+                      <VideoThumbnailSelector
+                        videoFile={file}
+                        onThumbnailSelect={(blob) => {
+                          setVideoThumbnails(prev => {
+                            const newMap = new Map(prev);
+                            newMap.set(index, blob);
+                            return newMap;
+                          });
+                        }}
+                        selectedThumbnail={videoThumbnails.get(index)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

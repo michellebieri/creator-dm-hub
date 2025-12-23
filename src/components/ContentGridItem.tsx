@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 interface ContentGridItemProps {
   id: string;
   thumbnailUrl: string;
+  videoThumbnailUrl?: string | null;
   title?: string;
   caption?: string;
   price: number;
@@ -18,6 +19,7 @@ interface ContentGridItemProps {
 
 export function ContentGridItem({
   thumbnailUrl,
+  videoThumbnailUrl,
   title,
   caption,
   price,
@@ -28,6 +30,9 @@ export function ContentGridItem({
 }: ContentGridItemProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+
+  // Use video thumbnail if available, otherwise fall back to media URL
+  const displayUrl = type === 'video' && videoThumbnailUrl ? videoThumbnailUrl : thumbnailUrl;
 
   const handleImageError = () => {
     setImageError(true);
@@ -62,7 +67,7 @@ export function ContentGridItem({
               </div>
             )}
             <img 
-              src={thumbnailUrl} 
+              src={displayUrl} 
               alt={title || 'Content'}
               className={cn(
                 "w-full h-full object-cover transition-opacity",
