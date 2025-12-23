@@ -118,7 +118,7 @@ const MessagingSettings = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price-per-message">Pricing per message</Label>
+              <Label htmlFor="price-per-message">Pricing per message ($)</Label>
               <Input
                 id="price-per-message"
                 type="number"
