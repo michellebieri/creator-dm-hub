@@ -37,7 +37,7 @@ interface Bundle {
   title: string;
   price: number;
   thumbnail_url: string | null;
-  thumbnail_urls?: string[];
+  thumbnail_urls?: Array<string | null>;
   content_count: number;
   description: string | null;
   discount_percentage: number | null;
@@ -112,15 +112,18 @@ export default function ContentVault() {
             .eq('bundle_id', bundle.id)
             .order('sort_order', { ascending: true });
 
-          let thumbnailUrls: string[] = [];
+          let thumbnailUrls: Array<string | null> = [];
           if (contents && contents.length > 0) {
             const { data: unlockables } = await supabase
               .from('unlockables')
-              .select('media_url')
+              .select('media_url, media_type, thumbnail_url')
               .in('id', contents.map(c => c.unlockable_id))
               .limit(8);
             
-            thumbnailUrls = unlockables?.map(u => u.media_url) || [];
+            thumbnailUrls = (unlockables || []).map((u: any) => {
+              if (u.media_type === 'video') return u.thumbnail_url || null;
+              return u.media_url;
+            });
           }
 
           return { 
@@ -446,11 +449,18 @@ export default function ContentVault() {
                             } gap-0.5`}>
                               {bundle.thumbnail_urls.slice(0, 8).map((url, idx) => (
                                 <div key={idx} className="relative w-full h-full overflow-hidden">
-                                  <img 
-                                    src={url} 
-                                    alt={`Bundle item ${idx + 1}`} 
-                                    className="w-full h-full object-cover" 
-                                  />
+                                  {url ? (
+                                    <img 
+                                      src={url} 
+                                      alt={`Bundle item ${idx + 1}`} 
+                                      className="w-full h-full object-cover" 
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                                      <Video className="h-6 w-6 text-muted-foreground" />
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>
