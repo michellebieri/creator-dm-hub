@@ -59,6 +59,16 @@ serve(async (req) => {
       const body = await req.json();
       const { userId } = body;
       
+      // Validate UUID format BEFORE any queries to prevent SQL injection
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!userId || !uuidRegex.test(userId)) {
+        console.error("Invalid userId format in request");
+        return new Response(JSON.stringify({ error: "Invalid userId format" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      
       // Users can create notifications for themselves OR for conversation participants
       if (userId !== user.id) {
         // Check if the user has a conversation with the target user
@@ -89,7 +99,7 @@ serve(async (req) => {
       throw new Error("Missing required fields: userId, type, title, message");
     }
 
-    // Validate UUID format for userId
+    // Validate UUID format for userId FIRST before any queries to prevent SQL injection
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(userId)) {
       throw new Error("Invalid userId format");
