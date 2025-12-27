@@ -2035,6 +2035,39 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          ip_address: string | null
+          request_count: number
+          updated_at: string | null
+          user_id: string | null
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          request_count?: number
+          updated_at?: string | null
+          user_id?: string | null
+          window_start: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          request_count?: number
+          updated_at?: string | null
+          user_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           converted_at: string | null
@@ -3061,6 +3094,12 @@ export type Database = {
       }
     }
     Views: {
+      platform_public_config: {
+        Row: {
+          platform_fee_percentage: number | null
+        }
+        Relationships: []
+      }
       public_profiles: {
         Row: {
           avatar_url: string | null
@@ -3147,6 +3186,7 @@ export type Database = {
       }
     }
     Functions: {
+      check_is_platform_owner: { Args: never; Returns: boolean }
       get_conversation_partner: {
         Args: { partner_id: string }
         Returns: {
