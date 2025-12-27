@@ -339,17 +339,8 @@ const Dashboard = () => {
         .update({ unlocked_by: unlockedBy })
         .eq('id', selectedPost.id);
 
-      // Record transaction
-      await supabase.from('transactions').insert({
-        customer_id: user.id,
-        creator_id: selectedPost.creator.id,
-        amount: selectedPost.price,
-        net_amount: selectedPost.price * 0.85,
-        platform_fee: selectedPost.price * 0.15,
-        processor_fee: 0,
-        transaction_type: 'unlockable',
-        status: 'completed',
-      });
+      // Transaction is already recorded by the spend() function via wallet_transactions
+      // No need for client-side transaction insert - this is handled server-side
 
       toast({
         title: "Content Unlocked!",
