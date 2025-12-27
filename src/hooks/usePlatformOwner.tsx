@@ -16,17 +16,15 @@ export const usePlatformOwner = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('platform_config')
-          .select('platform_owner_user_id')
-          .limit(1)
-          .single();
+        // Use secure RPC function to check platform owner status
+        // This doesn't expose the actual platform_owner_user_id
+        const { data, error } = await supabase.rpc('check_is_platform_owner');
 
         if (error) {
           console.error('Error checking platform owner:', error);
           setIsPlatformOwner(false);
         } else {
-          setIsPlatformOwner(data?.platform_owner_user_id === user.id);
+          setIsPlatformOwner(data === true);
         }
       } catch (error) {
         console.error('Error in platform owner check:', error);
