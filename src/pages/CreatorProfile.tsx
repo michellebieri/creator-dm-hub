@@ -465,22 +465,9 @@ const CreatorProfile = () => {
         }
       }
 
-      // Record transaction with bundle_id to track bundle ownership
-      const { error: txError } = await supabase.from('transactions').insert({
-        customer_id: user.id,
-        creator_id: profile.id,
-        amount: selectedBundle.price,
-        net_amount: selectedBundle.price * 0.85,
-        platform_fee: selectedBundle.price * 0.15,
-        processor_fee: 0,
-        transaction_type: 'pack',
-        bundle_id: selectedBundle.id,
-        status: 'completed',
-      });
-      
-      if (txError) {
-        console.error('Transaction insert error:', txError);
-      }
+      // Transaction is already recorded by the spend() function via wallet_transactions
+      // Bundle ownership is tracked via the unlocked_by array on each unlockable
+      // No need for client-side transaction insert - this is handled server-side
 
       // Send notification to creator
       try {

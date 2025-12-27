@@ -98,17 +98,8 @@ export const useUnlockables = () => {
 
       if (finalError) throw finalError;
 
-      // Record transaction
-      await supabase.from('transactions').insert({
-        customer_id: user.id,
-        creator_id: creatorId,
-        amount: price,
-        net_amount: price * 0.85,
-        platform_fee: price * 0.15,
-        processor_fee: 0,
-        transaction_type: 'unlockable',
-        status: 'completed',
-      });
+      // Transaction is handled by the credits system - already tracked in customer_credits
+      // No need for client-side transaction insert - payment flow is handled server-side
 
       // Create notification for creator
       supabase.functions.invoke('create-notification', {

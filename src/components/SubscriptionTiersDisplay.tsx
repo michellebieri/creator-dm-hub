@@ -174,17 +174,8 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
           });
       }
 
-      // 5. Record transaction
-      await supabase.from('transactions').insert({
-        customer_id: user.id,
-        creator_id: creatorId,
-        amount: selectedTier.price,
-        net_amount: selectedTier.price * 0.85,
-        platform_fee: selectedTier.price * 0.15,
-        processor_fee: 0,
-        transaction_type: 'subscription' as any,
-        status: 'completed',
-      });
+      // Transaction is already recorded by the spend() function via wallet_transactions
+      // No need for client-side transaction insert - this is handled server-side
 
       // 6. Notify creator
       supabase.functions.invoke('create-notification', {
