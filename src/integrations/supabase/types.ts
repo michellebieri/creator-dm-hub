@@ -243,6 +243,13 @@ export type Database = {
             referencedRelation: "unlockables"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bundle_contents_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
+            referencedColumns: ["id"]
+          },
         ]
       }
       collection_items: {
@@ -280,6 +287,13 @@ export type Database = {
             columns: ["unlockable_id"]
             isOneToOne: false
             referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collection_items_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
             referencedColumns: ["id"]
           },
         ]
@@ -436,6 +450,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "content_comments_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "content_comments_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -476,6 +497,13 @@ export type Database = {
             columns: ["unlockable_id"]
             isOneToOne: false
             referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_likes_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
             referencedColumns: ["id"]
           },
           {
@@ -526,6 +554,13 @@ export type Database = {
             columns: ["unlockable_id"]
             isOneToOne: false
             referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_tag_assignments_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
             referencedColumns: ["id"]
           },
         ]
@@ -1072,6 +1107,13 @@ export type Database = {
             columns: ["unlockable_id"]
             isOneToOne: false
             referencedRelation: "unlockables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dmca_claims_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
             referencedColumns: ["id"]
           },
         ]
@@ -3008,6 +3050,13 @@ export type Database = {
             referencedRelation: "unlockables"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "wishlists_unlockable_id_fkey"
+            columns: ["unlockable_id"]
+            isOneToOne: false
+            referencedRelation: "unlockables_discovery"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -3041,6 +3090,60 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      unlockables_discovery: {
+        Row: {
+          caption: string | null
+          created_at: string | null
+          creator_id: string | null
+          expires_at: string | null
+          free_for_subscribers: boolean | null
+          id: string | null
+          media_type: Database["public"]["Enums"]["media_type"] | null
+          price: number | null
+          thumbnail_url: string | null
+          title: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          expires_at?: string | null
+          free_for_subscribers?: boolean | null
+          id?: string | null
+          media_type?: Database["public"]["Enums"]["media_type"] | null
+          price?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string | null
+          creator_id?: string | null
+          expires_at?: string | null
+          free_for_subscribers?: boolean | null
+          id?: string | null
+          media_type?: Database["public"]["Enums"]["media_type"] | null
+          price?: number | null
+          thumbnail_url?: string | null
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unlockables_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unlockables_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "public_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
