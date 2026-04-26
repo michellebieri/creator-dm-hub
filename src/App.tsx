@@ -262,7 +262,7 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/admin-revenue" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireAdmin>
                 <AdminRevenue />
               </ProtectedRoute>
             } />

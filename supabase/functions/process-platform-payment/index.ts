@@ -24,10 +24,29 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-    
-    const { 
-      amount, 
-      creator_id, 
+
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: authData } = await supabaseClient.auth.getUser(token);
+    const callerUser = authData.user;
+    if (!callerUser) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    logStep("Caller authenticated", { userId: callerUser.id });
+
+    const {
+      amount,
+      creator_id,
       customer_id,
       transaction_type,
       description,
@@ -36,6 +55,14 @@ serve(async (req) => {
 
     if (!amount || !creator_id || !customer_id || !transaction_type) {
       throw new Error("Missing required fields: amount, creator_id, customer_id, transaction_type");
+    }
+
+    // Enforce that the authenticated user is the customer making the payment
+    if (callerUser.id !== customer_id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: customer_id must match authenticated user" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
     }
 
     logStep("Request params", { amount, creator_id, customer_id, transaction_type });

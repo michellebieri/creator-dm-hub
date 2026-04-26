@@ -24,7 +24,26 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-    
+
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    const token = authHeader.replace("Bearer ", "");
+    const { data: authData } = await supabaseClient.auth.getUser(token);
+    const callerUser = authData.user;
+    if (!callerUser) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or expired token" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+      );
+    }
+    logStep("Caller authenticated", { userId: callerUser.id });
+
     const { payment_intent_id } = await req.json();
 
     if (!payment_intent_id) {
@@ -50,6 +69,15 @@ serve(async (req) => {
 
     const transactionId = paymentIntent.metadata.transaction_id;
     const platformFeeId = paymentIntent.metadata.platform_fee_id;
+    const metadataCustomerId = paymentIntent.metadata.customer_id;
+
+    // Enforce that the caller is the customer who made the payment
+    if (metadataCustomerId && callerUser.id !== metadataCustomerId) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: payment does not belong to authenticated user" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
 
     // Update transaction status
     await supabaseClient

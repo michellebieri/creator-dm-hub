@@ -8,15 +8,17 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireCreator?: boolean;
   requireCustomer?: boolean;
+  requireAdmin?: boolean;
 }
 
-export const ProtectedRoute = ({ 
-  children, 
+export const ProtectedRoute = ({
+  children,
   requireCreator = false,
-  requireCustomer = false 
+  requireCustomer = false,
+  requireAdmin = false,
 }: ProtectedRouteProps) => {
   const { user, loading: authLoading } = useAuth();
-  const { isCreator, loading: roleLoading } = useRoleCheck();
+  const { isCreator, isAdmin, loading: roleLoading } = useRoleCheck();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +26,11 @@ export const ProtectedRoute = ({
 
     if (!user) {
       navigate('/auth');
+      return;
+    }
+
+    if (requireAdmin && !isAdmin) {
+      navigate('/');
       return;
     }
 
@@ -36,13 +43,17 @@ export const ProtectedRoute = ({
       navigate('/dashboard');
       return;
     }
-  }, [user, isCreator, authLoading, roleLoading, navigate, requireCreator, requireCustomer]);
+  }, [user, isCreator, isAdmin, authLoading, roleLoading, navigate, requireCreator, requireCustomer, requireAdmin]);
 
   if (authLoading || roleLoading) {
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    return null;
+  }
+
+  if (requireAdmin && !isAdmin) {
     return null;
   }
 
