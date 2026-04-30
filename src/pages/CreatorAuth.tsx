@@ -32,6 +32,7 @@ const CreatorAuth = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   useEffect(() => {
     if (!loading && !roleLoading && user && isCreator) {
@@ -72,12 +73,17 @@ const CreatorAuth = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Account created!",
-        description: "Welcome to DM.me - You can now start earning",
-      });
-
-      navigate('/dashboard');
+      // If the user is immediately confirmed (email confirmation off), redirect.
+      // Otherwise show a "check your email" screen.
+      if (authData?.session) {
+        toast({
+          title: "Account created!",
+          description: "Welcome to DM.me — you can now start earning.",
+        });
+        navigate('/dashboard');
+      } else {
+        setSignupSuccess(true);
+      }
     } catch (error: any) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -169,6 +175,28 @@ const CreatorAuth = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <Card>
+            <CardHeader>
+              <CardTitle>Check your email ✉️</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground">
+                We've sent you a confirmation link. Click it to activate your creator account, then sign in below.
+              </p>
+              <Button className="w-full" onClick={() => setSignupSuccess(false)}>
+                Back to Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
