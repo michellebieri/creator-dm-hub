@@ -1,167 +1,94 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { checkRateLimit, getRateLimitHeaders } from "../_shared/rate-limit.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get authorization header
-    const authHeader = req.headers.get("Authorization");
-    
+    const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      console.error("Missing Authorization header");
-      return new Response(
-        JSON.stringify({ error: "Authentication required. Please log in again." }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    // Create Supabase client with auth header
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
+    // Use Supabase JS client for auth only (no Stripe SDK - use raw fetch instead)
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    
-    if (authError) {
-      console.error("Auth error:", authError);
-      return new Response(
-        JSON.stringify({ error: "Authentication failed. Please log in again." }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
-    }
-    
-    if (!user?.email) {
-      console.error("No user or email found");
-      return new Response(
-        JSON.stringify({ error: "User not authenticated. Please log in again." }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 401,
-        }
-      );
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    console.log("User authenticated:", user.id);
-
-    // Check rate limit
-    const clientIp = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip");
-    const rateLimit = await checkRateLimit(supabaseClient, 'add-funds', user.id, clientIp || undefined);
-    
-    if (!rateLimit.allowed) {
-      return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-        {
-          headers: {
-            ...corsHeaders,
-            ...getRateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
-            "Content-Type": "application/json",
-          },
-          status: 429,
-        }
-      );
+    const { amount } = await req.json()
+    if (!amount || amount <= 0) {
+      return new Response(JSON.stringify({ error: 'Invalid amount' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const { amount } = await req.json();
-    
-    // Validate amount - minimum $1, maximum $10,000
-    const MIN_AMOUNT = 1;
-    const MAX_AMOUNT = 10000;
-    
-    if (!amount || typeof amount !== 'number' || !Number.isFinite(amount)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid amount format" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
-    
-    if (amount < MIN_AMOUNT) {
-      return new Response(
-        JSON.stringify({ error: `Minimum deposit amount is $${MIN_AMOUNT}` }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
-    }
-    
-    if (amount > MAX_AMOUNT) {
-      return new Response(
-        JSON.stringify({ error: `Maximum deposit amount is $${MAX_AMOUNT}` }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        }
-      );
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
+    if (!stripeKey) {
+      return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const amountInCents = Math.round(amount * 100)
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    }
+    // Call Stripe API directly — no SDK, no Deno compatibility issues
+    const params = new URLSearchParams()
+    params.append('amount', String(amountInCents))
+    params.append('currency', 'usd')
+    params.append('automatic_payment_methods[enabled]', 'true')
+    params.append('metadata[user_id]', user.id)
+    params.append('metadata[type]', 'wallet_deposit')
 
-    // Create PaymentIntent for embedded payment form
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      customer: customerId,
-      automatic_payment_methods: {
-        enabled: true,
+    const stripeRes = await fetch('https://api.stripe.com/v1/payment_intents', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${stripeKey}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-      metadata: {
-        transaction_type: 'wallet_deposit',
-        user_id: user.id,
-        amount: amount.toString(),
-      },
-    });
+      body: params.toString(),
+    })
 
-    console.log("Wallet deposit PaymentIntent created:", paymentIntent.id);
+    const stripeData = await stripeRes.json()
 
-    return new Response(JSON.stringify({ clientSecret: paymentIntent.client_secret }), {
-      headers: { 
-        ...corsHeaders, 
-        ...getRateLimitHeaders(rateLimit.remaining, rateLimit.resetAt),
-        "Content-Type": "application/json" 
-      },
-      status: 200,
-    });
+    if (!stripeRes.ok) {
+      console.error('Stripe error:', stripeData)
+      return new Response(
+        JSON.stringify({ error: stripeData.error?.message || 'Stripe error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    return new Response(
+      JSON.stringify({ clientSecret: stripeData.client_secret }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
   } catch (error) {
-    console.error("Error creating payment:", error);
-    const errorMessage = error instanceof Error ? error.message : "An error occurred";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error('add-funds error:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})
