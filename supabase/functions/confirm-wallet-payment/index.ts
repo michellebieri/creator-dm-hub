@@ -1,154 +1,131 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-  );
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    
-    if (!user) {
-      throw new Error("User not authenticated");
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const { paymentIntentId } = await req.json();
-    
+    // Verify user identity
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    )
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Admin client for DB writes
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    const { paymentIntentId } = await req.json()
     if (!paymentIntentId) {
-      throw new Error("Payment Intent ID is required");
+      return new Response(JSON.stringify({ error: 'Missing paymentIntentId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
-    });
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
+    if (!stripeKey) {
+      return new Response(JSON.stringify({ error: 'Stripe not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
-    // Retrieve the payment intent
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // Verify payment with Stripe using raw fetch (no SDK)
+    const stripeRes = await fetch(`https://api.stripe.com/v1/payment_intents/${paymentIntentId}`, {
+      headers: { 'Authorization': `Bearer ${stripeKey}` },
+    })
+    const paymentIntent = await stripeRes.json()
+
+    if (!stripeRes.ok) {
+      return new Response(JSON.stringify({ error: paymentIntent.error?.message || 'Stripe error' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     if (paymentIntent.status !== 'succeeded') {
-      return new Response(
-        JSON.stringify({ success: false, message: "Payment not completed" }), 
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Payment not successful' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const { user_id, amount } = paymentIntent.metadata || {};
-
-    if (!user_id || !amount) {
-      throw new Error("Invalid payment intent metadata");
+    // Security: ensure this payment belongs to the authenticated user
+    if (paymentIntent.metadata?.user_id !== user.id) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    // Check if already processed
-    const { data: existingTransaction } = await supabaseClient
-      .from('wallet_transactions')
-      .select('id')
-      .eq('user_id', user_id)
-      .eq('description', `Payment ${paymentIntentId}`)
-      .single();
+    const amountDollars = paymentIntent.amount / 100
 
-    if (existingTransaction) {
-      // Already processed, get current balance
-      const { data: profile } = await supabaseClient
-        .from('profiles')
-        .select('wallet_balance')
-        .eq('id', user_id)
-        .single();
-
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          balance: parseFloat(String(profile?.wallet_balance || 0)),
-          message: "Already processed" 
-        }), 
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 200,
-        }
-      );
-    }
-
-    const depositAmount = parseFloat(amount);
-
-    // Get current balance
-    const { data: profile } = await supabaseClient
+    // Get current wallet balance
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('wallet_balance')
-      .eq('id', user_id)
-      .single();
+      .eq('id', user.id)
+      .single()
 
-    const currentBalance = parseFloat(String(profile?.wallet_balance || 0));
-    const newBalance = currentBalance + depositAmount;
+    if (profileError) throw new Error('Failed to fetch profile')
 
-    // Update wallet balance
-    const { error: updateError } = await supabaseClient
+    const currentBalance = profile.wallet_balance ?? 0
+    const newBalance = currentBalance + amountDollars
+
+    // Update wallet balance atomically
+    const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ wallet_balance: newBalance })
-      .eq('id', user_id);
+      .eq('id', user.id)
 
-    if (updateError) {
-      console.error("Error updating wallet balance:", updateError);
-      throw new Error("Failed to update wallet balance");
-    }
+    if (updateError) throw new Error('Failed to update balance')
 
-    // Record transaction
-    const { error: transactionError } = await supabaseClient
+    // Record the transaction
+    await supabaseAdmin
       .from('wallet_transactions')
       .insert({
-        user_id,
-        amount: depositAmount,
+        user_id: user.id,
+        amount: amountDollars,
         transaction_type: 'deposit',
-        description: `Payment ${paymentIntentId}`,
+        description: 'Wallet top-up via Stripe',
         balance_after: newBalance,
-      });
-
-    if (transactionError) {
-      console.error("Error recording transaction:", transactionError);
-    }
-
-    // Create notification
-    await supabaseClient.functions.invoke('create-notification', {
-      body: {
-        userId: user_id,
-        type: 'payment_success',
-        title: 'Funds Added',
-        message: `$${depositAmount.toFixed(2)} has been added to your wallet!`,
-        link: '/wallet',
-      },
-    });
-
-    console.log("Wallet payment confirmed and balance updated");
+        payment_method: 'stripe',
+      })
 
     return new Response(
-      JSON.stringify({ success: true, balance: newBalance }), 
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
+      JSON.stringify({ success: true, balance: newBalance }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
-    console.error("Error confirming payment:", error);
-    const errorMessage = error instanceof Error ? error.message : "An error occurred";
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error('confirm-wallet-payment error:', error)
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
-    });
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
-});
+})
