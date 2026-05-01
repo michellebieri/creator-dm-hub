@@ -1,19 +1,15 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 type AppRole = 'admin' | 'moderator' | 'creator' | 'customer';
 
 export const useRoleCheck = () => {
+  const { user } = useAuthContext();
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchRoles = async (userId: string | undefined) => {
-    if (!userId) {
-      setRoles([]);
-      setLoading(false);
-      return;
-    }
-
+  const fetchRoles = async (userId: string) => {
     try {
       const { data: userRoles, error } = await supabase
         .from('user_roles')
@@ -35,18 +31,13 @@ export const useRoleCheck = () => {
   };
 
   useEffect(() => {
-    // Subscribe to auth changes and re-fetch roles whenever the user changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchRoles(session?.user?.id);
-    });
-
-    // Also fetch for the current session immediately
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      fetchRoles(session?.user?.id);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+    if (user?.id) {
+      fetchRoles(user.id);
+    } else {
+      setRoles([]);
+      setLoading(false);
+    }
+  }, [user?.id]); // only re-runs when the actual user ID changes
 
   const hasRole = (role: AppRole) => roles.includes(role);
   const isAdmin = roles.includes('admin');
@@ -60,6 +51,6 @@ export const useRoleCheck = () => {
     isModerator,
     isCreator,
     loading,
-    refetch: () => supabase.auth.getSession().then(({ data: { session } }) => fetchRoles(session?.user?.id)),
+    refetch: () => user?.id ? fetchRoles(user.id) : Promise.resolve(),
   };
 };
