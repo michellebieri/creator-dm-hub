@@ -78,7 +78,11 @@ export function AddFundsDialog({
       });
 
       if (error) throw error;
-      
+
+      if (!data.clientSecret) {
+        throw new Error('No client secret returned from server');
+      }
+      console.log('clientSecret mode:', data.clientSecret.includes('_test_') ? 'TEST' : 'LIVE');
       setClientSecret(data.clientSecret);
     } catch (err: any) {
       toast({

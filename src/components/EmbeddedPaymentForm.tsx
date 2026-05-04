@@ -89,7 +89,14 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
         <div className="text-2xl font-bold">${amount.toFixed(2)}</div>
       </div>
 
-      <PaymentElement options={{ layout: 'tabs' }} />
+      <PaymentElement
+        options={{ layout: 'tabs' }}
+        onReady={() => console.log('PaymentElement ready')}
+        onLoadError={(e) => {
+          console.error('PaymentElement load error:', e);
+          setError('Payment form failed to load: ' + (e as any)?.message);
+        }}
+      />
 
       {error && (
         <Alert variant="destructive">
