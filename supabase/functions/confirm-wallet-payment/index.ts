@@ -85,25 +85,22 @@ Deno.serve(async (req) => {
 
     const amountDollars = paymentIntent.amount / 100
 
-    // Get current wallet balance
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // Get current wallet balance (profile may not exist yet for new users)
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('wallet_balance')
       .eq('id', user.id)
       .single()
 
-    if (profileError) throw new Error('Failed to fetch profile')
-
-    const currentBalance = profile.wallet_balance ?? 0
+    const currentBalance = profile?.wallet_balance ?? 0
     const newBalance = currentBalance + amountDollars
 
-    // Update wallet balance atomically
-    const { error: updateError } = await supabaseAdmin
+    // Upsert wallet balance — creates profile row if it doesn't exist
+    const { error: upsertError } = await supabaseAdmin
       .from('profiles')
-      .update({ wallet_balance: newBalance })
-      .eq('id', user.id)
+      .upsert({ id: user.id, wallet_balance: newBalance }, { onConflict: 'id' })
 
-    if (updateError) throw new Error('Failed to update balance')
+    if (upsertError) throw new Error('Failed to update balance: ' + upsertError.message)
 
     // Record the transaction
     await supabaseAdmin
