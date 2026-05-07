@@ -51,6 +51,10 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Debug: return key mode so we can verify which key is active
+    const keyMode = stripeKey.startsWith('sk_test_') ? 'test' : 'live'
+    console.log('STRIPE key mode:', keyMode, '| first 12 chars:', stripeKey.substring(0, 12))
+
     const amountInCents = Math.round(amount * 100)
 
     // Call Stripe API directly — no SDK, no Deno compatibility issues
@@ -81,7 +85,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ clientSecret: stripeData.client_secret }),
+      JSON.stringify({ clientSecret: stripeData.client_secret, keyMode }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

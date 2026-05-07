@@ -82,7 +82,10 @@ export function AddFundsDialog({
       if (!data.clientSecret) {
         throw new Error('No client secret returned from server');
       }
-      console.log('clientSecret mode:', data.clientSecret.includes('_test_') ? 'TEST' : 'LIVE');
+      console.log('clientSecret mode:', data.clientSecret.includes('_test_') ? 'TEST' : 'LIVE', '| keyMode from server:', data.keyMode);
+      if (data.keyMode === 'live') {
+        throw new Error('Server is using LIVE Stripe key — update STRIPE_SECRET_KEY in Supabase to sk_test_...');
+      }
       setClientSecret(data.clientSecret);
     } catch (err: any) {
       toast({
