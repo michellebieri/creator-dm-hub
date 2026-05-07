@@ -51,7 +51,15 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
           body: { paymentIntentId: paymentIntent.id },
         });
 
-        if (confirmBackendError) throw confirmBackendError;
+        if (confirmBackendError) {
+          // Extract actual error message from edge function response
+          try {
+            const body = await (confirmBackendError as any).context?.json?.();
+            throw new Error(body?.error || confirmBackendError.message);
+          } catch (e: any) {
+            throw new Error(e.message || confirmBackendError.message);
+          }
+        }
 
         if (data?.success) {
           setSuccess(true);
