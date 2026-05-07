@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
     const amountDollars = paymentIntent.amount / 100
 
-    // Get current wallet balance (profile may not exist yet for new users)
+    // Get current wallet balance
     const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('wallet_balance')
@@ -95,12 +95,24 @@ Deno.serve(async (req) => {
     const currentBalance = profile?.wallet_balance ?? 0
     const newBalance = currentBalance + amountDollars
 
-    // Upsert wallet balance — creates profile row if it doesn't exist
-    const { error: upsertError } = await supabaseAdmin
-      .from('profiles')
-      .upsert({ id: user.id, wallet_balance: newBalance }, { onConflict: 'id' })
-
-    if (upsertError) throw new Error('Failed to update balance: ' + upsertError.message)
+    if (profile) {
+      // Profile exists — just update the balance
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ wallet_balance: newBalance })
+        .eq('id', user.id)
+      if (updateError) throw new Error('Failed to update balance: ' + updateError.message)
+    } else {
+      // Profile missing — create one using auth user data
+      const { data: authData } = await supabaseAdmin.auth.admin.getUserById(user.id)
+      const email = authData?.user?.email || ''
+      const username = (email.split('@')[0] + '_' + user.id.substring(0, 6)).replace(/[^a-z0-9_]/gi, '_').toLowerCase()
+      const displayName = authData?.user?.user_metadata?.full_name || authData?.user?.user_metadata?.name || email.split('@')[0] || 'User'
+      const { error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({ id: user.id, username, display_name: displayName, wallet_balance: newBalance })
+      if (insertError) throw new Error('Failed to create profile: ' + insertError.message)
+    }
 
     // Record the transaction
     await supabaseAdmin
