@@ -204,8 +204,8 @@ export default function CreatorRevenue() {
             </CardTitle>
             <CardDescription>
               {revenueData?.stripeConnected 
-                ? 'Your Stripe account is connected. You receive 85% of all payments.'
-                : 'Connect your Stripe account to receive payments (85% of earnings).'}
+                ? 'Your Stripe account is connected. You receive 75% of all payments.'
+                : 'Connect your Stripe account to receive payments (75% of earnings).'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -237,7 +237,7 @@ export default function CreatorRevenue() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Earnings (85%)
+                Total Earnings (75%)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -435,7 +435,7 @@ export default function CreatorRevenue() {
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Gross</TableHead>
                     <TableHead className="text-right">Fee (15%)</TableHead>
-                    <TableHead className="text-right">Your Share (85%)</TableHead>
+                    <TableHead className="text-right">Your Share (75%)</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>

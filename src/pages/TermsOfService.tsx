@@ -54,7 +54,7 @@ const TermsOfService = () => {
               <li>Own or have rights to all content uploaded</li>
               <li>Verify their identity as required</li>
               <li>Maintain accurate payment information</li>
-              <li>Accept a 15% platform fee on all transactions</li>
+              <li>Accept a 25% platform fee on all transactions</li>
             </ul>
           </section>
 
@@ -75,7 +75,7 @@ const TermsOfService = () => {
             <h2 className="text-2xl font-semibold mb-3">6. Payment Terms</h2>
             <div className="space-y-3 text-muted-foreground">
               <p><strong>Customers:</strong> All payments are final. Credits are non-refundable except as required by law.</p>
-              <p><strong>Creators:</strong> Earnings are subject to a 15% platform fee and Stripe processing fees. 
+              <p><strong>Creators:</strong> Earnings are subject to a 25% platform fee and Stripe processing fees. 
               Payouts are processed according to your payout schedule.</p>
               <p><strong>Chargebacks:</strong> Fraudulent chargebacks may result in account suspension.</p>
             </div>

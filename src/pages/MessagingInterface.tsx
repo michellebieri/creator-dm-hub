@@ -21,7 +21,7 @@ import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
 
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
-import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, Heart } from 'lucide-react';
+import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, Heart, Bot, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -56,6 +56,8 @@ const MessagingInterface = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const [showAddFunds, setShowAddFunds] = useState(false);
+  const [aiDrafts, setAiDrafts] = useState<{ id: string; draft_content: string }[]>([]);
+  const [showAiDrafts, setShowAiDrafts] = useState(false);
   const [tipAmount, setTipAmount] = useState(0);
   const [showTipInput, setShowTipInput] = useState(false);
   const [customTip, setCustomTip] = useState('');
@@ -187,6 +189,43 @@ const MessagingInterface = () => {
 
     fetchData();
   }, [creatorId, user]);
+
+  // Fetch pending AI drafts for creators
+  useEffect(() => {
+    if (!isCreator || !user || !conversationId) return;
+    const fetchDrafts = async () => {
+      const { data } = await supabase
+        .from('ai_draft_messages')
+        .select('id, draft_content')
+        .eq('creator_id', user.id)
+        .eq('conversation_id', conversationId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });
+      setAiDrafts(data || []);
+    };
+    fetchDrafts();
+
+    const channel = supabase
+      .channel(`ai-drafts-${conversationId}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'ai_draft_messages',
+        filter: `conversation_id=eq.${conversationId}`,
+      }, () => fetchDrafts())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [isCreator, user, conversationId]);
+
+  const handleSendAiDraft = async (draft: { id: string; draft_content: string }) => {
+    if (!conversationId || !user) return;
+    await sendMessage(draft.draft_content);
+    await supabase.from('ai_draft_messages').update({ status: 'sent' }).eq('id', draft.id);
+    setAiDrafts(prev => prev.filter(d => d.id !== draft.id));
+  };
+
+  const handleDismissAiDraft = async (draftId: string) => {
+    await supabase.from('ai_draft_messages').update({ status: 'dismissed' }).eq('id', draftId);
+    setAiDrafts(prev => prev.filter(d => d.id !== draftId));
+  };
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
@@ -434,6 +473,50 @@ const MessagingInterface = () => {
         <div className="max-w-4xl mx-auto space-y-4">
           {isCreator && user?.id && (
             <ScheduledMessagesList senderId={user.id} />
+          )}
+
+          {/* AI Draft review banner — only for creators with pending drafts */}
+          {isCreator && aiDrafts.length > 0 && (
+            <div className="rounded-lg border border-violet-500/30 bg-violet-500/5 overflow-hidden">
+              <button
+                onClick={() => setShowAiDrafts(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 hover:bg-violet-500/10 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Bot className="h-4 w-4 text-violet-500" />
+                  <span className="text-sm font-medium text-violet-600 dark:text-violet-400">
+                    {aiDrafts.length} AI draft{aiDrafts.length > 1 ? 's' : ''} waiting for your approval
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">{showAiDrafts ? 'Hide' : 'Review'}</span>
+              </button>
+              {showAiDrafts && (
+                <div className="px-4 pb-3 space-y-2">
+                  {aiDrafts.map(draft => (
+                    <div key={draft.id} className="bg-background rounded-lg p-3 border border-border">
+                      <p className="text-sm mb-3 whitespace-pre-wrap">{draft.draft_content}</p>
+                      <div className="flex gap-2 justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
+                          onClick={() => handleDismissAiDraft(draft.id)}
+                        >
+                          <X className="h-3 w-3 mr-1" />Dismiss
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-violet-600 hover:bg-violet-700"
+                          onClick={() => handleSendAiDraft(draft)}
+                        >
+                          <Check className="h-3 w-3 mr-1" />Send
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* Payment Required Overlay - Show at top for customers without subscription/credits/balance */}

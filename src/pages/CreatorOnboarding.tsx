@@ -214,7 +214,7 @@ const CreatorOnboarding = () => {
                         <span className="font-medium">${Number(pricePerMessage || 0).toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Platform fee (15%):</span>
+                        <span className="text-muted-foreground">Platform fee (25%):</span>
                         <span className="text-destructive">
                           -${(Number(pricePerMessage || 0) * 0.15).toFixed(2)}
                         </span>
@@ -343,7 +343,7 @@ const CreatorOnboarding = () => {
                   <div className="p-4 bg-muted/50 rounded-xl space-y-2 text-sm">
                     <p className="font-medium">Why connect Stripe?</p>
                     <ul className="space-y-1 text-muted-foreground">
-                      <li>✓ Receive 85% of every message payment</li>
+                      <li>✓ Receive 75% of every message payment</li>
                       <li>✓ Withdraw your earnings anytime</li>
                       <li>✓ Secure, trusted by millions of creators</li>
                     </ul>

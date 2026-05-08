@@ -48,6 +48,7 @@ import SocialsSettings from "./pages/settings/SocialsSettings";
 import ProfileSettings2 from "./pages/settings/ProfileSettings";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import AccountManagement from "./pages/settings/AccountManagement";
+import AIPersonaSettings from "./pages/settings/AIPersonaSettings";
 import PaymentMethods from "./pages/PaymentMethods";
 import Wallet from "./pages/Wallet";
 import CreatorRevenue from "./pages/CreatorRevenue";
@@ -208,6 +209,11 @@ const App = () => {
             <Route path="/settings/management" element={
               <ProtectedRoute>
                 <AccountManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings/ai-persona" element={
+              <ProtectedRoute requireCreator>
+                <AIPersonaSettings />
               </ProtectedRoute>
             } />
             <Route path="/privacy-settings" element={

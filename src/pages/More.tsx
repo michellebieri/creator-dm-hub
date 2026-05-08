@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
-import { 
-  User, 
-  Bell, 
-  Shield, 
+import {
+  User,
+  Bell,
+  Shield,
   Settings,
   LogOut,
   Lock,
@@ -25,7 +25,8 @@ import {
   Newspaper,
   Receipt,
   Wallet,
-  Crown
+  Crown,
+  Bot
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -134,6 +135,7 @@ const More = () => {
               <MenuItem title="Nudges" icon={Radio} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/nudges')} />
               <MenuItem title="Subscribers" icon={Crown} iconBg="bg-amber-500/10" iconColor="text-amber-500" onClick={() => navigate('/subscribers')} />
               <MenuItem title="Followers" icon={Users} iconBg="bg-purple-500/10" iconColor="text-purple-500" onClick={() => navigate('/lists')} />
+              <MenuItem title="AI Assistant" icon={Bot} iconBg="bg-violet-500/10" iconColor="text-violet-500" onClick={() => navigate('/settings/ai-persona')} />
             </Card>
           </>
         )}
