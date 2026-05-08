@@ -21,18 +21,14 @@ interface RevenueByType {
 
 const TYPE_LABELS: Record<string, string> = {
   message: 'Messages',
-  subscription: 'Subscriptions',
-  unlock: 'Unlocks',
-  tip: 'Tips',
-  bulk_message: 'Bulk Messages',
+  pack: 'Message Packs',
+  unlockable: 'Unlockables',
 };
 
 const TYPE_COLORS: Record<string, string> = {
   message: 'bg-blue-500',
-  subscription: 'bg-violet-500',
-  unlock: 'bg-amber-500',
-  tip: 'bg-pink-500',
-  bulk_message: 'bg-cyan-500',
+  pack: 'bg-violet-500',
+  unlockable: 'bg-amber-500',
 };
 
 const AnalyticsDashboard = () => {
@@ -67,7 +63,7 @@ const AnalyticsDashboard = () => {
 
       const { data: allTxns } = await supabase
         .from('transactions')
-        .select('customer_id, amount, created_at, type')
+        .select('customer_id, amount, created_at, transaction_type')
         .eq('creator_id', user!.id)
         .eq('status', 'completed')
         .gt('amount', 0);
@@ -106,7 +102,7 @@ const AnalyticsDashboard = () => {
       // Revenue by type
       const typeMap: Record<string, { amount: number; count: number }> = {};
       txns.forEach(t => {
-        const key = t.type || 'message';
+        const key = t.transaction_type || 'message';
         if (!typeMap[key]) typeMap[key] = { amount: 0, count: 0 };
         typeMap[key].amount += t.amount;
         typeMap[key].count += 1;

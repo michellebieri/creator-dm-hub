@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
-import { PieChart, Users, ChevronLeft, DollarSign } from 'lucide-react';
+import { PieChart, Users, ChevronLeft, DollarSign, Copy, Check, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
 
 const CreatorDashboard = () => {
   const { user, loading } = useAuth();
@@ -20,6 +21,25 @@ const CreatorDashboard = () => {
     posts: 0,
   });
   const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month' | 'all'>('today');
+  const [username, setUsername] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      supabase.from('profiles').select('username').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.username) setUsername(data.username); });
+    }
+  }, [user]);
+
+  const profileUrl = username ? `${window.location.origin}/${username}` : '';
+
+  const handleCopy = () => {
+    if (!profileUrl) return;
+    navigator.clipboard.writeText(profileUrl);
+    setCopied(true);
+    toast.success('Link copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (!loading && !user) {
@@ -127,6 +147,25 @@ const CreatorDashboard = () => {
       </header>
 
       <div className="max-w-screen-lg mx-auto p-4 space-y-4">
+        {/* Profile Link Card */}
+        <Card className="p-4 border-border">
+          <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Your profile link</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm font-mono truncate text-muted-foreground">
+              {profileUrl || 'Loading...'}
+            </div>
+            <Button size="sm" variant="outline" onClick={handleCopy} disabled={!profileUrl}>
+              {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            {profileUrl && (
+              <Button size="sm" variant="outline" onClick={() => window.open(profileUrl, '_blank')}>
+                <ExternalLink className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Share this link with your fans so they can message you</p>
+        </Card>
+
         <Card className="p-4 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
