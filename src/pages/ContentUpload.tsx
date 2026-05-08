@@ -34,9 +34,19 @@ export default function ContentUpload() {
     details?: any;
   }>>([]);
 
+  const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+  const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'audio/'];
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files).slice(0, 20);
+      const invalid = selectedFiles.find(f =>
+        f.size > MAX_FILE_SIZE || !ALLOWED_MIME_PREFIXES.some(p => f.type.startsWith(p))
+      );
+      if (invalid) {
+        alert(`${invalid.name} is invalid. Only images, video, and audio up to 200MB are allowed.`);
+        return;
+      }
       setFiles(selectedFiles);
       setVideoThumbnails(new Map()); // Reset thumbnails when files change
     }

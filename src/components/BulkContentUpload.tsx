@@ -51,10 +51,25 @@ export const BulkContentUpload = ({ conversationId, creatorId, onSuccess }: Bulk
     setFiles(newFiles);
   };
 
+  const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB
+  const ALLOWED_MIME_PREFIXES = ['image/', 'video/', 'audio/'];
+
+  const validateFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) return `${file.name} exceeds 200MB limit`;
+    if (!ALLOWED_MIME_PREFIXES.some(p => file.type.startsWith(p))) return `${file.name} is not an allowed file type (images, video, audio only)`;
+    return null;
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) {
       toast.error('Please select files to upload');
       return;
+    }
+
+    // Validate all files before starting upload
+    for (const { file } of files) {
+      const err = validateFile(file);
+      if (err) { toast.error(err); return; }
     }
 
     setUploading(true);
@@ -65,8 +80,8 @@ export const BulkContentUpload = ({ conversationId, creatorId, onSuccess }: Bulk
         const { file, price, description, mediaType } = files[i];
 
         // Upload file
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
+        const fileExt = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
         const filePath = `${creatorId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage

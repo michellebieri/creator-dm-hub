@@ -101,61 +101,14 @@ export const PaymentRequiredOverlay = ({
 
     setSubscribing(true);
     try {
-      const spendSuccess = await spend(
-        tier.price, 
-        'subscription', 
-        `Subscription to ${creatorProfile?.display_name} - ${tier.name}`,
-        creatorId
-      );
-
-      if (!spendSuccess) {
-        throw new Error('Failed to process payment from wallet');
-      }
-
-      const now = new Date();
-      const periodEnd = new Date(now);
-      if (tier.billing_interval === 'monthly') {
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-      } else if (tier.billing_interval === 'yearly') {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      } else {
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-      }
-
-      const { data: subscription, error: subError } = await supabase
-        .from('creator_subscriptions')
-        .insert({
-          customer_id: user.id,
-          tier_id: tier.id,
-          status: 'active',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        })
-        .select()
-        .single();
-
-      if (subError) throw subError;
-
-      if (tier.free_messages_per_month && tier.free_messages_per_month > 0) {
-        await supabase
-          .from('subscription_message_usage')
-          .insert({
-            subscription_id: subscription.id,
-            customer_id: user.id,
-            creator_id: creatorId,
-            messages_allowed: tier.free_messages_per_month,
-            messages_used: 0,
-            period_start: now.toISOString(),
-            period_end: periodEnd.toISOString(),
-          });
-      }
-
-      // Record in transactions table so creator revenue stats reflect this subscription
-      await supabase.rpc('insert_completed_transaction', {
+      // Atomic RPC: wallet deduction + subscription + revenue recording in one transaction
+      const { data, error } = await supabase.rpc('purchase_subscription', {
+        p_tier_id: tier.id,
         p_creator_id: creatorId,
-        p_amount: tier.price,
-        p_transaction_type: 'pack',
       });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to activate subscription');
 
       toast({
         title: "Subscribed!",
@@ -165,10 +118,10 @@ export const PaymentRequiredOverlay = ({
       onSubscribed?.();
     } catch (error: any) {
       console.error('Subscription error:', error);
-      toast({ 
-        title: "Error", 
-        description: error.message || "Failed to activate subscription", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: error.message || "Failed to activate subscription",
+        variant: "destructive"
       });
     } finally {
       setSubscribing(false);
