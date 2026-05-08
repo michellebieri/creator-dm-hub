@@ -299,7 +299,7 @@ const CreatorProfile = () => {
       toast({ title: "Already unlocked", description: "You have already purchased this content" });
       return;
     }
-    
+
     setUnlocking(true);
     try {
       const success = await spend(selectedContent.price, 'content_unlock', `Unlocked: ${selectedContent.title || 'content'}`, profile.id);
@@ -308,6 +308,20 @@ const CreatorProfile = () => {
         setUnlocking(false);
         return;
       }
+
+      // Record in transactions table so creator dashboard/analytics reflects this
+      const platformFee = parseFloat((selectedContent.price * 0.15).toFixed(2));
+      await supabase.from('transactions').insert({
+        creator_id: profile.id,
+        customer_id: user.id,
+        amount: selectedContent.price,
+        transaction_type: 'unlockable',
+        platform_fee: platformFee,
+        processor_fee: 0,
+        net_amount: parseFloat((selectedContent.price - platformFee).toFixed(2)),
+        status: 'completed',
+      });
+
       const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
       await supabase.from('unlockables').update({ unlocked_by: updatedUnlockedBy }).eq('id', selectedContent.id);
       toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
@@ -465,9 +479,19 @@ const CreatorProfile = () => {
         }
       }
 
-      // Transaction is already recorded by the spend() function via wallet_transactions
-      // Bundle ownership is tracked via the unlocked_by array on each unlockable
-      // No need for client-side transaction insert - this is handled server-side
+      // Record in transactions table so creator dashboard/analytics reflects this
+      const platformFee = parseFloat((selectedBundle.price * 0.15).toFixed(2));
+      await supabase.from('transactions').insert({
+        creator_id: profile.id,
+        customer_id: user.id,
+        amount: selectedBundle.price,
+        transaction_type: 'unlockable',
+        platform_fee: platformFee,
+        processor_fee: 0,
+        net_amount: parseFloat((selectedBundle.price - platformFee).toFixed(2)),
+        status: 'completed',
+        bundle_id: selectedBundle.id,
+      });
 
       // Send notification to creator
       try {
