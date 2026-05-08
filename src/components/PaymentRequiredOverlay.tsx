@@ -150,8 +150,12 @@ export const PaymentRequiredOverlay = ({
           });
       }
 
-      // Transaction is already recorded by the spend() function via wallet_transactions
-      // No need for client-side transaction insert - this is handled server-side
+      // Record in transactions table so creator revenue stats reflect this subscription
+      await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: creatorId,
+        p_amount: tier.price,
+        p_transaction_type: 'pack',
+      });
 
       toast({
         title: "Subscribed!",
