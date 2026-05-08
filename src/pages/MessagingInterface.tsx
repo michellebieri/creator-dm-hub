@@ -242,19 +242,14 @@ const MessagingInterface = () => {
 
       // Record tip transaction if fan added a tip
       if (activeTip > 0 && !isCreator) {
-        const platformFee = parseFloat((activeTip * 0.15).toFixed(2));
-        await supabase.from('transactions').insert({
-          creator_id: creatorId,
-          customer_id: user.id,
-          amount: activeTip,
-          transaction_type: 'message',
-          platform_fee: platformFee,
-          processor_fee: 0,
-          net_amount: parseFloat((activeTip - platformFee).toFixed(2)),
-          status: 'completed',
-        });
-        // Deduct tip from wallet (message price already deducted by sendMessage hook)
+        // Deduct tip from wallet first
         await spend(activeTip, 'tip', `Tip to creator ${creatorId}`, creatorId);
+        // Record in transactions table via secure RPC (bypasses service-role-only RLS)
+        await supabase.rpc('insert_completed_transaction', {
+          p_creator_id: creatorId,
+          p_amount: activeTip,
+          p_transaction_type: 'message',
+        });
       }
 
       // Send notification to recipient (the other user = creatorId param)

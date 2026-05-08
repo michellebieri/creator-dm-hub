@@ -309,17 +309,11 @@ const CreatorProfile = () => {
         return;
       }
 
-      // Record in transactions table so creator dashboard/analytics reflects this
-      const platformFee = parseFloat((selectedContent.price * 0.15).toFixed(2));
-      await supabase.from('transactions').insert({
-        creator_id: profile.id,
-        customer_id: user.id,
-        amount: selectedContent.price,
-        transaction_type: 'unlockable',
-        platform_fee: platformFee,
-        processor_fee: 0,
-        net_amount: parseFloat((selectedContent.price - platformFee).toFixed(2)),
-        status: 'completed',
+      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
+      await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: profile.id,
+        p_amount: selectedContent.price,
+        p_transaction_type: 'unlockable',
       });
 
       const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
@@ -479,18 +473,12 @@ const CreatorProfile = () => {
         }
       }
 
-      // Record in transactions table so creator dashboard/analytics reflects this
-      const platformFee = parseFloat((selectedBundle.price * 0.15).toFixed(2));
-      await supabase.from('transactions').insert({
-        creator_id: profile.id,
-        customer_id: user.id,
-        amount: selectedBundle.price,
-        transaction_type: 'unlockable',
-        platform_fee: platformFee,
-        processor_fee: 0,
-        net_amount: parseFloat((selectedBundle.price - platformFee).toFixed(2)),
-        status: 'completed',
-        bundle_id: selectedBundle.id,
+      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
+      await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: profile.id,
+        p_amount: selectedBundle.price,
+        p_transaction_type: 'unlockable',
+        p_bundle_id: selectedBundle.id,
       });
 
       // Send notification to creator
