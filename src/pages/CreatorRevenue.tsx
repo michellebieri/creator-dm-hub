@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, DollarSign, TrendingUp, Wallet, ExternalLink, RefreshCw, CheckCircle } from 'lucide-react';
+import { ArrowLeft, DollarSign, TrendingUp, Wallet, ExternalLink, RefreshCw, CheckCircle, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { useAuth } from '@/hooks/useAuth';
+
+interface PayoutRecord {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  completed_at: string | null;
+  stripe_transfer_id: string | null;
+}
 
 interface RevenueData {
   stripeConnected: boolean;
@@ -41,6 +51,9 @@ export default function CreatorRevenue() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [revenueData, setRevenueData] = useState<RevenueData | null>(null);
+  const [payouts, setPayouts] = useState<PayoutRecord[]>([]);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [requestingPayout, setRequestingPayout] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -67,6 +80,7 @@ export default function CreatorRevenue() {
   useEffect(() => {
     if (user) {
       fetchRevenueData();
+      fetchPayouts();
     }
   }, [user]);
 
@@ -86,6 +100,44 @@ export default function CreatorRevenue() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPayouts = async () => {
+    const { data } = await supabase
+      .from('payouts')
+      .select('*')
+      .eq('creator_id', user!.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (data) setPayouts(data);
+  };
+
+  const handleRequestPayout = async () => {
+    const amount = parseFloat(payoutAmount);
+    if (!amount || amount < 10) {
+      toast({ title: 'Minimum payout is $10', variant: 'destructive' });
+      return;
+    }
+    const available = revenueData?.totalEarnings ?? 0;
+    if (amount > available) {
+      toast({ title: `Max available is $${available.toFixed(2)}`, variant: 'destructive' });
+      return;
+    }
+    try {
+      setRequestingPayout(true);
+      const { error } = await supabase.functions.invoke('request-payout', {
+        body: { amount },
+      });
+      if (error) throw error;
+      toast({ title: 'Payout requested!', description: `$${amount.toFixed(2)} is on its way to your Stripe account.` });
+      setPayoutAmount('');
+      fetchRevenueData();
+      fetchPayouts();
+    } catch (err: any) {
+      toast({ title: 'Payout failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setRequestingPayout(false);
     }
   };
 
@@ -269,6 +321,95 @@ export default function CreatorRevenue() {
                       </TableCell>
                       <TableCell className="text-right text-green-600 font-medium">
                         ${month.net.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Request Payout */}
+        {revenueData?.stripeConnected && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                Request Payout
+              </CardTitle>
+              <CardDescription>
+                Available to withdraw: <span className="font-semibold text-foreground">${(revenueData?.totalEarnings ?? 0).toFixed(2)}</span> · Minimum $10
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-3 max-w-sm">
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
+                  <Input
+                    type="number"
+                    min="10"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={payoutAmount}
+                    onChange={(e) => setPayoutAmount(e.target.value)}
+                    className="pl-7"
+                  />
+                </div>
+                <Button
+                  onClick={handleRequestPayout}
+                  disabled={requestingPayout || !payoutAmount}
+                >
+                  {requestingPayout ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    'Withdraw'
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPayoutAmount(String((revenueData?.totalEarnings ?? 0).toFixed(2)))}
+                >
+                  Max
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Payout History */}
+        {payouts.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Payout History
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Transfer ID</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payouts.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right font-medium text-green-600">
+                        ${Number(p.amount).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={p.status === 'completed' ? 'default' : 'secondary'}>
+                          {p.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground font-mono">
+                        {p.stripe_transfer_id ? p.stripe_transfer_id.slice(0, 20) + '…' : '—'}
                       </TableCell>
                     </TableRow>
                   ))}
