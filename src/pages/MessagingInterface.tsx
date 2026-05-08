@@ -21,7 +21,8 @@ import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
 
 import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
-import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil } from 'lucide-react';
+import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, Heart } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
@@ -55,6 +56,10 @@ const MessagingInterface = () => {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ id: string; content: string; created_at: string } | null>(null);
   const [showAddFunds, setShowAddFunds] = useState(false);
+  const [tipAmount, setTipAmount] = useState(0);
+  const [showTipInput, setShowTipInput] = useState(false);
+  const [customTip, setCustomTip] = useState('');
+  const TIP_PRESETS = [1, 3, 5, 10];
   const [creatorProfile, setCreatorProfile] = useState<{ display_name: string; avatar_url: string | null; username: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -196,8 +201,14 @@ const MessagingInterface = () => {
     }
 
     // Clear message immediately to prevent duplicates
-    const messageToSend = trimmedMessage;
+    const activeTip = tipAmount;
+    const messageToSend = activeTip > 0
+      ? `${trimmedMessage}\n💝 +$${activeTip.toFixed(2)} tip`
+      : trimmedMessage;
     setMessage('');
+    setTipAmount(0);
+    setCustomTip('');
+    setShowTipInput(false);
     stopTyping();
     // Reset textarea height
     if (textareaRef.current) {
@@ -228,6 +239,19 @@ const MessagingInterface = () => {
 
       // Send message using the hook (handles credit deduction)
       await sendMessage(messageToSend);
+
+      // Record tip transaction if fan added a tip
+      if (activeTip > 0 && !isCreator) {
+        await supabase.from('transactions').insert({
+          creator_id: creatorId,
+          customer_id: user.id,
+          amount: activeTip,
+          type: 'tip',
+          status: 'completed',
+        });
+        // Deduct tip from wallet (message price already deducted by sendMessage hook)
+        await spend(activeTip, 'tip', `Tip to creator ${creatorId}`, creatorId);
+      }
 
       // Send notification to recipient (the other user = creatorId param)
       const recipientId = creatorId;
@@ -571,6 +595,67 @@ const MessagingInterface = () => {
 
       <div className="border-t bg-card px-4 py-3 shrink-0">
         <div className="max-w-4xl mx-auto">
+          {/* Tip selector — fan-only, only when creator has a price */}
+          {!isCreator && pricePerMessage > 0 && (
+            <div className="mb-2">
+              {!showTipInput ? (
+                <button
+                  onClick={() => setShowTipInput(true)}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-pink-500 transition-colors"
+                >
+                  <Heart className="h-3.5 w-3.5" />
+                  Add a tip
+                  {tipAmount > 0 && (
+                    <span className="ml-1 bg-pink-100 dark:bg-pink-950 text-pink-600 dark:text-pink-400 rounded-full px-2 py-0.5 font-medium">
+                      +${tipAmount.toFixed(2)}
+                    </span>
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Heart className="h-3.5 w-3.5 text-pink-500 shrink-0" />
+                  {TIP_PRESETS.map(p => (
+                    <button
+                      key={p}
+                      onClick={() => { setTipAmount(p); setCustomTip(''); }}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        tipAmount === p
+                          ? 'bg-pink-500 text-white border-pink-500'
+                          : 'border-border text-muted-foreground hover:border-pink-400 hover:text-pink-500'
+                      }`}
+                    >
+                      ${p}
+                    </button>
+                  ))}
+                  <div className="relative">
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      placeholder="Custom"
+                      value={customTip}
+                      onChange={(e) => {
+                        setCustomTip(e.target.value);
+                        const v = parseFloat(e.target.value);
+                        setTipAmount(isNaN(v) ? 0 : v);
+                      }}
+                      className="w-20 h-7 pl-5 pr-1 text-xs"
+                    />
+                  </div>
+                  {tipAmount > 0 && (
+                    <button
+                      onClick={() => { setTipAmount(0); setCustomTip(''); setShowTipInput(false); }}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Insufficient balance warning */}
           {creatorId && !isCreator && balance < pricePerMessage && (
             <div className="mb-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
@@ -664,9 +749,9 @@ const MessagingInterface = () => {
                 </div>
               )}
             </div>
-            <Button 
-              onClick={handleSend} 
-              disabled={sending || messageSending || !message.trim() || (balance < pricePerMessage && !isCreator)}
+            <Button
+              onClick={handleSend}
+              disabled={sending || messageSending || !message.trim() || (balance < (pricePerMessage + tipAmount) && !isCreator)}
               size="icon"
               className="shrink-0"
             >

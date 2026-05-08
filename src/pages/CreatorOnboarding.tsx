@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check, User, DollarSign, Package } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, DollarSign, Package, Wallet, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 const CreatorOnboarding = () => {
@@ -25,7 +25,9 @@ const CreatorOnboarding = () => {
   const [packPrice, setPackPrice] = useState('45');
   const [packDiscount, setPackDiscount] = useState('10');
 
-  const totalSteps = 3;
+  const [stripeConnecting, setStripeConnecting] = useState(false);
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   const handleNext = () => {
@@ -42,6 +44,24 @@ const CreatorOnboarding = () => {
 
   const handleBack = () => {
     setStep(step - 1);
+  };
+
+  const handleConnectStripe = async () => {
+    try {
+      setStripeConnecting(true);
+      const { data, error } = await supabase.functions.invoke('stripe-connect-onboarding');
+      if (error) throw error;
+      if (data.status === 'active') {
+        setStripeConnected(true);
+        toast.success('Stripe already connected!');
+      } else if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err: any) {
+      toast.error('Failed to connect Stripe: ' + err.message);
+    } finally {
+      setStripeConnecting(false);
+    }
   };
 
   const handleComplete = async () => {
@@ -297,6 +317,59 @@ const CreatorOnboarding = () => {
             </div>
           )}
 
+          {/* Step 4: Stripe Connect */}
+          {step === 4 && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Wallet className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Connect Your Bank Account</h3>
+                  <p className="text-sm text-muted-foreground">Required to receive payouts from your earnings</p>
+                </div>
+              </div>
+
+              {stripeConnected ? (
+                <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                  <Check className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-700 dark:text-green-400">Stripe Connected!</p>
+                    <p className="text-sm text-muted-foreground">You're ready to receive payouts.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-xl space-y-2 text-sm">
+                    <p className="font-medium">Why connect Stripe?</p>
+                    <ul className="space-y-1 text-muted-foreground">
+                      <li>✓ Receive 85% of every message payment</li>
+                      <li>✓ Withdraw your earnings anytime</li>
+                      <li>✓ Secure, trusted by millions of creators</li>
+                    </ul>
+                  </div>
+                  <Button
+                    onClick={handleConnectStripe}
+                    disabled={stripeConnecting}
+                    className="w-full"
+                  >
+                    {stripeConnecting ? (
+                      'Connecting...'
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Connect Stripe Account
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    You can also connect later from your Revenue page.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Navigation */}
           <div className="flex items-center justify-between pt-4">
             <Button
@@ -314,16 +387,21 @@ const CreatorOnboarding = () => {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             ) : (
-              <Button onClick={handleComplete} disabled={loading}>
-                {loading ? (
-                  'Setting up...'
-                ) : (
-                  <>
-                    Complete Setup
-                    <Check className="h-4 w-4 ml-2" />
-                  </>
+              <div className="flex flex-col gap-2 items-end">
+                <Button onClick={handleComplete} disabled={loading}>
+                  {loading ? (
+                    'Setting up...'
+                  ) : (
+                    <>
+                      {stripeConnected ? 'Complete Setup' : 'Skip for Now'}
+                      <Check className="h-4 w-4 ml-2" />
+                    </>
+                  )}
+                </Button>
+                {!stripeConnected && (
+                  <p className="text-xs text-muted-foreground">Connect Stripe later from Revenue settings</p>
                 )}
-              </Button>
+              </div>
             )}
           </div>
         </CardContent>

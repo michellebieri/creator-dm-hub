@@ -335,7 +335,7 @@ const Index = () => {
           <div className="text-center mt-8">
             <Button 
               variant="outline"
-              onClick={() => navigate('/creators')}
+              onClick={() => navigate('/browse')}
             >
               Explore All Creators
             </Button>
@@ -372,9 +372,9 @@ const Index = () => {
               <>
                 <div>
                   <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
-                    10K+
+                    Direct
                   </div>
-                  <p className="text-muted-foreground">Active Creators</p>
+                  <p className="text-muted-foreground">Access to Creators</p>
                 </div>
                 <div>
                   <div className="text-4xl font-bold gradient-primary bg-clip-text text-transparent mb-2">
