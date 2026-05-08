@@ -399,20 +399,13 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
         if (messageError) throw messageError;
 
-        // Record transaction
-        await supabase
-          .from('transactions')
-          .insert({
-            customer_id: user.id,
-            creator_id: creatorId,
-            message_id: messageData.id,
-            amount: pricePerMessage,
-            net_amount: pricePerMessage * 0.85,
-            platform_fee: pricePerMessage * 0.15,
-            processor_fee: 0,
-            transaction_type: 'message',
-            status: 'completed',
-          });
+        // Record transaction via secure RPC (bypasses service-role-only RLS policy)
+        await supabase.rpc('insert_completed_transaction', {
+          p_creator_id: creatorId,
+          p_amount: pricePerMessage,
+          p_transaction_type: 'message',
+          p_message_id: messageData.id,
+        });
 
         // Check for auto-reply from creator
         try {
