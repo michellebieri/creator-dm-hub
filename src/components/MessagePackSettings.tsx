@@ -194,7 +194,7 @@ export const MessagePackSettings = () => {
                       ${pack.price.toFixed(2)}
                     </div>
                     {pack.discount_percentage > 0 && (
-                      <div className="text-sm text-green-600">
+                      <div className="text-sm text-primary">
                         {pack.discount_percentage}% off
                       </div>
                     )}

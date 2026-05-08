@@ -67,7 +67,7 @@ export const MessagePackPurchase = ({ creatorId, packs }: MessagePackPurchasePro
                 ${pack.price.toFixed(2)}
               </div>
               {pack.discount_percentage > 0 && (
-                <div className="text-sm text-green-600 font-medium">
+                <div className="text-sm text-primary font-medium">
                   Save {pack.discount_percentage}%
                 </div>
               )}

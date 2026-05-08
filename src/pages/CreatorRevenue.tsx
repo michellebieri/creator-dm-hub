@@ -196,7 +196,7 @@ export default function CreatorRevenue() {
 
       <main className="container px-4 py-6 space-y-6">
         {/* Stripe Connection Card */}
-        <Card className={revenueData?.stripeConnected ? 'border-green-500/50 bg-green-500/5' : 'border-yellow-500/50 bg-yellow-500/5'}>
+        <Card className={revenueData?.stripeConnected ? 'border-primary/30 bg-primary/5' : 'border-border'}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5" />
@@ -210,7 +210,7 @@ export default function CreatorRevenue() {
           </CardHeader>
           <CardContent>
             {revenueData?.stripeConnected ? (
-              <div className="flex items-center gap-2 text-green-600">
+              <div className="flex items-center gap-2 text-primary">
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-medium">Connected & Active</span>
               </div>
@@ -241,7 +241,7 @@ export default function CreatorRevenue() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-primary">
                 ${revenueData?.totalEarnings.toFixed(2) || '0.00'}
               </div>
             </CardContent>
@@ -263,7 +263,7 @@ export default function CreatorRevenue() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
-                Platform Fees (20%)
+                Platform Fees (25%)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -280,7 +280,7 @@ export default function CreatorRevenue() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-2xl font-bold text-muted-foreground">
                 ${revenueData?.pendingEarnings.toFixed(2) || '0.00'}
               </div>
             </CardContent>
@@ -319,7 +319,7 @@ export default function CreatorRevenue() {
                       <TableCell className="text-right text-muted-foreground">
                         -${month.fees.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
+                      <TableCell className="text-right text-primary font-medium">
                         ${month.net.toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -400,7 +400,7 @@ export default function CreatorRevenue() {
                   {payouts.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right font-medium text-green-600">
+                      <TableCell className="text-right font-medium text-primary">
                         ${Number(p.amount).toFixed(2)}
                       </TableCell>
                       <TableCell>
@@ -434,7 +434,7 @@ export default function CreatorRevenue() {
                   <TableRow>
                     <TableHead>Date</TableHead>
                     <TableHead className="text-right">Gross</TableHead>
-                    <TableHead className="text-right">Fee (15%)</TableHead>
+                    <TableHead className="text-right">Fee (25%)</TableHead>
                     <TableHead className="text-right">Your Share (75%)</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -451,7 +451,7 @@ export default function CreatorRevenue() {
                       <TableCell className="text-right text-muted-foreground">
                         -${Number(tx.platform_fee_amount).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600 font-medium">
+                      <TableCell className="text-right text-primary font-medium">
                         ${Number(tx.creator_net_amount).toFixed(2)}
                       </TableCell>
                       <TableCell>

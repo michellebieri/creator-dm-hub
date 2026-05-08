@@ -106,7 +106,7 @@ const CreatorVerification = () => {
     switch (verification.status) {
       case 'approved':
         return (
-          <Badge className="bg-green-500">
+          <Badge className="bg-primary">
             <CheckCircle className="h-4 w-4 mr-1" />
             Verified
           </Badge>

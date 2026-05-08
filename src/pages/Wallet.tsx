@@ -71,9 +71,9 @@ const Wallet = () => {
 
   const getTransactionIcon = (amount: number) => {
     return amount > 0 ? (
-      <ArrowUpCircle className="h-5 w-5 text-green-500" />
+      <ArrowUpCircle className="h-5 w-5 text-primary" />
     ) : (
-      <ArrowDownCircle className="h-5 w-5 text-red-500" />
+      <ArrowDownCircle className="h-5 w-5 text-muted-foreground" />
     );
   };
 
@@ -156,7 +156,7 @@ const Wallet = () => {
                             {formatTransactionType(transaction.transaction_type)}
                           </p>
                           <p className={`font-semibold ${
-                            transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                            transaction.amount > 0 ? 'text-primary' : 'text-muted-foreground'
                           }`}>
                             {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
                           </p>

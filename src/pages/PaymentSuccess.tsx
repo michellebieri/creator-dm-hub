@@ -92,7 +92,7 @@ const PaymentSuccess = () => {
           </>
         ) : verified ? (
           <>
-            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
+            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-primary" />
             <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
             <p className="text-muted-foreground mb-6">
               {searchParams.get('bundle_id') 

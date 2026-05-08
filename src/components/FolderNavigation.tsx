@@ -21,7 +21,7 @@ export function FolderNavigation({ activeFolder, onFolderChange, counts }: Folde
       label: 'Photos',
       icon: Image,
       count: counts.photos,
-      color: 'text-blue-500'
+      color: 'text-primary'
     },
     {
       id: 'videos' as const,
@@ -35,7 +35,7 @@ export function FolderNavigation({ activeFolder, onFolderChange, counts }: Folde
       label: 'Bundles',
       icon: Package,
       count: counts.bundles,
-      color: 'text-green-500'
+      color: 'text-primary'
     },
     {
       id: 'all' as const,

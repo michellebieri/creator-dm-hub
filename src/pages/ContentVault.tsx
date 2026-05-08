@@ -631,7 +631,7 @@ export default function ContentVault() {
                     <span className="text-muted-foreground">Bundle Price:</span>
                     <span className="font-medium">${editingBundle.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-semibold text-green-600">
+                  <div className="flex justify-between text-sm font-semibold text-primary">
                     <span>Customer Saves:</span>
                     <span>${calculateSavings().toFixed(2)}</span>
                   </div>

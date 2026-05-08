@@ -295,7 +295,7 @@ export const PaymentRequiredOverlay = ({
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">${pack.price.toFixed(2)}</span>
                       {pack.discount_percentage > 0 && (
-                        <Badge variant="secondary" className="text-xs text-green-600">
+                        <Badge variant="secondary" className="text-xs text-primary">
                           -{pack.discount_percentage}%
                         </Badge>
                       )}

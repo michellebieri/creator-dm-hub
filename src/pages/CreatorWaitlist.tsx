@@ -80,20 +80,20 @@ const CreatorWaitlist = () => {
   const getStatusIcon = () => {
     switch (waitlistStatus) {
       case 'pending':
-        return <Clock className="h-12 w-12 text-yellow-500" />;
+        return <Clock className="h-12 w-12 text-muted-foreground" />;
       case 'approved':
-        return <CheckCircle className="h-12 w-12 text-green-500" />;
+        return <CheckCircle className="h-12 w-12 text-primary" />;
       case 'rejected':
-        return <XCircle className="h-12 w-12 text-red-500" />;
+        return <XCircle className="h-12 w-12 text-destructive" />;
     }
   };
 
   const getStatusBadge = () => {
     switch (waitlistStatus) {
       case 'pending':
-        return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Pending Review</Badge>;
+        return <Badge variant="outline" className="text-muted-foreground border-border">Pending Review</Badge>;
       case 'approved':
-        return <Badge variant="default" className="bg-green-600">Approved</Badge>;
+        return <Badge variant="default" className="bg-primary">Approved</Badge>;
       case 'rejected':
         return <Badge variant="destructive">Rejected</Badge>;
     }

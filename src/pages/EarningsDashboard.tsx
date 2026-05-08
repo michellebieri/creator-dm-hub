@@ -94,75 +94,73 @@ const EarningsDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-lime-50/50 via-background to-yellow-50/50 dark:from-lime-950/20 dark:via-background dark:to-yellow-950/20">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-6xl mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Revenue</h1>
           <div className="w-10" />
         </div>
       </header>
-      
-      <div className="max-w-6xl mx-auto p-8">
-        {/* Colorful Header */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
-          <h1 className="text-4xl font-bold mb-2">Revenue Dashboard</h1>
-          <p className="text-lime-50">Track your earnings and financial performance</p>
+
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Revenue Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">Track your earnings and financial performance</p>
         </div>
 
-        {/* Stats Cards with Colors */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
+        <div className="grid md:grid-cols-3 gap-4">
+          <Card className="p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-lime-500">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-sm font-medium text-muted-foreground">Total Earnings</h3>
             </div>
-            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400">${stats.totalEarnings.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${stats.totalEarnings.toFixed(2)}</p>
           </Card>
 
-          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
+          <Card className="p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-yellow-500">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-sm font-medium text-muted-foreground">This Month</h3>
             </div>
-            <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">${stats.thisMonth.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${stats.thisMonth.toFixed(2)}</p>
           </Card>
 
-          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg hover:shadow-xl transition-all">
+          <Card className="p-6">
             <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 rounded-lg bg-lime-500">
-                <Calendar className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Calendar className="h-5 w-5 text-primary" />
               </div>
               <h3 className="text-sm font-medium text-muted-foreground">Pending Payouts</h3>
             </div>
-            <p className="text-3xl font-bold text-lime-600 dark:text-lime-400">${stats.pendingPayouts.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${stats.pendingPayouts.toFixed(2)}</p>
           </Card>
         </div>
 
-        <Card className="p-6 border-lime-200 dark:border-lime-900 shadow-lg">
+        <Card className="p-6">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
-              <CreditCard className="h-5 w-5 text-white" />
+            <div className="p-2 rounded-lg bg-primary/10">
+              <CreditCard className="h-5 w-5 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold">Recent Transactions</h2>
+            <h2 className="text-lg font-semibold">Recent Transactions</h2>
           </div>
           {transactions.length === 0 ? (
             <p className="text-muted-foreground text-center py-8">No transactions yet</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {transactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex justify-between items-center p-4 border border-lime-100 dark:border-lime-900 rounded-xl hover:bg-lime-50/50 dark:hover:bg-lime-950/20 transition-colors"
+                  className="flex justify-between items-center p-4 rounded-lg border border-border hover:bg-muted/50 transition-colors"
                 >
                   <div>
-                    <p className="font-semibold capitalize">
+                    <p className="font-medium capitalize">
                       {tx.transaction_type === 'pack' ? 'Bundle Purchase' : tx.transaction_type.replace('_', ' ')}
                     </p>
                     {tx.itemName && (
@@ -176,7 +174,7 @@ const EarningsDashboard = () => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lime-600 dark:text-lime-400">+${tx.net_amount.toFixed(2)}</p>
+                    <p className="font-bold text-primary">+${tx.net_amount.toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground">
                       Gross: ${tx.amount.toFixed(2)}
                     </p>

@@ -18,7 +18,7 @@ export function OnlineStatusBadge({ userId, showLabel = false, size = 'md' }: On
 
   const statusColors = {
     online: 'bg-green-500',
-    away: 'bg-yellow-500',
+    away: 'bg-muted-foreground',
     offline: 'bg-gray-400',
   };
 

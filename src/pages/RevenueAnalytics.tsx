@@ -128,62 +128,60 @@ export default function RevenueAnalytics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-lime-50/50 via-background to-yellow-50/50 dark:from-lime-950/20 dark:via-background dark:to-yellow-950/20">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-lg font-semibold">Revenue</h1>
+          <h1 className="text-lg font-semibold">Revenue Analytics</h1>
           <div className="w-10" />
         </div>
       </header>
-      
-      <div className="p-8">
+
+      <div className="p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-lime-500 to-yellow-500 text-white shadow-lg">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">Revenue Analytics</h1>
-              <p className="text-lime-50">Track your earnings and financial performance</p>
-            </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-40 bg-white/20 border-white/30 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Last 7 days</SelectItem>
-                <SelectItem value="30">Last 30 days</SelectItem>
-                <SelectItem value="90">Last 90 days</SelectItem>
-                <SelectItem value="365">Last year</SelectItem>
-              </SelectContent>
-            </Select>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Revenue Analytics</h1>
+            <p className="text-muted-foreground text-sm mt-1">Track your earnings and financial performance</p>
           </div>
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="365">Last year</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+        <div className="grid md:grid-cols-4 gap-4 mb-6">
+          <Card>
             <StatsCard
               title="Total Revenue"
               value={`$${stats.totalRevenue.toFixed(2)}`}
               icon={DollarSign}
             />
           </Card>
-          <Card className="border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+          <Card>
             <StatsCard
               title="Avg Transaction"
               value={`$${stats.avgTransaction.toFixed(2)}`}
               icon={TrendingUp}
             />
           </Card>
-          <Card className="border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+          <Card>
             <StatsCard
               title="Transactions"
               value={stats.totalTransactions}
               icon={ShoppingBag}
             />
           </Card>
-          <Card className="border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-md hover:shadow-lg transition-all">
+          <Card>
             <StatsCard
               title="Active Customers"
               value={stats.activeCustomers}
@@ -192,13 +190,13 @@ export default function RevenueAnalytics() {
           </Card>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg">
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
-                <TrendingUp className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-bold">Revenue Trend</h2>
+              <h2 className="text-base font-semibold">Revenue Trend</h2>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={timeSeriesData}>
@@ -212,12 +210,12 @@ export default function RevenueAnalytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg">
+          <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-lime-500">
-                <ShoppingBag className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ShoppingBag className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-bold">Transaction Volume</h2>
+              <h2 className="text-base font-semibold">Transaction Volume</h2>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={timeSeriesData}>
@@ -233,12 +231,12 @@ export default function RevenueAnalytics() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6 border-lime-200 dark:border-lime-900 bg-gradient-to-br from-lime-50 to-white dark:from-lime-950/50 dark:to-background shadow-lg">
+          <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-lime-500 to-yellow-500">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-bold">Revenue by Type</h2>
+              <h2 className="text-base font-semibold">Revenue by Type</h2>
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -261,12 +259,12 @@ export default function RevenueAnalytics() {
             </ResponsiveContainer>
           </Card>
 
-          <Card className="p-6 border-yellow-200 dark:border-yellow-900 bg-gradient-to-br from-yellow-50 to-white dark:from-yellow-950/50 dark:to-background shadow-lg">
+          <Card className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-yellow-500 to-lime-500">
-                <Users className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-xl font-bold">Top Customers</h2>
+              <h2 className="text-base font-semibold">Top Customers</h2>
             </div>
             <div className="space-y-3">
               {topCustomers.map((customer, index) => (
@@ -284,6 +282,7 @@ export default function RevenueAnalytics() {
             </div>
           </Card>
         </div>
+      </div>
       </div>
       </div>
     </div>

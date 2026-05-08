@@ -186,8 +186,8 @@ export default function RefundManagement() {
                     <div key={r.id} className="flex justify-between p-4 border rounded">
                       <div className="flex items-center gap-3">
                         {r.status === 'pending' && <Clock className="h-4 w-4 text-yellow-500" />}
-                        {r.status === 'approved' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                        {r.status === 'rejected' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                        {r.status === 'approved' && <CheckCircle className="h-4 w-4 text-primary" />}
+                        {r.status === 'rejected' && <AlertCircle className="h-4 w-4 text-destructive" />}
                         <div>
                           <p className="font-medium">${r.amount.toFixed(2)}</p>
                           <p className="text-sm text-muted-foreground">{r.transaction?.customer?.display_name}</p>

@@ -8,16 +8,16 @@ const AccountSettings = () => {
   const { isCreator } = useRoleCheck();
 
   const creatorSections = [
-    { title: 'Messaging', icon: MessageSquare, path: '/settings/messaging', bgColor: 'bg-green-500/10', iconColor: 'text-green-500' },
-    { title: 'Subscription', icon: Layers, path: '/settings/subscription', bgColor: 'bg-purple-500/10', iconColor: 'text-purple-500' },
-    { title: 'Bundle', icon: Package, path: '/settings/bundle', bgColor: 'bg-pink-500/10', iconColor: 'text-pink-500' },
+    { title: 'Messaging', icon: MessageSquare, path: '/settings/messaging', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
+    { title: 'Subscription', icon: Layers, path: '/settings/subscription', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
+    { title: 'Bundle', icon: Package, path: '/settings/bundle', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
     { title: 'Socials', icon: Share2, path: '/settings/socials', bgColor: 'bg-muted', iconColor: 'text-muted-foreground' },
   ];
 
   const userSections = [
-    { title: 'Account Settings', icon: User, path: '/settings/profile', bgColor: 'bg-blue-500/10', iconColor: 'text-blue-500' },
-    { title: 'Notification Preferences', icon: Bell, path: '/notification-settings', bgColor: 'bg-green-500/10', iconColor: 'text-green-500' },
-    { title: 'Subscription Management', icon: Star, path: '/subscriptions', bgColor: 'bg-orange-500/10', iconColor: 'text-orange-500' },
+    { title: 'Account Settings', icon: User, path: '/settings/profile', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
+    { title: 'Notification Preferences', icon: Bell, path: '/notification-settings', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
+    { title: 'Subscription Management', icon: Star, path: '/subscriptions', bgColor: 'bg-primary/10', iconColor: 'text-primary' },
   ];
 
   const sections = isCreator ? creatorSections : userSections;

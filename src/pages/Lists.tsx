@@ -97,10 +97,10 @@ const Lists = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50/50 via-background to-rose-50/50 dark:from-pink-950/20 dark:via-background dark:to-rose-950/20 pb-20">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg">
+    <div className="min-h-screen bg-background pb-20">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Followers & Subscribers</h1>
@@ -112,8 +112,8 @@ const Lists = () => {
         {/* Followers Section - Primary View */}
         <div className="p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Users className="h-5 w-5 text-pink-600 dark:text-pink-400" />
-            <h2 className="text-lg font-semibold text-pink-700 dark:text-pink-300">Followers ({followers.length})</h2>
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-primary">Followers ({followers.length})</h2>
           </div>
 
           {loading ? (
@@ -151,7 +151,7 @@ const Lists = () => {
 
         {/* Filters Section */}
         <div className="px-4 py-3 mt-6">
-          <p className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Filter Options</p>
+          <p className="text-xs font-bold text-primary uppercase tracking-wider">Filter Options</p>
         </div>
 
         <div className="px-4 space-y-2">
@@ -160,13 +160,13 @@ const Lists = () => {
               key={index}
               onClick={() => list.path !== '#' && navigate(list.path)}
               className={`flex items-center justify-between w-full px-4 py-3 ${
-                list.active 
-                  ? 'bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-700' 
-                  : 'bg-gradient-to-br from-pink-50/50 to-white/50 dark:from-pink-950/30 dark:to-background/50 border-pink-100 dark:border-pink-900/50'
-              } hover:from-pink-100/50 hover:to-pink-50/50 dark:hover:from-pink-900/30 dark:hover:to-pink-950/20 transition-all rounded-lg border`}
+                list.active
+                  ? 'bg-primary/10 border-primary/30'
+                  : 'bg-card border-border hover:bg-muted/50'
+              } transition-colors rounded-lg border`}
             >
-              <span className={`text-base ${list.active ? 'font-semibold' : 'font-normal'}`}>{list.name}</span>
-              <ChevronRight className="h-5 w-5 text-pink-400 dark:text-pink-500" />
+              <span className={`text-base ${list.active ? 'font-semibold text-primary' : 'font-normal'}`}>{list.name}</span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
           ))}
         </div>

@@ -154,9 +154,9 @@ export default function CustomerSpendingAnalytics() {
       case 'whale':
         return <Badge className="bg-purple-500/10 text-purple-500 border-purple-500/20">🐋 Whale</Badge>;
       case 'high-value':
-        return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">💎 High-Value</Badge>;
+        return <Badge className="bg-primary/10 text-primary border-primary/20">💎 High-Value</Badge>;
       case 'regular':
-        return <Badge className="bg-green-500/10 text-green-500 border-green-500/20">✓ Regular</Badge>;
+        return <Badge className="bg-primary/10 text-primary border-primary/20">✓ Regular</Badge>;
       case 'new':
         return <Badge className="bg-gray-500/10 text-gray-500 border-gray-500/20">✨ New</Badge>;
       default:

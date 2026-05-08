@@ -207,8 +207,8 @@ export default function PerformanceBenchmarking() {
 
   const getRankingBadge = (percentile: number) => {
     if (percentile >= 90) return <Badge className="bg-purple-500/10 text-purple-500">Top 10%</Badge>;
-    if (percentile >= 75) return <Badge className="bg-blue-500/10 text-blue-500">Top 25%</Badge>;
-    if (percentile >= 50) return <Badge className="bg-green-500/10 text-green-500">Above Average</Badge>;
+    if (percentile >= 75) return <Badge className="bg-primary/10 text-primary">Top 25%</Badge>;
+    if (percentile >= 50) return <Badge className="bg-primary/10 text-primary">Above Average</Badge>;
     return <Badge className="bg-gray-500/10 text-gray-500">Below Average</Badge>;
   };
 

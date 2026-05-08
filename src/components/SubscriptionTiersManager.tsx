@@ -277,7 +277,7 @@ export const SubscriptionTiersManager = () => {
                   <ul className="space-y-2">
                     {getBenefitsList(tier).map((benefit, i) => (
                       <li key={i} className="text-sm flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
                         {benefit.text}
                       </li>
                     ))}

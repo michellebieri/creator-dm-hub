@@ -311,7 +311,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                       </p>
                     )}
                   </div>
-                  <Badge variant="secondary" className={currentSubscription.status === 'canceling' ? 'bg-yellow-500/10 text-yellow-600' : 'bg-green-500/10 text-green-600'}>
+                  <Badge variant="secondary" className={currentSubscription.status === 'canceling' ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}>
                     {currentSubscription.status === 'canceling' ? 'Canceling' : 'Active'}
                   </Badge>
                 </div>
@@ -339,7 +339,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                   <ul className="space-y-2">
                     {getBenefitsList(selectedTier).map((benefit, i) => (
                       <li key={i} className="text-sm flex items-center gap-2">
-                        <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                        <Check className="h-4 w-4 text-primary flex-shrink-0" />
                         {benefit.text}
                       </li>
                     ))}
@@ -350,7 +350,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
               <div className="p-4 bg-muted/50 rounded-lg space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span>Your wallet balance:</span>
-                  <span className={balance >= selectedTier.price ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                  <span className={balance >= selectedTier.price ? 'text-primary font-medium' : 'text-destructive font-medium'}>
                     ${balance.toFixed(2)}
                   </span>
                 </div>
@@ -359,7 +359,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                   <span>${selectedTier.price.toFixed(2)}</span>
                 </div>
                 {balance < selectedTier.price && (
-                  <p className="text-xs text-red-600 mt-2">
+                  <p className="text-xs text-destructive mt-2">
                     Insufficient balance. Please add funds to your wallet.
                   </p>
                 )}
@@ -414,7 +414,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                     <ul className="space-y-2">
                       {getBenefitsList(tier).map((benefit, i) => (
                         <li key={i} className="text-sm flex items-center gap-2">
-                          <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                          <Check className="h-4 w-4 text-primary flex-shrink-0" />
                           {benefit.text}
                         </li>
                       ))}

@@ -51,43 +51,26 @@ const ActivityFeed = () => {
   const getActivityIcon = (type: string) => {
     switch (type) {
       case 'message':
-        return <MessageCircle className="h-5 w-5 text-blue-500" />;
+        return <MessageCircle className="h-5 w-5 text-primary" />;
       case 'purchase':
-        return <ShoppingBag className="h-5 w-5 text-green-500" />;
+        return <ShoppingBag className="h-5 w-5 text-primary" />;
       case 'subscription':
-        return <Crown className="h-5 w-5 text-purple-500" />;
+        return <Crown className="h-5 w-5 text-primary" />;
       case 'tip':
-        return <DollarSign className="h-5 w-5 text-yellow-500" />;
+        return <DollarSign className="h-5 w-5 text-primary" />;
       case 'comment':
-        return <MessageSquare className="h-5 w-5 text-orange-500" />;
+        return <MessageSquare className="h-5 w-5 text-primary" />;
       case 'follow':
-        return <UserPlus className="h-5 w-5 text-pink-500" />;
+        return <UserPlus className="h-5 w-5 text-primary" />;
       case 'content_upload':
-        return <Upload className="h-5 w-5 text-indigo-500" />;
+        return <Upload className="h-5 w-5 text-primary" />;
       default:
-        return <Activity className="h-5 w-5" />;
+        return <Activity className="h-5 w-5 text-muted-foreground" />;
     }
   };
 
-  const getActivityColor = (type: string) => {
-    switch (type) {
-      case 'message':
-        return 'bg-blue-500/10';
-      case 'purchase':
-        return 'bg-green-500/10';
-      case 'subscription':
-        return 'bg-purple-500/10';
-      case 'tip':
-        return 'bg-yellow-500/10';
-      case 'comment':
-        return 'bg-orange-500/10';
-      case 'follow':
-        return 'bg-pink-500/10';
-      case 'content_upload':
-        return 'bg-indigo-500/10';
-      default:
-        return 'bg-muted';
-    }
+  const getActivityColor = (_type: string) => {
+    return 'bg-primary/10';
   };
 
   if (loading) {

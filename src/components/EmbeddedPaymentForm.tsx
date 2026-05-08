@@ -81,7 +81,7 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
   if (success) {
     return (
       <div className="text-center py-8">
-        <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-green-500" />
+        <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-primary" />
         <h3 className="text-xl font-bold mb-2">Payment Successful!</h3>
         <p className="text-muted-foreground">
           ${amount.toFixed(2)} has been added to your wallet

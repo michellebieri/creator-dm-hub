@@ -175,7 +175,7 @@ export default function AdminRevenue() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-foreground">
                 ${revenueData.totalCreatorPayouts.toFixed(2)}
               </div>
             </CardContent>
@@ -188,7 +188,7 @@ export default function AdminRevenue() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">
+              <div className="text-2xl font-bold text-muted-foreground">
                 ${revenueData.pendingPlatformRevenue.toFixed(2)}
               </div>
             </CardContent>
@@ -242,7 +242,7 @@ export default function AdminRevenue() {
                       <TableCell className="text-right text-primary font-medium">
                         ${item.platformFee.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600">
+                      <TableCell className="text-right text-foreground">
                         ${item.creatorNet.toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -287,7 +287,7 @@ export default function AdminRevenue() {
                       <TableCell className="text-right text-primary font-medium">
                         ${month.platformFee.toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600">
+                      <TableCell className="text-right text-foreground">
                         ${month.creatorPayout.toFixed(2)}
                       </TableCell>
                     </TableRow>
@@ -342,7 +342,7 @@ export default function AdminRevenue() {
                       <TableCell className="text-right text-primary font-medium">
                         ${Number(tx.platform_fee_amount).toFixed(2)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600">
+                      <TableCell className="text-right text-foreground">
                         ${Number(tx.creator_net_amount).toFixed(2)}
                       </TableCell>
                       <TableCell>

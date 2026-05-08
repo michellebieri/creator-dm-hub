@@ -26,9 +26,9 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  message: 'bg-blue-500',
-  pack: 'bg-violet-500',
-  unlockable: 'bg-amber-500',
+  message: 'bg-primary',
+  pack: 'bg-primary/70',
+  unlockable: 'bg-primary/40',
 };
 
 const AnalyticsDashboard = () => {

@@ -135,10 +135,10 @@ const CreatorDashboard = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50/50 via-background to-emerald-50/50 dark:from-green-950/20 dark:via-background dark:to-emerald-950/20">
-      <header className="sticky top-0 z-10 bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg">
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="text-white hover:bg-white/20">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
             <ChevronLeft className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold">Dashboard</h1>
@@ -155,7 +155,7 @@ const CreatorDashboard = () => {
               {profileUrl || 'Loading...'}
             </div>
             <Button size="sm" variant="outline" onClick={handleCopy} disabled={!profileUrl}>
-              {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
             </Button>
             {profileUrl && (
               <Button size="sm" variant="outline" onClick={() => window.open(profileUrl, '_blank')}>
@@ -166,13 +166,13 @@ const CreatorDashboard = () => {
           <p className="text-xs text-muted-foreground mt-2">Share this link with your fans so they can message you</p>
         </Card>
 
-        <Card className="p-4 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
+        <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-green-500">
-                <PieChart className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <PieChart className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-sm font-medium text-green-700 dark:text-green-400 uppercase">Summary</h2>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Summary</h2>
             </div>
             <Select value={timePeriod} onValueChange={(value: any) => setTimePeriod(value)}>
               <SelectTrigger className="w-32 h-9">
@@ -208,13 +208,13 @@ const CreatorDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/50 dark:to-background shadow-lg">
+        <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-500">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-sm font-medium text-emerald-700 dark:text-emerald-400 uppercase">Revenue</h2>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Revenue</h2>
             </div>
             <div className="flex gap-2">
               <Select defaultValue="total">
@@ -242,13 +242,13 @@ const CreatorDashboard = () => {
           </div>
         </Card>
 
-        <Card className="p-4 border-green-200 dark:border-green-900 bg-gradient-to-br from-green-50 to-white dark:from-green-950/50 dark:to-background shadow-lg">
+        <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-green-500">
-                <Users className="h-5 w-5 text-white" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Users className="h-5 w-5 text-primary" />
               </div>
-              <h2 className="text-sm font-medium text-green-700 dark:text-green-400 uppercase">New Customers</h2>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">New Customers</h2>
             </div>
             <Select defaultValue="4weeks">
               <SelectTrigger className="w-32 h-8 text-xs">
