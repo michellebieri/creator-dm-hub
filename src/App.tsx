@@ -35,6 +35,7 @@ import TermsOfService from "./pages/TermsOfService";
 import CreatorProfile from "./pages/CreatorProfile";
 import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
+import PaymentSuccess from "./pages/PaymentSuccess";
 import Lists from "./pages/Lists";
 import Nudges from "./pages/Nudges";
 import ContentMenu from "./pages/ContentMenu";
@@ -71,6 +72,7 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
           
           {/* Public creator profile routes - accessible without login */}
           <Route path="/creator/:id" element={<CreatorProfile />} />
