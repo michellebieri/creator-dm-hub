@@ -115,7 +115,7 @@ const AdminDashboard = () => {
         .select('*', { count: 'exact', head: true });
 
       const { count: creatorsCount } = await supabase
-        .from('profiles')
+        .from('user_roles')
         .select('*', { count: 'exact', head: true })
         .eq('role', 'creator');
 
