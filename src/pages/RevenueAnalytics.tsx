@@ -284,7 +284,6 @@ export default function RevenueAnalytics() {
         </div>
       </div>
       </div>
-      </div>
     </div>
   );
 }
