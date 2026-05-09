@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { NotificationToggle } from '@/components/NotificationToggle';
 import { AvatarCropModal } from '@/components/AvatarCropModal';
-import { ArrowLeft, Loader2, User, Upload } from 'lucide-react';
+import { ChevronLeft, Loader2, User, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -185,18 +185,13 @@ const ProfileSettings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card shadow-soft sticky top-0 z-10">
-        <div className="container mx-auto max-w-4xl px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <User className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">Profile Settings</span>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-          </div>
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-4xl mx-auto">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">Profile Settings</h1>
+          <div className="w-10" />
         </div>
       </header>
 

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import { Users } from 'lucide-react';
+import { Users, ChevronLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Subscriber {
@@ -22,6 +24,7 @@ interface Subscriber {
 
 const SubscribersList = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
 
@@ -95,13 +98,20 @@ const SubscribersList = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">My Subscribers</h1>
-        <p className="text-muted-foreground">
-          {subscribers.length} active subscriber{subscribers.length !== 1 ? 's' : ''}
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-6xl mx-auto">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold">My Subscribers</h1>
+          <div className="w-10" />
+        </div>
+      </header>
+      <div className="container mx-auto p-6 max-w-6xl">
+      <p className="text-muted-foreground mb-6">
+        {subscribers.length} active subscriber{subscribers.length !== 1 ? 's' : ''}
+      </p>
 
       {subscribers.length === 0 ? (
         <EmptyState
@@ -137,6 +147,7 @@ const SubscribersList = () => {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 };
