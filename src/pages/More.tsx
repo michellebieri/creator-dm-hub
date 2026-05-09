@@ -99,9 +99,7 @@ const More = () => {
     <div className="min-h-screen bg-background pb-20">
       <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          <div className="w-10" />
           <h1 className="text-lg font-semibold">More</h1>
           <div className="w-10" />
         </div>

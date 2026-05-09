@@ -181,9 +181,6 @@ export default function CreatorRevenue() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
         <div className="container flex items-center gap-4 h-16 px-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
           <h1 className="text-xl font-semibold">My Revenue</h1>
           <div className="ml-auto">
             <Button variant="outline" size="sm" onClick={fetchRevenueData}>

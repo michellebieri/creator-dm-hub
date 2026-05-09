@@ -164,9 +164,7 @@ const AnalyticsDashboard = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-2xl mx-auto">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          <div className="w-10" />
           <h1 className="text-base font-semibold">Analytics</h1>
           <div className="w-10" />
         </div>
