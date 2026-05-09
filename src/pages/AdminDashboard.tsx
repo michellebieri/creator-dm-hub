@@ -1,175 +1,117 @@
 import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/useAuth';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Check, X, Loader2, Users, DollarSign, MessageCircle, Shield } from 'lucide-react';
-import { StatsCard } from '@/components/StatsCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  ChevronLeft, Search, Users, Crown, DollarSign, TrendingUp,
+  RefreshCw, Loader2, ShieldCheck, User, Calendar, MoreVertical, Eye
+} from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  Tabs, TabsContent, TabsList, TabsTrigger
+} from '@/components/ui/tabs';
 
-interface WaitlistCreator {
+interface UserRow {
   id: string;
   display_name: string;
   username: string;
-  email: string;
-  waitlist_status: string;
+  avatar_url: string | null;
   created_at: string;
+  roles: string[];
 }
 
-const AdminDashboard = () => {
-  const { user, loading } = useAuth();
+interface StatsType {
+  totalUsers: number;
+  totalCreators: number;
+  totalTransactions: number;
+  totalRevenue: number;
+}
+
+export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isAdmin, loading: roleLoading } = useRoleCheck();
   const { toast } = useToast();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [waitlistCreators, setWaitlistCreators] = useState<WaitlistCreator[]>([]);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalCreators: 0,
-    totalTransactions: 0,
-    totalRevenue: 0,
-  });
-  const [processing, setProcessing] = useState<string | null>(null);
+
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [fetching, setFetching] = useState(true);
+  const [search, setSearch] = useState('');
+  const [stats, setStats] = useState<StatsType>({ totalUsers: 0, totalCreators: 0, totalTransactions: 0, totalRevenue: 0 });
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
-      return;
+    if (!authLoading && !roleLoading) {
+      if (!user) { navigate('/auth'); return; }
+      if (!isAdmin) { navigate('/dashboard'); return; }
+      fetchAll();
     }
+  }, [authLoading, roleLoading, user, isAdmin]);
 
-    if (user) {
-      checkAdminStatus();
-    }
-  }, [user, loading, navigate]);
-
-  const checkAdminStatus = async () => {
-    if (!user) return;
-
+  const fetchAll = async () => {
+    setFetching(true);
     try {
-      // Check user roles from user_roles table using RPC
-      const { data: hasAdminRole, error } = await supabase
-        .rpc('has_role', { _user_id: user.id, _role: 'admin' });
-
-      if (error) {
-        console.error('Error checking admin role:', error);
-        toast({
-          title: "Access denied",
-          description: "You don't have permission to access this page",
-          variant: "destructive",
-        });
-        navigate('/dashboard');
-        return;
-      }
-
-      if (!hasAdminRole) {
-        toast({
-          title: "Access denied",
-          description: "You don't have permission to access this page",
-          variant: "destructive",
-        });
-        navigate('/dashboard');
-        return;
-      }
-
-      setIsAdmin(true);
-      await fetchData();
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      navigate('/dashboard');
-    } finally {
-      setChecking(false);
-    }
-  };
-
-  const fetchData = async () => {
-    try {
-      // Fetch waitlist creators
-      const { data: creators } = await supabase
-        .from('creator_settings')
-        .select(`
-          user_id,
-          waitlist_status,
-          created_at,
-          profiles!inner(id, display_name, username)
-        `)
-        .eq('waitlist_status', 'pending')
-        .order('created_at', { ascending: true });
-
-      if (creators) {
-        const formattedCreators = creators.map((c: any) => ({
-          id: c.user_id,
-          display_name: c.profiles.display_name,
-          username: c.profiles.username,
-          email: '',
-          waitlist_status: c.waitlist_status,
-          created_at: c.created_at,
-        }));
-        setWaitlistCreators(formattedCreators);
-      }
-
-      // Fetch stats
-      const { count: usersCount } = await supabase
+      // Fetch all profiles
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*', { count: 'exact', head: true });
+        .select('id, display_name, username, avatar_url, created_at')
+        .order('created_at', { ascending: false });
 
-      const { count: creatorsCount } = await supabase
+      if (profilesError) throw profilesError;
+
+      // Fetch all user roles
+      const { data: allRoles } = await supabase
         .from('user_roles')
-        .select('*', { count: 'exact', head: true })
-        .eq('role', 'creator');
+        .select('user_id, role');
 
-      const { count: transactionsCount } = await supabase
+      const roleMap: Record<string, string[]> = {};
+      (allRoles || []).forEach(r => {
+        if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
+        roleMap[r.user_id].push(r.role);
+      });
+
+      const enriched: UserRow[] = (profiles || []).map(p => ({
+        ...p,
+        roles: roleMap[p.id] || [],
+      }));
+
+      setUsers(enriched);
+
+      // Stats
+      const creatorCount = enriched.filter(u => u.roles.includes('creator')).length;
+
+      const { count: txCount } = await supabase
         .from('transactions')
         .select('*', { count: 'exact', head: true });
 
-      const { data: revenue } = await supabase
+      const { data: revData } = await supabase
         .from('transactions')
         .select('amount')
         .eq('status', 'completed');
 
-      const totalRevenue = revenue?.reduce((sum, t) => sum + Number(t.amount), 0) || 0;
+      const totalRev = (revData || []).reduce((s, t) => s + (t.amount || 0), 0);
 
       setStats({
-        totalUsers: usersCount || 0,
-        totalCreators: creatorsCount || 0,
-        totalTransactions: transactionsCount || 0,
-        totalRevenue,
+        totalUsers: enriched.length,
+        totalCreators: creatorCount,
+        totalTransactions: txCount || 0,
+        totalRevenue: totalRev,
       });
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  };
-
-  const handleWaitlistAction = async (userId: string, action: 'approved' | 'rejected') => {
-    setProcessing(userId);
-    try {
-      const { error } = await supabase
-        .from('creator_settings')
-        .update({ waitlist_status: action })
-        .eq('user_id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: `Creator ${action}`,
-        description: `The creator has been ${action} successfully`,
-      });
-
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating waitlist:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update creator status",
-        variant: "destructive",
-      });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
-      setProcessing(null);
+      setFetching(false);
     }
   };
 
-  if (loading || checking) {
+  if (authLoading || roleLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -177,107 +119,172 @@ const AdminDashboard = () => {
     );
   }
 
-  if (!isAdmin) {
-    return null;
-  }
+  const filtered = users.filter(u => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      u.display_name?.toLowerCase().includes(q) ||
+      u.username?.toLowerCase().includes(q)
+    );
+  });
 
-  return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+  const allUsers = filtered;
+  const creators = filtered.filter(u => u.roles.includes('creator'));
+  const admins = filtered.filter(u => u.roles.includes('admin'));
+
+  const UserCard = ({ u }: { u: UserRow }) => (
+    <div className="flex items-center justify-between p-3 hover:bg-muted/40 rounded-lg transition-colors">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar className="h-10 w-10 flex-shrink-0">
+          <AvatarImage src={u.avatar_url || undefined} />
+          <AvatarFallback className="text-sm">
+            {u.display_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || '?'}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-medium text-sm truncate">{u.display_name}</p>
+            {u.roles.includes('admin') && (
+              <Badge variant="destructive" className="text-xs py-0">Admin</Badge>
+            )}
+            {u.roles.includes('creator') && (
+              <Badge className="text-xs py-0">Creator</Badge>
+            )}
+            {!u.roles.includes('creator') && !u.roles.includes('admin') && (
+              <Badge variant="secondary" className="text-xs py-0">Fan</Badge>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">@{u.username}</p>
         </div>
-        <Button onClick={() => navigate('/users')}>
-          Manage Users
-        </Button>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Total Users"
-          value={stats.totalUsers}
-          icon={Users}
-        />
-        <StatsCard
-          title="Total Creators"
-          value={stats.totalCreators}
-          icon={Users}
-        />
-        <StatsCard
-          title="Total Transactions"
-          value={stats.totalTransactions}
-          icon={MessageCircle}
-        />
-        <StatsCard
-          title="Total Revenue"
-          value={`$${stats.totalRevenue.toFixed(2)}`}
-          icon={DollarSign}
-        />
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <p className="text-xs text-muted-foreground hidden sm:block">
+          {new Date(u.created_at).toLocaleDateString()}
+        </p>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => navigate(`/creator/${u.username}`)}>
+              <Eye className="h-4 w-4 mr-2" />
+              View Profile
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Creator Waitlist</CardTitle>
-          <CardDescription>
-            Review and approve creators waiting to join the platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {waitlistCreators.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No creators in waitlist
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {waitlistCreators.map((creator) => (
-                <div
-                  key={creator.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{creator.display_name}</p>
-                      <Badge variant="outline">@{creator.username}</Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Joined {new Date(creator.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => handleWaitlistAction(creator.id, 'approved')}
-                      disabled={processing === creator.id}
-                    >
-                      {processing === creator.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Approve
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleWaitlistAction(creator.id, 'rejected')}
-                      disabled={processing === creator.id}
-                    >
-                      <X className="h-4 w-4 mr-2" />
-                      Reject
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
-};
 
-export default AdminDashboard;
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 bg-background border-b border-border">
+        <div className="flex items-center justify-between px-4 h-14 max-w-3xl mx-auto">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-semibold flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            Admin Panel
+          </h1>
+          <Button variant="ghost" size="icon" onClick={fetchAll} disabled={fetching}>
+            <RefreshCw className={`h-4 w-4 ${fetching ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+      </header>
+
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Stats row */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {[
+            { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-primary' },
+            { label: 'Creators', value: stats.totalCreators, icon: Crown, color: 'text-primary' },
+            { label: 'Transactions', value: stats.totalTransactions, icon: TrendingUp, color: 'text-primary' },
+            { label: 'Revenue', value: `$${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-primary' },
+          ].map(s => (
+            <Card key={s.label} className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <s.icon className={`h-4 w-4 ${s.color}`} />
+                <p className="text-xs text-muted-foreground">{s.label}</p>
+              </div>
+              <p className="text-2xl font-bold">{fetching ? '—' : s.value}</p>
+            </Card>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name or username…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        {/* Tabs */}
+        <Tabs defaultValue="all">
+          <TabsList className="w-full">
+            <TabsTrigger value="all" className="flex-1">
+              All ({allUsers.length})
+            </TabsTrigger>
+            <TabsTrigger value="creators" className="flex-1">
+              Creators ({creators.length})
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="flex-1">
+              Admins ({admins.length})
+            </TabsTrigger>
+          </TabsList>
+
+          {fetching ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : (
+            <>
+              <TabsContent value="all">
+                <Card>
+                  <CardContent className="p-2 divide-y divide-border">
+                    {allUsers.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground text-sm">No users found</p>
+                    ) : (
+                      allUsers.map(u => <UserCard key={u.id} u={u} />)
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="creators">
+                <Card>
+                  <CardContent className="p-2 divide-y divide-border">
+                    {creators.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground text-sm">No creators yet</p>
+                    ) : (
+                      creators.map(u => <UserCard key={u.id} u={u} />)
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="admins">
+                <Card>
+                  <CardContent className="p-2 divide-y divide-border">
+                    {admins.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground text-sm">No admins found</p>
+                    ) : (
+                      admins.map(u => <UserCard key={u.id} u={u} />)
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </>
+          )}
+        </Tabs>
+      </div>
+    </div>
+  );
+}

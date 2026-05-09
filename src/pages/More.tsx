@@ -34,7 +34,7 @@ import { Card } from '@/components/ui/card';
 const More = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
-  const { isCreator } = useRoleCheck();
+  const { isCreator, isAdmin } = useRoleCheck();
 
   const handleSignOut = async () => {
     await signOut();
@@ -136,6 +136,15 @@ const More = () => {
               <MenuItem title="AI Assistant" icon={Bot} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/settings/ai-persona')} />
             </Card>
           </>
+        )}
+
+        {isAdmin && (
+          <Card className="m-4 overflow-hidden border-primary/30">
+            <div className="px-4 pt-3 pb-1">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wider">Admin</p>
+            </div>
+            <MenuItem title="Admin Panel" icon={Shield} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/admin')} />
+          </Card>
         )}
 
         <Card className="m-4 overflow-hidden">
