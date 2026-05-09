@@ -42,7 +42,7 @@ export function FolderNavigation({ activeFolder, onFolderChange, counts }: Folde
       label: 'All Content',
       icon: FolderOpen,
       count: counts.total,
-      color: 'text-orange-500'
+      color: 'text-primary'
     }
   ];
 

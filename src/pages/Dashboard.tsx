@@ -514,7 +514,7 @@ const Dashboard = () => {
                           disabled={likingPosts.has(post.id)}
                         >
                           <Heart 
-                            className={`w-6 h-6 ${post.is_liked ? 'fill-red-500 text-red-500' : ''}`} 
+                            className={`w-6 h-6 ${post.is_liked ? 'fill-primary text-primary' : ''}`}
                           />
                         </button>
                         {(post.like_count || 0) > 0 && (

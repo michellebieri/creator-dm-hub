@@ -185,7 +185,7 @@ export default function RefundManagement() {
                   {refunds.map((r) => (
                     <div key={r.id} className="flex justify-between p-4 border rounded">
                       <div className="flex items-center gap-3">
-                        {r.status === 'pending' && <Clock className="h-4 w-4 text-yellow-500" />}
+                        {r.status === 'pending' && <Clock className="h-4 w-4 text-muted-foreground" />}
                         {r.status === 'approved' && <CheckCircle className="h-4 w-4 text-primary" />}
                         {r.status === 'rejected' && <AlertCircle className="h-4 w-4 text-destructive" />}
                         <div>

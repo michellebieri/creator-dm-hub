@@ -184,7 +184,7 @@ const AnalyticsDashboard = () => {
                 This month: <span className="font-semibold text-foreground">${stats.thisMonthRevenue.toFixed(2)}</span>
               </span>
               {revenueMoM !== null && (
-                <span className={`flex items-center gap-0.5 text-xs font-medium ${revenueMoM >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                <span className={`flex items-center gap-0.5 text-xs font-medium ${revenueMoM >= 0 ? 'text-primary' : 'text-destructive'}`}>
                   {revenueMoM >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                   {Math.abs(revenueMoM).toFixed(1)}% vs last month
                 </span>
@@ -199,7 +199,7 @@ const AnalyticsDashboard = () => {
             </div>
             <p className="text-2xl font-bold">{stats.totalCustomers}</p>
             {customerMoM !== null && (
-              <span className={`flex items-center gap-0.5 text-xs font-medium mt-1 ${customerMoM >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+              <span className={`flex items-center gap-0.5 text-xs font-medium mt-1 ${customerMoM >= 0 ? 'text-primary' : 'text-destructive'}`}>
                 {customerMoM >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                 {Math.abs(customerMoM).toFixed(0)}% this month
               </span>

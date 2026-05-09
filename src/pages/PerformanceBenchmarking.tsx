@@ -321,7 +321,7 @@ export default function PerformanceBenchmarking() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Difference:</span>
-                  <span className={myMetrics.avgRevenue >= platformMetrics.avgRevenue ? 'text-green-500' : 'text-red-500'}>
+                  <span className={myMetrics.avgRevenue >= platformMetrics.avgRevenue ? 'text-primary' : 'text-destructive'}>
                     {myMetrics.avgRevenue >= platformMetrics.avgRevenue ? '+' : ''}
                     {((myMetrics.avgRevenue - platformMetrics.avgRevenue) / platformMetrics.avgRevenue * 100).toFixed(1)}%
                   </span>
@@ -342,7 +342,7 @@ export default function PerformanceBenchmarking() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Difference:</span>
-                  <span className={myMetrics.avgCustomers >= platformMetrics.avgCustomers ? 'text-green-500' : 'text-red-500'}>
+                  <span className={myMetrics.avgCustomers >= platformMetrics.avgCustomers ? 'text-primary' : 'text-destructive'}>
                     {myMetrics.avgCustomers >= platformMetrics.avgCustomers ? '+' : ''}
                     {((myMetrics.avgCustomers - platformMetrics.avgCustomers) / platformMetrics.avgCustomers * 100).toFixed(1)}%
                   </span>
@@ -363,7 +363,7 @@ export default function PerformanceBenchmarking() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Difference:</span>
-                  <span className={myMetrics.avgTransactions >= platformMetrics.avgTransactions ? 'text-green-500' : 'text-red-500'}>
+                  <span className={myMetrics.avgTransactions >= platformMetrics.avgTransactions ? 'text-primary' : 'text-destructive'}>
                     {myMetrics.avgTransactions >= platformMetrics.avgTransactions ? '+' : ''}
                     {((myMetrics.avgTransactions - platformMetrics.avgTransactions) / platformMetrics.avgTransactions * 100).toFixed(1)}%
                   </span>

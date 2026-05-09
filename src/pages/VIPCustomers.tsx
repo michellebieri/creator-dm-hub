@@ -240,7 +240,7 @@ export default function VIPCustomers() {
           {vipCustomers.map((vip) => (
             <Card key={vip.id} className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <Badge className="bg-yellow-500/10 text-yellow-500">
+                <Badge className="bg-primary/10 text-primary">
                   <Crown className="h-3 w-3 mr-1" />
                   VIP
                 </Badge>

@@ -54,6 +54,43 @@ import Wallet from "./pages/Wallet";
 import CreatorRevenue from "./pages/CreatorRevenue";
 import AdminRevenue from "./pages/AdminRevenue";
 
+// Additional pages
+import ActivityFeed from "./pages/ActivityFeed";
+import AutoReplies from "./pages/AutoReplies";
+import BlockedUsers from "./pages/BlockedUsers";
+import CollectionsManager from "./pages/CollectionsManager";
+import ContentAnalytics from "./pages/ContentAnalytics";
+import ContentExpiration from "./pages/ContentExpiration";
+import ContentModeration from "./pages/ContentModeration";
+import ContentTags from "./pages/ContentTags";
+import ContentWatermark from "./pages/ContentWatermark";
+import ConversionTracking from "./pages/ConversionTracking";
+import CreatorOnboarding from "./pages/CreatorOnboarding";
+import CreatorVerification from "./pages/CreatorVerification";
+import CreatorWaitlist from "./pages/CreatorWaitlist";
+import CustomerSpendingAnalytics from "./pages/CustomerSpendingAnalytics";
+import EmailPreferences from "./pages/EmailPreferences";
+import GlobalSearch from "./pages/GlobalSearch";
+import MyLibrary from "./pages/MyLibrary";
+import PayoutSettings from "./pages/PayoutSettings";
+import PerformanceBenchmarking from "./pages/PerformanceBenchmarking";
+import PricingExperiments from "./pages/PricingExperiments";
+import PromotionManager from "./pages/PromotionManager";
+import PurchaseHistory from "./pages/PurchaseHistory";
+import ReferralProgram from "./pages/ReferralProgram";
+import RefundManagement from "./pages/RefundManagement";
+import SessionManagement from "./pages/SessionManagement";
+import Templates from "./pages/Templates";
+import TrafficSourceDashboard from "./pages/TrafficSourceDashboard";
+import TwoFactorAuth from "./pages/TwoFactorAuth";
+import UserManagement from "./pages/UserManagement";
+import VIPCustomers from "./pages/VIPCustomers";
+import WelcomeAutomation from "./pages/WelcomeAutomation";
+import Wishlist from "./pages/Wishlist";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminModeration from "./pages/AdminModeration";
+import AgeVerification from "./pages/AgeVerification";
+
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -74,7 +111,9 @@ const App = () => {
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
-          
+          <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
+          <Route path="/creator-waitlist" element={<CreatorWaitlist />} />
+
           {/* Public creator profile routes - accessible without login */}
           <Route path="/creator/:id" element={<CreatorProfile />} />
           <Route path="/:id" element={<CreatorProfile />} />
@@ -88,21 +127,21 @@ const App = () => {
                 <CustomerProfile />
               </ProtectedRoute>
             } />
-            
+
             {/* Dashboard route - different for creators vs customers */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             } />
-            
+
             {/* Creator-specific dashboard */}
             <Route path="/creator-dashboard" element={
               <ProtectedRoute requireCreator>
                 <CreatorDashboard />
               </ProtectedRoute>
             } />
-            
+
             {/* Vault - different for creators vs customers */}
             <Route path="/vault" element={
               <ProtectedRoute>
@@ -139,7 +178,7 @@ const App = () => {
                 <BroadcastMessages />
               </ProtectedRoute>
             } />
-            
+
             {/* Shared authenticated routes */}
             <Route path="/conversations" element={
               <ProtectedRoute>
@@ -274,6 +313,186 @@ const App = () => {
             <Route path="/admin-revenue" element={
               <ProtectedRoute requireAdmin>
                 <AdminRevenue />
+              </ProtectedRoute>
+            } />
+
+            {/* Creator analytics & tools */}
+            <Route path="/content-analytics" element={
+              <ProtectedRoute requireCreator>
+                <ContentAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/revenue-analytics" element={
+              <ProtectedRoute requireCreator>
+                <RevenueAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/customer-spending" element={
+              <ProtectedRoute requireCreator>
+                <CustomerSpendingAnalytics />
+              </ProtectedRoute>
+            } />
+            <Route path="/conversion-tracking" element={
+              <ProtectedRoute requireCreator>
+                <ConversionTracking />
+              </ProtectedRoute>
+            } />
+            <Route path="/traffic-sources" element={
+              <ProtectedRoute requireCreator>
+                <TrafficSourceDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/benchmarking" element={
+              <ProtectedRoute requireCreator>
+                <PerformanceBenchmarking />
+              </ProtectedRoute>
+            } />
+            <Route path="/vip-customers" element={
+              <ProtectedRoute requireCreator>
+                <VIPCustomers />
+              </ProtectedRoute>
+            } />
+            <Route path="/refunds" element={
+              <ProtectedRoute requireCreator>
+                <RefundManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/pricing-experiments" element={
+              <ProtectedRoute requireCreator>
+                <PricingExperiments />
+              </ProtectedRoute>
+            } />
+            <Route path="/promotion-manager" element={
+              <ProtectedRoute requireCreator>
+                <PromotionManager />
+              </ProtectedRoute>
+            } />
+
+            {/* Creator content management */}
+            <Route path="/content-tags" element={
+              <ProtectedRoute requireCreator>
+                <ContentTags />
+              </ProtectedRoute>
+            } />
+            <Route path="/collections" element={
+              <ProtectedRoute requireCreator>
+                <CollectionsManager />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-watermark" element={
+              <ProtectedRoute requireCreator>
+                <ContentWatermark />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-expiration" element={
+              <ProtectedRoute requireCreator>
+                <ContentExpiration />
+              </ProtectedRoute>
+            } />
+            <Route path="/content-moderation" element={
+              <ProtectedRoute requireCreator>
+                <ContentModeration />
+              </ProtectedRoute>
+            } />
+            <Route path="/welcome-automation" element={
+              <ProtectedRoute requireCreator>
+                <WelcomeAutomation />
+              </ProtectedRoute>
+            } />
+            <Route path="/auto-replies" element={
+              <ProtectedRoute requireCreator>
+                <AutoReplies />
+              </ProtectedRoute>
+            } />
+            <Route path="/templates" element={
+              <ProtectedRoute requireCreator>
+                <Templates />
+              </ProtectedRoute>
+            } />
+            <Route path="/payout-settings" element={
+              <ProtectedRoute requireCreator>
+                <PayoutSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/verification" element={
+              <ProtectedRoute requireCreator>
+                <CreatorVerification />
+              </ProtectedRoute>
+            } />
+
+            {/* Customer-only routes */}
+            <Route path="/library" element={
+              <ProtectedRoute>
+                <MyLibrary />
+              </ProtectedRoute>
+            } />
+            <Route path="/wishlist" element={
+              <ProtectedRoute>
+                <Wishlist />
+              </ProtectedRoute>
+            } />
+            <Route path="/purchase-history" element={
+              <ProtectedRoute>
+                <PurchaseHistory />
+              </ProtectedRoute>
+            } />
+            <Route path="/blocked-users" element={
+              <ProtectedRoute>
+                <BlockedUsers />
+              </ProtectedRoute>
+            } />
+
+            {/* Shared routes */}
+            <Route path="/activity-feed" element={
+              <ProtectedRoute>
+                <ActivityFeed />
+              </ProtectedRoute>
+            } />
+            <Route path="/search" element={
+              <ProtectedRoute>
+                <GlobalSearch />
+              </ProtectedRoute>
+            } />
+            <Route path="/email-preferences" element={
+              <ProtectedRoute>
+                <EmailPreferences />
+              </ProtectedRoute>
+            } />
+            <Route path="/sessions" element={
+              <ProtectedRoute>
+                <SessionManagement />
+              </ProtectedRoute>
+            } />
+            <Route path="/two-factor-auth" element={
+              <ProtectedRoute>
+                <TwoFactorAuth />
+              </ProtectedRoute>
+            } />
+            <Route path="/age-verification" element={
+              <ProtectedRoute>
+                <AgeVerification />
+              </ProtectedRoute>
+            } />
+            <Route path="/referral" element={
+              <ProtectedRoute>
+                <ReferralProgram />
+              </ProtectedRoute>
+            } />
+
+            {/* Admin routes */}
+            <Route path="/admin" element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin-moderation" element={
+              <ProtectedRoute requireAdmin>
+                <AdminModeration />
+              </ProtectedRoute>
+            } />
+            <Route path="/users" element={
+              <ProtectedRoute requireAdmin>
+                <UserManagement />
               </ProtectedRoute>
             } />
           </Route>
