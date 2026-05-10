@@ -102,38 +102,35 @@ const CreatorProfile = () => {
       // Try multiple lookup methods for flexibility
       let profileData: any = null;
       
-      // Method 1: Try exact username match (case-insensitive) directly on profiles
+      // Method 1: Try exact username match (case-insensitive) — role checked via user_roles
       const { data: exactMatch } = await supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url, bio')
         .ilike('username', cleanId)
-        .eq('role', 'creator')
         .limit(1)
         .maybeSingle();
-      
+
       if (exactMatch) {
         profileData = exactMatch;
       }
-      
+
       // Method 2: If not found and looks like UUID, try direct ID lookup
       if (!profileData && cleanId.length === 36) {
         const { data: idMatch } = await supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url, bio')
           .eq('id', cleanId)
-          .eq('role', 'creator')
           .maybeSingle();
         if (idMatch) {
           profileData = idMatch;
         }
       }
-      
+
       // Method 3: Try partial username or display_name search
       if (!profileData) {
         const { data: partialMatch } = await supabase
           .from('profiles')
           .select('id, username, display_name, avatar_url, bio')
-          .eq('role', 'creator')
           .or(`username.ilike.%${cleanId}%,display_name.ilike.%${cleanId}%`)
           .limit(1)
           .maybeSingle();
