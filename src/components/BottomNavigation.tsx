@@ -24,16 +24,6 @@ export const BottomNavigation = () => {
           </span>
         </Link>
 
-        {/* Browse Creators - only for customers */}
-        {!isCreator && (
-          <Link to="/browse" className="flex flex-col items-center justify-center flex-1">
-            <Users className={`h-6 w-6 ${isActive('/browse') ? 'text-primary' : 'text-muted-foreground'}`} />
-            <span className={`text-xs mt-1 ${isActive('/browse') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-              Discover
-            </span>
-          </Link>
-        )}
-        
         <Link to="/conversations" className="flex flex-col items-center justify-center flex-1">
           <MessageCircle className={`h-6 w-6 ${isActive('/conversations') ? 'text-primary' : 'text-muted-foreground'}`} />
           <span className={`text-xs mt-1 ${isActive('/conversations') ? 'text-primary font-medium' : 'text-muted-foreground'}`}>

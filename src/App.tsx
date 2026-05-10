@@ -120,8 +120,7 @@ const App = () => {
 
           {/* Routes with bottom navigation */}
           <Route element={<AppLayout />}>
-            {/* Browse pages */}
-            <Route path="/browse" element={<Creators />} />
+            {/* /browse removed — platform is invite-only via creator direct links */}
             <Route path="/customer/:id" element={
               <ProtectedRoute requireCreator>
                 <CustomerProfile />
