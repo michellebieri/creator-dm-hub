@@ -25,11 +25,6 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to="/browse" className="hover:text-foreground transition-colors">
-                  Browse Creators
-                </Link>
-              </li>
-              <li>
                 <a href="#" className="hover:text-foreground transition-colors">
                   Pricing
                 </a>

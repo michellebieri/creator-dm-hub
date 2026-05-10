@@ -35,7 +35,7 @@ export const ProtectedRoute = ({
     }
 
     if (requireCreator && !isCreator) {
-      navigate('/browse');
+      navigate('/dashboard');
       return;
     }
 

@@ -27,11 +27,6 @@ const Index = () => {
               <span className="text-2xl font-bold">DM.me</span>
             </div>
             <div className="flex gap-4">
-              {!isCreator && (
-                <Button variant="ghost" onClick={() => navigate('/browse')}>
-                  Browse Creators
-                </Button>
-              )}
               {user ? (
                 <>
                   <Button variant="ghost" onClick={() => navigate('/conversations')} className="relative">
@@ -92,16 +87,16 @@ const Index = () => {
               )}
               {!isCreator && !user && (
                 <>
-                  <Button 
-                    size="lg" 
+                  <Button
+                    size="lg"
                     className="gradient-primary text-primary-foreground text-lg px-8"
-                    onClick={() => navigate('/browse')}
+                    onClick={() => navigate('/auth')}
                   >
-                    Browse Creators
+                    Get Started
                   </Button>
-                  <Button 
-                    size="lg" 
-                    variant="outline" 
+                  <Button
+                    size="lg"
+                    variant="outline"
                     className="text-lg px-8"
                     onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
                   >
@@ -307,13 +302,13 @@ const Index = () => {
                 </Card>
               </div>
               <div className="text-center mt-12">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="gradient-primary text-primary-foreground gap-2"
-                  onClick={() => navigate('/browse')}
+                  onClick={() => navigate('/auth')}
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Discover Creators
+                  Get Started
                 </Button>
               </div>
             </>
@@ -333,11 +328,11 @@ const Index = () => {
           </div>
           <BundlePurchase />
           <div className="text-center mt-8">
-            <Button 
+            <Button
               variant="outline"
-              onClick={() => navigate('/browse')}
+              onClick={() => navigate('/auth')}
             >
-              Explore All Creators
+              Join Now
             </Button>
           </div>
         </div>
@@ -403,12 +398,12 @@ const Index = () => {
           <p className="text-xl text-muted-foreground mb-8">
             Join thousands of users enjoying exclusive content from their favorite creators
           </p>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="gradient-primary text-primary-foreground text-lg px-8"
-            onClick={() => navigate('/browse')}
+            onClick={() => navigate('/auth')}
           >
-            Start Browsing
+            Get Started
           </Button>
         </div>
       </section>

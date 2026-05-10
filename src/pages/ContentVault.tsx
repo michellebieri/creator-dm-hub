@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
-import { ChevronLeft, Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package, Lock, Loader2 } from 'lucide-react';
+import { Upload, Plus, Search, SortAsc, Image, Video, FolderOpen, Package, Lock, Loader2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { EmptyState } from '@/components/EmptyState';
@@ -337,9 +337,7 @@ export default function ContentVault() {
       {/* Header */}
       <header className="sticky top-14 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-7xl mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          <div className="w-10" />
           <h1 className="text-lg font-semibold">Content Vault</h1>
           <div className="w-10" />
         </div>

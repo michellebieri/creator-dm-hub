@@ -145,7 +145,7 @@ const CreatorProfile = () => {
           description: `Could not find a creator matching "${cleanId}"`,
           variant: 'destructive',
         });
-        navigate('/browse');
+        navigate('/');
         return;
       }
       
@@ -256,7 +256,7 @@ const CreatorProfile = () => {
       setBundles(bundlesWithCounts);
     } catch (error: any) {
       toast({ title: "Error", description: "Could not load creator profile", variant: "destructive" });
-      navigate('/browse');
+      navigate('/');
     } finally {
       setLoading(false);
     }
@@ -542,7 +542,7 @@ const CreatorProfile = () => {
       <div className="min-h-screen bg-background pb-20">
         <div className="sticky top-0 z-10 bg-background border-b border-border">
           <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/browse')}><ArrowLeft className="h-5 w-5" /></Button>
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
             <h1 className="text-lg font-semibold">Profile</h1>
             <div className="w-10" />
           </div>
@@ -569,7 +569,7 @@ const CreatorProfile = () => {
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14 max-w-screen-lg mx-auto">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/browse')}><ArrowLeft className="h-5 w-5" /></Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}><ArrowLeft className="h-5 w-5" /></Button>
           <h1 className="text-lg font-semibold">Profile</h1>
           <div className="w-10" />
         </div>

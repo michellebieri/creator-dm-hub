@@ -378,11 +378,7 @@ const Dashboard = () => {
         <EmptyState
           icon={Home}
           title="Welcome to your Dashboard!"
-          description="You haven't connected with any creators yet. Search for a creator to get started!"
-          action={{
-            label: "Browse Creators",
-            onClick: () => navigate('/browse')
-          }}
+          description="You haven't connected with any creators yet. Ask your creator for their profile link to get started!"
         />
       </div>
     );

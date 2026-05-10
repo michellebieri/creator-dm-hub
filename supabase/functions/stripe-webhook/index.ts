@@ -200,25 +200,14 @@ serve(async (req) => {
         const customerId = subscription.customer as string;
         const priceId = subscription.items.data[0]?.price.id;
 
-        // Get customer email from metadata if available
+        // Retrieve customer and get user ID from metadata (avoids listing all users)
         const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
-        const customerEmail = customer.email;
+        const userId = customer.metadata?.supabase_user_id;
 
-        if (!customerEmail || !priceId) {
-          console.error("Missing customer email or price ID");
+        if (!userId || !priceId) {
+          console.error("Missing supabase_user_id in Stripe customer metadata or missing price ID", { customerId, priceId });
           break;
         }
-
-        // Find user ID from auth.users using service role
-        const { data: authUsers, error: authError } = await supabaseClient.auth.admin.listUsers();
-        const authUser = authUsers?.users.find(u => u.email === customerEmail);
-
-        if (!authUser) {
-          console.error("User not found for email:", customerEmail);
-          break;
-        }
-
-        const userId = authUser.id;
 
         // Find subscription tier by stripe price id
         const { data: tier } = await supabaseClient

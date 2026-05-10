@@ -307,11 +307,7 @@ const Conversations = () => {
               <EmptyState
                 icon={MessageCircle}
                 title="No messages yet"
-                description={isCreator ? "Your messages will appear here" : "Search for a creator to start your first conversation"}
-                action={!isCreator ? {
-                  label: 'Browse Creators',
-                  onClick: () => navigate('/browse'),
-                } : undefined}
+                description={isCreator ? "Your messages will appear here" : "Visit a creator's profile to start a conversation"}
               />
               {!isCreator && (
                 <div className="text-center mt-4 text-sm text-muted-foreground">

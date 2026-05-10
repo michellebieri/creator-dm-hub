@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Image, Video, Music, Package, Vault as VaultIcon, ChevronLeft, Play } from 'lucide-react';
+import { Image, Video, Music, Package, Vault as VaultIcon, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
@@ -296,11 +296,7 @@ const Vault = () => {
           <EmptyState
             icon={VaultIcon}
             title="No purchased content yet"
-            description="Browse creators and unlock exclusive content to see it here."
-            action={{
-              label: "Browse Creators",
-              onClick: () => navigate('/browse')
-            }}
+            description="Visit a creator's profile and unlock exclusive content to see it here."
           />
         </div>
       </div>
@@ -311,9 +307,7 @@ const Vault = () => {
     <div className="min-h-screen bg-background pb-4">
       <header className="sticky top-0 z-10 bg-background border-b border-border">
         <div className="flex items-center justify-between px-4 h-14">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
+          <div className="w-10" />
           <h1 className="text-lg font-semibold">My Vault</h1>
           <div className="w-10" />
         </div>
