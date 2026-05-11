@@ -22,11 +22,11 @@ export const CreatorSearchBar = ({ prominent = false }: CreatorSearchBarProps) =
     setIsSearching(true);
     try {
       // Try exact username match first (case-insensitive)
+      // Note: roles live in user_roles table, NOT profiles.role — no role filter here
       let { data: creator, error } = await supabase
         .from('profiles')
-        .select('username, role')
+        .select('username')
         .ilike('username', searchTerm)
-        .eq('role', 'creator')
         .limit(1)
         .maybeSingle();
 
@@ -34,9 +34,8 @@ export const CreatorSearchBar = ({ prominent = false }: CreatorSearchBarProps) =
       if (!creator) {
         const { data: partialMatch } = await supabase
           .from('profiles')
-          .select('username, role')
+          .select('username')
           .ilike('username', `%${searchTerm}%`)
-          .eq('role', 'creator')
           .limit(1)
           .maybeSingle();
         creator = partialMatch;
@@ -46,9 +45,8 @@ export const CreatorSearchBar = ({ prominent = false }: CreatorSearchBarProps) =
       if (!creator) {
         const { data: nameMatch } = await supabase
           .from('profiles')
-          .select('username, role')
+          .select('username')
           .ilike('display_name', `%${searchTerm}%`)
-          .eq('role', 'creator')
           .limit(1)
           .maybeSingle();
         creator = nameMatch;
