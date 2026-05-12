@@ -38,6 +38,22 @@ const SubscribersList = () => {
     if (!user) return;
 
     try {
+      // creator_subscriptions has no creator_id column — filter via the creator's tier IDs
+      const { data: creatorTiers, error: tiersError } = await supabase
+        .from('subscription_tiers')
+        .select('id, name')
+        .eq('creator_id', user.id);
+
+      if (tiersError) throw tiersError;
+
+      const creatorTierIds = creatorTiers?.map(t => t.id) || [];
+
+      if (creatorTierIds.length === 0) {
+        setSubscribers([]);
+        setLoading(false);
+        return;
+      }
+
       const { data: subscriptions, error: subsError } = await supabase
         .from('creator_subscriptions')
         .select(`
@@ -48,18 +64,16 @@ const SubscribersList = () => {
           tier_id
         `)
         .eq('status', 'active')
+        .in('tier_id', creatorTierIds)
         .order('created_at', { ascending: false });
 
       if (subsError) throw subsError;
 
-      // Get tier names
+      // Build tier name map from already-fetched tiers
       const tierIds = [...new Set(subscriptions?.map(s => s.tier_id) || [])];
-      const { data: tiers } = await supabase
-        .from('subscription_tiers')
-        .select('id, name')
-        .in('id', tierIds);
+      const tiers = creatorTiers?.filter(t => tierIds.includes(t.id));
 
-      const tierMap = new Map(tiers?.map(t => [t.id, t.name]) || []);
+      const tierMap = new Map((tiers || []).map(t => [t.id, t.name]));
 
       // Get customer profiles
       const customerIds = subscriptions?.map(s => s.customer_id) || [];

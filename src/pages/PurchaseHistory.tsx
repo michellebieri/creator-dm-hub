@@ -142,14 +142,16 @@ const PurchaseHistory = () => {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
+      case 'subscription':
+        return 'Subscription';
       case 'message':
-        return 'Message Pack';
+        return 'Message';
       case 'pack':
         return 'Message Pack';
       case 'unlockable':
         return 'Content';
       default:
-        return type;
+        return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     }
   };
 
@@ -253,8 +255,9 @@ const PurchaseHistory = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="message">Message Packs</SelectItem>
-                <SelectItem value="pack">Message Packs</SelectItem>
+                <SelectItem value="subscription">Subscription</SelectItem>
+                <SelectItem value="message">Message</SelectItem>
+                <SelectItem value="pack">Message Pack</SelectItem>
                 <SelectItem value="unlockable">Content</SelectItem>
               </SelectContent>
             </Select>

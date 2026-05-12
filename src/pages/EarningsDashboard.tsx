@@ -159,11 +159,15 @@ const EarningsDashboard = () => {
                 >
                   <div>
                     <p className="font-medium capitalize">
-                      {(tx.transaction_type === 'pack' || (tx.transaction_type === 'unlockable' && tx.bundle_id))
-                        ? 'Bundle Purchase'
-                        : tx.transaction_type === 'unlockable'
-                          ? 'Content Purchase'
-                          : tx.transaction_type.replace(/_/g, ' ')}
+                      {tx.transaction_type === 'subscription'
+                        ? 'Subscription'
+                        : tx.transaction_type === 'message'
+                          ? 'Message'
+                          : (tx.transaction_type === 'pack' || (tx.transaction_type === 'unlockable' && tx.bundle_id))
+                            ? 'Bundle Purchase'
+                            : tx.transaction_type === 'unlockable'
+                              ? 'Content Purchase'
+                              : tx.transaction_type.replace(/_/g, ' ')}
                     </p>
                     {tx.itemName && (
                       <p className="text-sm font-medium text-primary">{tx.itemName}</p>

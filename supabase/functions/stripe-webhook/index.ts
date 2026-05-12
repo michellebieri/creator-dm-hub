@@ -87,7 +87,7 @@ serve(async (req) => {
                 credits_remaining: quantity,
               });
 
-              // Record transaction
+              // Record transaction — use valid enum value 'pack' (not 'pack_purchase')
               await supabaseClient.from("transactions").insert({
                 customer_id: metadata.customer_id,
                 creator_id: metadata.creator_id,
@@ -96,7 +96,7 @@ serve(async (req) => {
                 net_amount: (session.amount_total! / 100) * 0.85,
                 platform_fee: (session.amount_total! / 100) * 0.15,
                 processor_fee: 0,
-                transaction_type: "pack_purchase",
+                transaction_type: "pack",
                 status: "completed",
                 stripe_payment_id: session.payment_intent as string,
               });
@@ -221,9 +221,10 @@ serve(async (req) => {
           break;
         }
 
-        // Create subscription record
+        // Create subscription record (include creator_id — added via migration)
         await supabaseClient.from("creator_subscriptions").insert({
           customer_id: userId,
+          creator_id: tier.creator_id,
           tier_id: tier.id,
           stripe_subscription_id: subscription.id,
           status: subscription.status,

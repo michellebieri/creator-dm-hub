@@ -3283,7 +3283,7 @@ export type Database = {
       message_type: "text" | "unlockable" | "voice"
       payout_status: "pending" | "processing" | "completed" | "failed"
       transaction_status: "pending" | "completed" | "failed" | "refunded"
-      transaction_type: "message" | "pack" | "unlockable"
+      transaction_type: "message" | "pack" | "unlockable" | "subscription"
       user_role: "creator" | "customer"
       waitlist_status: "pending" | "approved" | "rejected"
     }
@@ -3419,7 +3419,7 @@ export const Constants = {
       message_type: ["text", "unlockable", "voice"],
       payout_status: ["pending", "processing", "completed", "failed"],
       transaction_status: ["pending", "completed", "failed", "refunded"],
-      transaction_type: ["message", "pack", "unlockable"],
+      transaction_type: ["message", "pack", "unlockable", "subscription"],
       user_role: ["creator", "customer"],
       waitlist_status: ["pending", "approved", "rejected"],
     },

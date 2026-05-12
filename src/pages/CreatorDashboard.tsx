@@ -96,7 +96,7 @@ const CreatorDashboard = () => {
       const totalRevenue = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
       
       const subscriptionsRevenue = transactions
-        ?.filter(t => t.transaction_type === 'pack')
+        ?.filter(t => t.transaction_type === 'subscription')
         .reduce((sum, t) => sum + t.net_amount, 0) || 0;
       
       const messagingRevenue = transactions
