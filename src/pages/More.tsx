@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
@@ -5,36 +6,29 @@ import {
   User,
   Bell,
   Shield,
-  Settings,
   LogOut,
-  Lock,
   Radio,
   Users,
-  CreditCard,
-  List,
-  BarChart3,
-  PieChart,
   DollarSign,
   Smartphone,
   HelpCircle,
-  RefreshCw,
   Archive,
-  CornerUpLeft,
   ChevronRight,
   ChevronLeft,
-  Newspaper,
-  Receipt,
   Wallet,
   Crown,
-  Bot
+  Bot,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const More = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { isCreator, isAdmin } = useRoleCheck();
+  const [showGetApp, setShowGetApp] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -115,7 +109,6 @@ const More = () => {
               <MenuItem title="My Subscriptions" icon={Crown} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/subscriptions')} />
             </>
           )}
-          <MenuItem title="Settings" icon={Settings} iconBg="bg-muted" iconColor="text-muted-foreground" onClick={() => navigate('/account-settings')} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
@@ -148,7 +141,7 @@ const More = () => {
         )}
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Get the app" icon={Smartphone} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('#')} />
+          <MenuItem title="Get the app" icon={Smartphone} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => setShowGetApp(true)} />
         </Card>
 
         <Card className="m-4 overflow-hidden">
@@ -165,6 +158,43 @@ const More = () => {
           <MenuItem title="Sign out" icon={LogOut} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={handleSignOut} />
         </Card>
       </div>
+
+      {/* PWA install instructions */}
+      <Dialog open={showGetApp} onOpenChange={setShowGetApp}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-primary" />
+              Save dm.me to your phone
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 text-sm">
+            <div className="space-y-3">
+              <p className="font-semibold text-base">iPhone / Safari</p>
+              <ol className="space-y-2 text-muted-foreground">
+                <li className="flex gap-2"><span className="font-bold text-foreground">1.</span> Open dm.me in <strong className="text-foreground">Safari</strong> (not Chrome)</li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">2.</span> Tap the <strong className="text-foreground">Share</strong> icon at the bottom of the screen <span className="text-lg">⬆</span></li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">3.</span> Scroll down and tap <strong className="text-foreground">"Add to Home Screen"</strong></li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">4.</span> Tap <strong className="text-foreground">Add</strong> — done!</li>
+              </ol>
+            </div>
+
+            <div className="border-t pt-4 space-y-3">
+              <p className="font-semibold text-base">Android / Chrome</p>
+              <ol className="space-y-2 text-muted-foreground">
+                <li className="flex gap-2"><span className="font-bold text-foreground">1.</span> Open dm.me in <strong className="text-foreground">Chrome</strong></li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">2.</span> Tap the <strong className="text-foreground">⋮</strong> menu (top right)</li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">3.</span> Tap <strong className="text-foreground">"Add to Home screen"</strong></li>
+                <li className="flex gap-2"><span className="font-bold text-foreground">4.</span> Tap <strong className="text-foreground">Add</strong> — done!</li>
+              </ol>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center pt-1">
+              The app will appear on your home screen and works like a native app — no App Store needed.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

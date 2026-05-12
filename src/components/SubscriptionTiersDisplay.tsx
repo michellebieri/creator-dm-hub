@@ -3,7 +3,8 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Crown, Check, Loader2, MessageCircle, Lock, ExternalLink, Settings, Wallet } from 'lucide-react';
+import { Crown, Check, Loader2, MessageCircle, Lock, Settings, Wallet, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -174,12 +175,30 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     }
   };
 
-  const handleManageSubscription = async () => {
-    // For wallet-based subscriptions, just show info dialog
-    toast({
-      title: "Subscription Management",
-      description: "Your subscription will auto-renew from your wallet balance. To cancel, please contact support.",
-    });
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    if (!currentSubscription) return;
+    setCancelling(true);
+    try {
+      const { error } = await supabase
+        .from('creator_subscriptions')
+        .update({ status: 'canceling' })
+        .eq('id', currentSubscription.id);
+
+      if (error) throw error;
+
+      setCurrentSubscription({ ...currentSubscription, status: 'canceling' });
+      setDialogOpen(false);
+      toast({
+        title: "Subscription cancelled",
+        description: `You'll keep access until ${new Date(currentSubscription.current_period_end).toLocaleDateString()}. No further charges.`,
+      });
+    } catch (error: any) {
+      toast({ title: "Cancel failed", description: error.message, variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const handleBackToTiers = () => {
@@ -279,10 +298,35 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
                   </Badge>
                 </div>
               </Card>
-              <Button variant="outline" onClick={handleManageSubscription} className="w-full">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Manage Subscription
-              </Button>
+              {currentSubscription.status !== 'canceling' && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="w-full text-destructive border-destructive/30 hover:bg-destructive/5">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      Cancel Subscription
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel subscription?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        You'll keep access until <strong>{new Date(currentSubscription.current_period_end).toLocaleDateString()}</strong>. After that, your subscription won't renew and you'll lose access to subscriber benefits.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep subscription</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleCancelSubscription}
+                        disabled={cancelling}
+                        className="bg-destructive hover:bg-destructive/90"
+                      >
+                        {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Yes, cancel
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <p className="text-xs text-center text-muted-foreground">
                 Subscription auto-renews from your wallet balance
               </p>

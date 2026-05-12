@@ -110,7 +110,7 @@ const Subscriptions = () => {
       try {
         const { error } = await supabase
           .from('creator_subscriptions')
-          .update({ status: 'canceled' })
+          .update({ status: 'canceling' })
           .eq('id', subscriptionId);
 
         if (error) throw error;
