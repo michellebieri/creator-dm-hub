@@ -17,6 +17,7 @@ import { useFollowing } from '@/hooks/useFollowing';
 import { ContentViewer } from '@/components/ContentViewer';
 import { SubscriptionTiersDisplay } from '@/components/SubscriptionTiersDisplay';
 import { useSubscription } from '@/hooks/useSubscription';
+import { BottomNavigation } from '@/components/BottomNavigation';
 
 interface Profile {
   id: string;
@@ -314,7 +315,19 @@ const CreatorProfile = () => {
       });
 
       const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
-      await supabase.from('unlockables').update({ unlocked_by: updatedUnlockedBy }).eq('id', selectedContent.id);
+      const { error: unlockErr } = await supabase
+        .from('unlockables')
+        .update({ unlocked_by: updatedUnlockedBy })
+        .eq('id', selectedContent.id);
+      if (unlockErr) console.error('Failed to update unlocked_by:', unlockErr.message);
+
+      // Record transaction
+      await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: profile.id,
+        p_amount: selectedContent.price,
+        p_transaction_type: 'unlockable',
+      });
+
       toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
       setUnlockDialogOpen(false);
       fetchCreatorData();
@@ -459,24 +472,26 @@ const CreatorProfile = () => {
             .eq('id', content.unlockable_id)
             .single();
 
-          // Check if already unlocked to avoid duplicates in array
           const currentUnlockedBy = unlockable?.unlocked_by || [];
           if (!currentUnlockedBy.includes(user.id)) {
-            await supabase
+            const { error: updateErr } = await supabase
               .from('unlockables')
               .update({ unlocked_by: [...currentUnlockedBy, user.id] })
               .eq('id', content.unlockable_id);
+            if (updateErr) console.error('Failed to unlock item:', updateErr.message);
           }
         }
       }
 
-      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
-      await supabase.rpc('insert_completed_transaction', {
+      // Record in transactions table via secure RPC
+      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
         p_creator_id: profile.id,
         p_amount: selectedBundle.price,
         p_transaction_type: 'unlockable',
         p_bundle_id: selectedBundle.id,
       });
+      if (txError) console.error('Transaction RPC error:', txError.message);
+      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
 
       // Send notification to creator
       try {
@@ -550,6 +565,7 @@ const CreatorProfile = () => {
         <div className="max-w-screen-lg mx-auto px-4 py-6">
           <ContentGridSkeleton />
         </div>
+        {user && <BottomNavigation />}
       </div>
     );
   }
@@ -574,6 +590,8 @@ const CreatorProfile = () => {
           <div className="w-10" />
         </div>
       </div>
+      {/* Bottom nav for logged-in users — public profile page is outside AppLayout */}
+      {user && <BottomNavigation />}
       <div className="max-w-screen-lg mx-auto px-4 py-6">
         <div className="flex flex-col items-center text-center mb-6">
           <Avatar className="h-24 w-24 mb-4">

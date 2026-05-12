@@ -148,16 +148,17 @@ const Vault = () => {
 
       setCreators(uniqueCreators);
 
-      // Fetch purchased bundles - get transactions first, then bundles
+      // Fetch purchased bundles — look for completed transactions with a bundle_id
+      // transaction_type is 'unlockable' for bundle purchases (not 'pack')
       const { data: bundleTransactions } = await supabase
         .from('transactions')
-        .select('id, created_at, amount, pack_id')
+        .select('id, created_at, amount, bundle_id')
         .eq('customer_id', user.id)
-        .eq('transaction_type', 'pack')
-        .not('pack_id', 'is', null);
+        .eq('status', 'completed')
+        .not('bundle_id', 'is', null);
 
       if (bundleTransactions && bundleTransactions.length > 0) {
-        const bundleIds = bundleTransactions.map((t: any) => t.pack_id);
+        const bundleIds = bundleTransactions.map((t: any) => t.bundle_id);
         
         const { data: bundles } = await supabase
           .from('content_bundles')
@@ -189,7 +190,7 @@ const Vault = () => {
         });
 
         const formattedBundles = bundles?.map((bundle: any) => {
-          const transaction = bundleTransactions.find((t: any) => t.pack_id === bundle.id);
+          const transaction = bundleTransactions.find((t: any) => t.bundle_id === bundle.id);
           return {
             id: bundle.id,
             title: bundle.title,
