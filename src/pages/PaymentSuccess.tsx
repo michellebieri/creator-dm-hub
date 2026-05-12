@@ -17,7 +17,8 @@ const PaymentSuccess = () => {
     const verifyPayment = async () => {
       const sessionId = searchParams.get('session_id');
       const bundleId = searchParams.get('bundle_id');
-      
+      const type = searchParams.get('type'); // 'pack' | 'wallet' | 'bundle'
+
       if (!sessionId) {
         toast({
           title: "Error",
@@ -29,7 +30,18 @@ const PaymentSuccess = () => {
       }
 
       try {
-        // Check if this is a bundle purchase
+        // Message pack purchase — credits added by Stripe webhook, just confirm success
+        if (type === 'pack') {
+          setVerified(true);
+          toast({
+            title: "Message Credits Purchased!",
+            description: "Your message credits have been added and are ready to use.",
+          });
+          setVerifying(false);
+          return;
+        }
+
+        // Content bundle purchase
         if (bundleId) {
           const { data, error } = await supabase.functions.invoke('verify-bundle-payment', {
             body: { sessionId, bundleId },
@@ -95,9 +107,11 @@ const PaymentSuccess = () => {
             <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-primary" />
             <h1 className="text-2xl font-bold mb-2">Payment Successful!</h1>
             <p className="text-muted-foreground mb-6">
-              {searchParams.get('bundle_id') 
+              {searchParams.get('bundle_id')
                 ? 'Your content bundle has been unlocked. View it in your vault!'
-                : 'Funds have been added to your wallet and can be used across all creators.'}
+                : searchParams.get('type') === 'pack'
+                  ? 'Your message credits have been added and are ready to use.'
+                  : 'Funds have been added to your wallet and can be used across all creators.'}
             </p>
             <div className="flex flex-col gap-3">
               {searchParams.get('bundle_id') ? (

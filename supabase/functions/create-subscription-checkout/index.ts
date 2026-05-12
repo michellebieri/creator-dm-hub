@@ -17,9 +17,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Use service role so we can read+write profiles.stripe_customer_id
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
   );
 
   try {
@@ -64,12 +65,39 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if a Stripe customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Existing Stripe customer found", { customerId });
+    // Resolve Stripe customer — must have supabase_user_id in metadata so
+    // the customer.subscription.created webhook can record the subscription.
+    let customerId: string | undefined;
+
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.stripe_customer_id) {
+      customerId = profile.stripe_customer_id;
+      // Ensure metadata is present (may have been created without it)
+      const existing = await stripe.customers.retrieve(customerId) as Stripe.Customer;
+      if (!existing.metadata?.supabase_user_id) {
+        await stripe.customers.update(customerId, { metadata: { supabase_user_id: user.id } });
+        logStep("Updated existing Stripe customer metadata", { customerId });
+      } else {
+        logStep("Existing Stripe customer found", { customerId });
+      }
+    } else {
+      // Create a new Stripe customer with proper metadata
+      const newCustomer = await stripe.customers.create({
+        email: user.email,
+        metadata: { supabase_user_id: user.id },
+      });
+      customerId = newCustomer.id;
+      // Persist so future flows reuse the same customer
+      await supabaseClient
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', user.id);
+      logStep("Created new Stripe customer", { customerId });
     }
 
     // Determine price interval
@@ -78,7 +106,6 @@ serve(async (req) => {
     // Create checkout session with subscription mode
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
       line_items: [
         {
           price_data: {

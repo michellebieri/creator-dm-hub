@@ -148,7 +148,7 @@ serve(async (req) => {
         net_amount: netAmount,
         platform_fee: platformFee,
         processor_fee: 0,
-        transaction_type: 'pack',
+        transaction_type: 'unlockable',
         bundle_id: bundleId,
         status: 'completed',
         stripe_payment_id: session.payment_intent as string,
