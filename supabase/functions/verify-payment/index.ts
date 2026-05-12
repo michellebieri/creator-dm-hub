@@ -53,33 +53,36 @@ serve(async (req) => {
       throw new Error("Missing metadata in session");
     }
 
-    // Check if credits already added
-    const { data: existingCredits } = await supabaseClient
-      .from('customer_credits')
-      .select('*')
-      .eq('customer_id', customer_id)
-      .eq('creator_id', creator_id)
-      .eq('pack_id', pack_id)
-      .single();
+    // Idempotency: check if this payment intent was already recorded
+    const paymentIntentId = session.payment_intent as string;
+    const { data: existingTx } = await supabaseClient
+      .from('transactions')
+      .select('id')
+      .eq('stripe_payment_id', paymentIntentId)
+      .maybeSingle();
 
-    if (!existingCredits) {
-      // Add credits
-      const { error: creditsError } = await supabaseClient
-        .from('customer_credits')
-        .insert({
-          customer_id,
-          creator_id,
-          pack_id,
-          credits_remaining: parseInt(quantity),
-        });
-
-      if (creditsError) {
-        console.error("Error adding credits:", creditsError);
-        throw new Error("Failed to add credits");
-      }
+    if (existingTx) {
+      console.log("Payment already recorded, skipping:", paymentIntentId);
+      return new Response(JSON.stringify({ success: true, alreadyProcessed: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
     }
 
-    // Record transaction
+    // Add credits atomically — uses RPC to increment on repeat purchases of same pack
+    const { error: creditsError } = await supabaseClient.rpc("add_customer_credits", {
+      p_customer_id: customer_id,
+      p_creator_id:  creator_id,
+      p_pack_id:     pack_id,
+      p_quantity:    parseInt(quantity),
+    });
+
+    if (creditsError) {
+      console.error("Error adding credits:", creditsError);
+      throw new Error("Failed to add credits");
+    }
+
+    // Record transaction — 'pack' is the valid enum value (not 'pack_purchase')
     const { error: transactionError } = await supabaseClient
       .from('transactions')
       .insert({
@@ -87,12 +90,12 @@ serve(async (req) => {
         creator_id,
         pack_id,
         amount: session.amount_total! / 100,
-        net_amount: (session.amount_total! / 100) * 0.75, // 15% platform fee
+        net_amount: (session.amount_total! / 100) * 0.75,
         platform_fee: (session.amount_total! / 100) * 0.25,
         processor_fee: 0,
-        transaction_type: 'pack_purchase',
+        transaction_type: 'pack',
         status: 'completed',
-        stripe_payment_id: session.payment_intent as string,
+        stripe_payment_id: paymentIntentId,
       });
 
     if (transactionError) {

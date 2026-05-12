@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,12 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, ArrowRight, Check, User, DollarSign, Package, Wallet, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
+const STORAGE_KEY = 'creator_onboarding_state';
+
 const CreatorOnboarding = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -29,6 +32,29 @@ const CreatorOnboarding = () => {
   const [stripeConnected, setStripeConnected] = useState(false);
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
+
+  // Restore state if returning from Stripe Connect redirect
+  useEffect(() => {
+    const stripeReturn = searchParams.get('stripe_connected');
+    if (stripeReturn === 'true') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const s = JSON.parse(saved);
+          setDisplayName(s.displayName || '');
+          setBio(s.bio || '');
+          setPricePerMessage(s.pricePerMessage || '5');
+          setPackQuantity(s.packQuantity || '10');
+          setPackPrice(s.packPrice || '45');
+          setPackDiscount(s.packDiscount || '10');
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (_) { /* ignore */ }
+      }
+      setStripeConnected(true);
+      setStep(4);
+      toast.success('Stripe connected! Complete your setup below.');
+    }
+  }, []);
 
   const handleNext = () => {
     if (step === 1 && !displayName.trim()) {
@@ -47,9 +73,16 @@ const CreatorOnboarding = () => {
   };
 
   const handleConnectStripe = async () => {
+    // Save all form state before leaving the page — Stripe redirect loses React state
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      displayName, bio, pricePerMessage, packQuantity, packPrice, packDiscount,
+    }));
+
     try {
       setStripeConnecting(true);
-      const { data, error } = await supabase.functions.invoke('stripe-connect-onboarding');
+      const { data, error } = await supabase.functions.invoke('stripe-connect-onboarding', {
+        body: { returnTo: 'onboarding' },
+      });
       if (error) throw error;
       if (data.status === 'active') {
         setStripeConnected(true);
@@ -59,6 +92,7 @@ const CreatorOnboarding = () => {
       }
     } catch (err: any) {
       toast.error('Failed to connect Stripe: ' + err.message);
+      localStorage.removeItem(STORAGE_KEY);
     } finally {
       setStripeConnecting(false);
     }
@@ -88,29 +122,37 @@ const CreatorOnboarding = () => {
 
       if (roleError) console.error('Failed to insert creator role:', roleError.message);
 
-      // Create or update creator settings
+      // Create or update creator settings (upsert preserves stripe_account_id if already set)
       const { error: settingsError } = await supabase
         .from('creator_settings')
         .upsert({
           user_id: user.id,
           price_per_message: Number(pricePerMessage),
           is_accepting_messages: true,
-        });
+        }, { onConflict: 'user_id' });
 
       if (settingsError) throw settingsError;
 
-      // Create first message pack
-      const { error: packError } = await supabase
+      // Create first message pack (skip if already exists to avoid duplicates on re-entry)
+      const { data: existingPack } = await supabase
         .from('message_packs')
-        .insert({
-          creator_id: user.id,
-          quantity: Number(packQuantity),
-          price: Number(packPrice),
-          discount_percentage: Number(packDiscount),
-          is_active: true,
-        });
+        .select('id')
+        .eq('creator_id', user.id)
+        .maybeSingle();
 
-      if (packError) throw packError;
+      if (!existingPack) {
+        const { error: packError } = await supabase
+          .from('message_packs')
+          .insert({
+            creator_id: user.id,
+            quantity: Number(packQuantity),
+            price: Number(packPrice),
+            discount_percentage: Number(packDiscount),
+            is_active: true,
+          });
+
+        if (packError) throw packError;
+      }
 
       toast.success('Welcome to the creator community!');
       navigate('/dashboard');

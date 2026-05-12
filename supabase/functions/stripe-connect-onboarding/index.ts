@@ -24,7 +24,14 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-    
+
+    // Optional body — may be empty (e.g., from Revenue page)
+    let returnTo = 'revenue';
+    try {
+      const body = await req.json();
+      if (body?.returnTo) returnTo = body.returnTo;
+    } catch (_) { /* no body — use default */ }
+
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -35,14 +42,15 @@ serve(async (req) => {
     }
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    // Check if user is a creator
-    const { data: profile } = await supabaseClient
-      .from('profiles')
+    // Check if user is a creator — authoritative source is user_roles table
+    const { data: roleRow } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id)
+      .eq('role', 'creator')
+      .maybeSingle();
 
-    if (profile?.role !== 'creator') {
+    if (!roleRow) {
       throw new Error("Only creators can connect Stripe accounts");
     }
     logStep("User is a creator");
@@ -56,7 +64,7 @@ serve(async (req) => {
       .from('creator_settings')
       .select('stripe_account_id, stripe_connect_status')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     let accountId = settings?.stripe_account_id;
     logStep("Current settings", { accountId, status: settings?.stripe_connect_status });
@@ -79,14 +87,14 @@ serve(async (req) => {
       accountId = account.id;
       logStep("Created Stripe Connect account", { accountId });
 
-      // Save to database
+      // Upsert — creator_settings row may not exist yet (created later in onboarding)
       await supabaseClient
         .from('creator_settings')
-        .update({ 
+        .upsert({
+          user_id: user.id,
           stripe_account_id: accountId,
-          stripe_connect_status: 'pending'
-        })
-        .eq('user_id', user.id);
+          stripe_connect_status: 'pending',
+        }, { onConflict: 'user_id' });
       logStep("Saved account ID to database");
     }
 
@@ -117,10 +125,17 @@ serve(async (req) => {
 
     // Create account link for onboarding
     const origin = req.headers.get("origin") || "http://localhost:5173";
+    const returnUrl = returnTo === 'onboarding'
+      ? `${origin}/creator-onboarding?stripe_connected=true`
+      : `${origin}/revenue?success=true`;
+    const refreshUrl = returnTo === 'onboarding'
+      ? `${origin}/creator-onboarding?stripe_refresh=true`
+      : `${origin}/revenue?refresh=true`;
+
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${origin}/revenue?refresh=true`,
-      return_url: `${origin}/revenue?success=true`,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
       type: 'account_onboarding',
     });
     logStep("Created account link", { url: accountLink.url });

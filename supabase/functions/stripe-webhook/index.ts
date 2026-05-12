@@ -86,12 +86,12 @@ serve(async (req) => {
             const quantity = parseInt(metadata.quantity || "0");
             const amount = session.amount_total! / 100;
 
-            // Add credits — always insert a new row so repeat purchases stack correctly
-            await supabaseClient.from("customer_credits").insert({
-              customer_id: metadata.customer_id,
-              creator_id: metadata.creator_id,
-              pack_id: metadata.pack_id,
-              credits_remaining: quantity,
+            // Add credits atomically — increments on repeat purchases of the same pack
+            await supabaseClient.rpc("add_customer_credits", {
+              p_customer_id: metadata.customer_id,
+              p_creator_id:  metadata.creator_id,
+              p_pack_id:     metadata.pack_id,
+              p_quantity:    quantity,
             });
 
             // Record transaction
@@ -314,18 +314,31 @@ serve(async (req) => {
       case "invoice.payment_succeeded": {
         const invoice = event.data.object as Stripe.Invoice;
         const subscriptionId = invoice.subscription as string;
+        const invoicePaymentIntentId = invoice.payment_intent as string;
 
-        if (subscriptionId) {
+        if (subscriptionId && invoicePaymentIntentId) {
+          // Transaction-level idempotency: skip if payment intent already recorded
+          const { data: existingSubTx } = await supabaseClient
+            .from("transactions")
+            .select("id")
+            .eq("stripe_payment_id", invoicePaymentIntentId)
+            .maybeSingle();
+
+          if (existingSubTx) {
+            console.log("Subscription payment already recorded, skipping:", invoicePaymentIntentId);
+            break;
+          }
+
           // Find subscription and record transaction
           const { data: subscription } = await supabaseClient
             .from("creator_subscriptions")
             .select("customer_id, tier_id, subscription_tiers(creator_id, price)")
             .eq("stripe_subscription_id", subscriptionId)
-            .single();
+            .maybeSingle();
 
           if (subscription && subscription.subscription_tiers) {
             const tier = subscription.subscription_tiers as any;
-            
+
             await supabaseClient.from("transactions").insert({
               customer_id: subscription.customer_id,
               creator_id: tier.creator_id,
@@ -335,7 +348,7 @@ serve(async (req) => {
               processor_fee: 0,
               transaction_type: "subscription",
               status: "completed",
-              stripe_payment_id: invoice.payment_intent as string,
+              stripe_payment_id: invoicePaymentIntentId,
             });
 
             // Send notification to creator
