@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     }
 
     // Record the transaction
-    await supabaseAdmin
+    const { error: txError } = await supabaseAdmin
       .from('wallet_transactions')
       .insert({
         user_id: user.id,
@@ -125,6 +125,11 @@ Deno.serve(async (req) => {
         balance_after: newBalance,
         payment_method: 'stripe',
       })
+
+    if (txError) {
+      // Log but don't fail — balance was already updated
+      console.error('Failed to record wallet transaction:', txError.message)
+    }
 
     return new Response(
       JSON.stringify({ success: true, balance: newBalance }),

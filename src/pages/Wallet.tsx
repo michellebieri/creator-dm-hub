@@ -79,15 +79,26 @@ const Wallet = () => {
 
   const formatTransactionType = (type: string) => {
     const types: Record<string, string> = {
+      // deposit types
       'deposit': 'Added Funds',
-      'purchase': 'Purchase',
-      'unlock': 'Unlocked Content',
-      'message': 'Message Purchase',
+      'stripe_deposit': 'Added Funds',
+      // spend types (from spend_wallet_balance calls)
+      'bundle_purchase': 'Bundle Purchase',
       'bundle': 'Bundle Purchase',
+      'content_unlock': 'Content Unlocked',
+      'unlock': 'Content Unlocked',
+      'message': 'Message',
+      'message_purchase': 'Message Purchase',
+      'subscription': 'Subscription',
+      'pack': 'Pack Purchase',
+      'unlockable': 'Content Purchase',
+      // misc
+      'purchase': 'Purchase',
       'tip': 'Tip Sent',
-      'refund': 'Refund'
+      'refund': 'Refund',
     };
-    return types[type] || type;
+    // Fallback: convert snake_case to Title Case
+    return types[type] || type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
   return (
@@ -171,7 +182,7 @@ const Wallet = () => {
                             {format(new Date(transaction.created_at), 'MMM dd, yyyy • h:mm a')}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Balance: ${transaction.balance_after.toFixed(2)}
+                            After: ${transaction.balance_after?.toFixed(2) ?? '—'}
                           </p>
                         </div>
                       </div>
