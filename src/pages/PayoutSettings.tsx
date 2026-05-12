@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ import { DollarSign, CreditCard, Calendar, ChevronLeft } from 'lucide-react';
 const PayoutSettings = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [earnings, setEarnings] = useState(0);
   const [pendingPayouts, setPendingPayouts] = useState([]);
   const [stripeConnected, setStripeConnected] = useState(false);
@@ -20,6 +21,14 @@ const PayoutSettings = () => {
       navigate('/auth');
     }
   }, [user, loading, navigate]);
+
+  // Handle return from Stripe Connect onboarding
+  useEffect(() => {
+    if (searchParams.get('stripe_connected') === 'true') {
+      toast.success('Stripe connected! You can now request payouts.');
+      setStripeConnected(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -68,9 +77,12 @@ const PayoutSettings = () => {
 
       if (error) throw error;
 
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast.success('Redirecting to Stripe. Complete setup to connect your account.');
+      if (data?.status === 'active') {
+        toast.success('Stripe account already connected!');
+        setStripeConnected(true);
+      } else if (data?.url) {
+        // Navigate in the same tab — avoids popup blockers
+        window.location.href = data.url;
       }
     } catch (error: any) {
       toast.error(error.message || 'Failed to connect Stripe account');

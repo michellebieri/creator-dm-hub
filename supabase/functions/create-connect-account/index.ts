@@ -27,14 +27,15 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    // Check if user is a creator
-    const { data: profile } = await supabaseClient
-      .from('profiles')
+    // Check if user is a creator — authoritative source is user_roles table
+    const { data: roleRow } = await supabaseClient
+      .from('user_roles')
       .select('role')
-      .eq('id', user.id)
-      .single();
+      .eq('user_id', user.id)
+      .eq('role', 'creator')
+      .maybeSingle();
 
-    if (profile?.role !== 'creator') {
+    if (!roleRow) {
       throw new Error("Only creators can connect Stripe accounts");
     }
 
@@ -45,9 +46,9 @@ serve(async (req) => {
     // Check if account already exists
     const { data: settings } = await supabaseClient
       .from('creator_settings')
-      .select('stripe_account_id')
+      .select('stripe_account_id, stripe_connect_status')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     let accountId = settings?.stripe_account_id;
 
@@ -60,27 +61,45 @@ serve(async (req) => {
           card_payments: { requested: true },
           transfers: { requested: true },
         },
+        metadata: { user_id: user.id, platform: 'dm.me' },
       });
       accountId = account.id;
 
-      // Save to database
+      // Upsert — creator_settings row may not exist yet
       await supabaseClient
         .from('creator_settings')
-        .update({ stripe_account_id: accountId })
-        .eq('user_id', user.id);
+        .upsert({
+          user_id: user.id,
+          stripe_account_id: accountId,
+          stripe_connect_status: 'pending',
+        }, { onConflict: 'user_id' });
     }
 
-    // Create account link
+    // Check if already fully onboarded
+    const account = await stripe.accounts.retrieve(accountId);
+    if (account.charges_enabled && account.payouts_enabled) {
+      await supabaseClient
+        .from('creator_settings')
+        .update({ stripe_connect_status: 'active' })
+        .eq('user_id', user.id);
+
+      return new Response(JSON.stringify({ status: 'active', message: 'Stripe account already connected' }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${req.headers.get("origin")}/payout-settings`,
-      return_url: `${req.headers.get("origin")}/payout-settings`,
+      return_url: `${req.headers.get("origin")}/payout-settings?stripe_connected=true`,
       type: 'account_onboarding',
     });
 
     console.log("Connect account link created for user:", user.id);
 
-    return new Response(JSON.stringify({ url: accountLink.url }), {
+    return new Response(JSON.stringify({ url: accountLink.url, status: 'pending' }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
