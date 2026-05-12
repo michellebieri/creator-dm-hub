@@ -223,13 +223,13 @@ const CreatorOnboarding = () => {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Platform fee (25%):</span>
                         <span className="text-destructive">
-                          -${(Number(pricePerMessage || 0) * 0.15).toFixed(2)}
+                          -${(Number(pricePerMessage || 0) * 0.25).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between pt-2 border-t">
                         <span className="font-medium">You earn:</span>
                         <span className="font-bold text-primary">
-                          ${(Number(pricePerMessage || 0) * 0.85).toFixed(2)}
+                          ${(Number(pricePerMessage || 0) * 0.75).toFixed(2)}
                         </span>
                       </div>
                     </div>

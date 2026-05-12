@@ -87,8 +87,8 @@ serve(async (req) => {
         creator_id,
         pack_id,
         amount: session.amount_total! / 100,
-        net_amount: (session.amount_total! / 100) * 0.85, // 15% platform fee
-        platform_fee: (session.amount_total! / 100) * 0.15,
+        net_amount: (session.amount_total! / 100) * 0.75, // 15% platform fee
+        platform_fee: (session.amount_total! / 100) * 0.25,
         processor_fee: 0,
         transaction_type: 'pack_purchase',
         status: 'completed',
@@ -116,7 +116,7 @@ serve(async (req) => {
         userId: creator_id,
         type: 'new_sale',
         title: 'New Sale',
-        message: `You earned $${((session.amount_total! / 100) * 0.85).toFixed(2)} from a message pack purchase!`,
+        message: `You earned $${((session.amount_total! / 100) * 0.75).toFixed(2)} from a message pack purchase!`,
         link: '/earnings',
       },
     });

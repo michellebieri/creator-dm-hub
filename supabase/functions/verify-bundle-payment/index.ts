@@ -136,8 +136,8 @@ serve(async (req) => {
     logStep("Content unlocked", { unlockedCount });
 
     // Create transaction record with bundle_id pointing to bundle
-    const platformFee = bundle.price * 0.15;
-    const netAmount = bundle.price * 0.85;
+    const platformFee = bundle.price * 0.25;
+    const netAmount = bundle.price * 0.75;
 
     const { error: transactionError } = await supabaseClient
       .from('transactions')

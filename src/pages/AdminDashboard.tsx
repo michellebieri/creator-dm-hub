@@ -6,16 +6,21 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChevronLeft, Search, Users, Crown, DollarSign, TrendingUp,
-  RefreshCw, Loader2, ShieldCheck, User, Calendar, MoreVertical, Eye
+  RefreshCw, Loader2, ShieldCheck, MoreVertical, Eye,
+  CheckCircle, XCircle, Instagram, Clock
 } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
+} from '@/components/ui/dialog';
 import {
   Tabs, TabsContent, TabsList, TabsTrigger
 } from '@/components/ui/tabs';
@@ -27,6 +32,21 @@ interface UserRow {
   avatar_url: string | null;
   created_at: string;
   roles: string[];
+}
+
+interface Application {
+  id: string;
+  creator_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string;
+  instagram_handle: string | null;
+  tiktok_handle: string | null;
+  twitter_handle: string | null;
+  follower_count: string | null;
+  content_niche: string | null;
+  about_yourself: string | null;
+  rejection_reason: string | null;
+  profile: { display_name: string; username: string; avatar_url: string | null } | null;
 }
 
 interface StatsType {
@@ -43,9 +63,15 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [fetching, setFetching] = useState(true);
   const [search, setSearch] = useState('');
   const [stats, setStats] = useState<StatsType>({ totalUsers: 0, totalCreators: 0, totalTransactions: 0, totalRevenue: 0 });
+
+  // Application review dialog
+  const [reviewApp, setReviewApp] = useState<Application | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -58,56 +84,82 @@ export default function AdminDashboard() {
   const fetchAll = async () => {
     setFetching(true);
     try {
-      // Fetch all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, display_name, username, avatar_url, created_at')
-        .order('created_at', { ascending: false });
+      const [profilesRes, rolesRes, appsRes, txCountRes, revRes] = await Promise.all([
+        supabase.from('profiles').select('id, display_name, username, avatar_url, created_at').order('created_at', { ascending: false }),
+        supabase.from('user_roles').select('user_id, role'),
+        supabase.from('creator_verifications').select('*, profile:creator_id(display_name, username, avatar_url)').order('submitted_at', { ascending: false }),
+        supabase.from('transactions').select('*', { count: 'exact', head: true }),
+        supabase.from('transactions').select('amount').eq('status', 'completed'),
+      ]);
 
-      if (profilesError) throw profilesError;
-
-      // Fetch all user roles
-      const { data: allRoles } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
+      if (profilesRes.error) throw profilesRes.error;
 
       const roleMap: Record<string, string[]> = {};
-      (allRoles || []).forEach(r => {
+      (rolesRes.data || []).forEach(r => {
         if (!roleMap[r.user_id]) roleMap[r.user_id] = [];
         roleMap[r.user_id].push(r.role);
       });
 
-      const enriched: UserRow[] = (profiles || []).map(p => ({
-        ...p,
-        roles: roleMap[p.id] || [],
-      }));
-
+      const enriched: UserRow[] = (profilesRes.data || []).map(p => ({ ...p, roles: roleMap[p.id] || [] }));
       setUsers(enriched);
+      setApplications((appsRes.data || []) as Application[]);
 
-      // Stats
-      const creatorCount = enriched.filter(u => u.roles.includes('creator')).length;
-
-      const { count: txCount } = await supabase
-        .from('transactions')
-        .select('*', { count: 'exact', head: true });
-
-      const { data: revData } = await supabase
-        .from('transactions')
-        .select('amount')
-        .eq('status', 'completed');
-
-      const totalRev = (revData || []).reduce((s, t) => s + (t.amount || 0), 0);
-
+      const totalRev = (revRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
       setStats({
         totalUsers: enriched.length,
-        totalCreators: creatorCount,
-        totalTransactions: txCount || 0,
+        totalCreators: enriched.filter(u => u.roles.includes('creator')).length,
+        totalTransactions: txCountRes.count || 0,
         totalRevenue: totalRev,
       });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setFetching(false);
+    }
+  };
+
+  const handleApprove = async (app: Application) => {
+    setProcessing(true);
+    try {
+      // 1. Grant creator role
+      await supabase.from('user_roles').upsert({ user_id: app.creator_id, role: 'creator' }, { onConflict: 'user_id,role' });
+      // 2. Update profiles.role (legacy)
+      await supabase.from('profiles').update({ role: 'creator' }).eq('id', app.creator_id);
+      // 3. Mark verification approved
+      await supabase.from('creator_verifications').update({ status: 'approved', verified_at: new Date().toISOString(), reviewed_by: user!.id }).eq('id', app.id);
+      // 4. Notify creator
+      await supabase.functions.invoke('create-notification', {
+        body: { userId: app.creator_id, type: 'creator_approved', title: 'You\'re Approved!', message: 'Your creator application has been approved. Set up your profile to start earning.', link: '/creator-onboarding' },
+      });
+      toast({ title: 'Approved', description: `${app.profile?.display_name || 'Creator'} is now live.` });
+      setReviewApp(null);
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleReject = async (app: Application) => {
+    if (!rejectionReason.trim()) {
+      toast({ title: 'Reason required', description: 'Please provide a rejection reason for the applicant.', variant: 'destructive' });
+      return;
+    }
+    setProcessing(true);
+    try {
+      await supabase.from('creator_verifications').update({ status: 'rejected', rejection_reason: rejectionReason, reviewed_by: user!.id }).eq('id', app.id);
+      await supabase.functions.invoke('create-notification', {
+        body: { userId: app.creator_id, type: 'creator_rejected', title: 'Application Update', message: 'Your creator application was not approved. Please check the creator portal for details.', link: '/creator-auth' },
+      });
+      toast({ title: 'Rejected', description: 'Applicant has been notified.' });
+      setReviewApp(null);
+      setRejectionReason('');
+      fetchAll();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -227,17 +279,19 @@ export default function AdminDashboard() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="all">
-          <TabsList className="w-full">
-            <TabsTrigger value="all" className="flex-1">
-              All ({allUsers.length})
+        <Tabs defaultValue="applications">
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="applications" className="relative">
+              Applications
+              {applications.filter(a => a.status === 'pending').length > 0 && (
+                <span className="ml-1 bg-primary text-primary-foreground text-xs rounded-full px-1.5 py-0.5">
+                  {applications.filter(a => a.status === 'pending').length}
+                </span>
+              )}
             </TabsTrigger>
-            <TabsTrigger value="creators" className="flex-1">
-              Creators ({creators.length})
-            </TabsTrigger>
-            <TabsTrigger value="admins" className="flex-1">
-              Admins ({admins.length})
-            </TabsTrigger>
+            <TabsTrigger value="all">All ({allUsers.length})</TabsTrigger>
+            <TabsTrigger value="creators">Creators ({creators.length})</TabsTrigger>
+            <TabsTrigger value="admins">Admins ({admins.length})</TabsTrigger>
           </TabsList>
 
           {fetching ? (
@@ -246,45 +300,107 @@ export default function AdminDashboard() {
             </div>
           ) : (
             <>
+              {/* ── APPLICATIONS TAB ── */}
+              <TabsContent value="applications" className="space-y-3 mt-4">
+                {applications.length === 0 ? (
+                  <Card><CardContent className="py-12 text-center text-muted-foreground text-sm">No applications yet</CardContent></Card>
+                ) : (
+                  applications.map(app => (
+                    <Card key={app.id} className={`border-l-4 ${app.status === 'pending' ? 'border-l-primary' : app.status === 'approved' ? 'border-l-green-500' : 'border-l-destructive'}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarImage src={app.profile?.avatar_url || undefined} />
+                              <AvatarFallback>{(app.profile?.display_name || '?')[0].toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold">{app.profile?.display_name || 'Unknown'}</p>
+                              <p className="text-xs text-muted-foreground">@{app.profile?.username}</p>
+                              <div className="flex gap-2 mt-1 flex-wrap">
+                                {app.content_niche && <Badge variant="secondary" className="text-xs">{app.content_niche}</Badge>}
+                                {app.follower_count && <Badge variant="outline" className="text-xs">{app.follower_count} followers</Badge>}
+                                <Badge variant={app.status === 'pending' ? 'default' : app.status === 'approved' ? 'secondary' : 'destructive'} className="text-xs capitalize">{app.status}</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-muted-foreground flex-shrink-0">
+                            {new Date(app.submitted_at).toLocaleDateString()}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 space-y-1 text-sm">
+                          {app.instagram_handle && <p>📷 Instagram: <span className="text-primary">{app.instagram_handle}</span></p>}
+                          {app.tiktok_handle && <p>🎵 TikTok: <span className="text-primary">{app.tiktok_handle}</span></p>}
+                          {app.twitter_handle && <p>𝕏 Twitter: <span className="text-primary">{app.twitter_handle}</span></p>}
+                          {app.about_yourself && (
+                            <div className="mt-2 p-3 bg-muted/50 rounded-lg text-muted-foreground italic text-xs">
+                              "{app.about_yourself}"
+                            </div>
+                          )}
+                        </div>
+
+                        {app.status === 'pending' && (
+                          <div className="flex gap-2 mt-4">
+                            <Button size="sm" className="flex-1 gap-1" onClick={() => handleApprove(app)} disabled={processing}>
+                              <CheckCircle className="h-4 w-4" /> Approve
+                            </Button>
+                            <Button size="sm" variant="destructive" className="flex-1 gap-1" onClick={() => { setReviewApp(app); setRejectionReason(''); }} disabled={processing}>
+                              <XCircle className="h-4 w-4" /> Reject
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+
               <TabsContent value="all">
-                <Card>
-                  <CardContent className="p-2 divide-y divide-border">
-                    {allUsers.length === 0 ? (
-                      <p className="text-center py-8 text-muted-foreground text-sm">No users found</p>
-                    ) : (
-                      allUsers.map(u => <UserCard key={u.id} u={u} />)
-                    )}
-                  </CardContent>
-                </Card>
+                <Card><CardContent className="p-2 divide-y divide-border">
+                  {allUsers.length === 0 ? <p className="text-center py-8 text-muted-foreground text-sm">No users found</p> : allUsers.map(u => <UserCard key={u.id} u={u} />)}
+                </CardContent></Card>
               </TabsContent>
 
               <TabsContent value="creators">
-                <Card>
-                  <CardContent className="p-2 divide-y divide-border">
-                    {creators.length === 0 ? (
-                      <p className="text-center py-8 text-muted-foreground text-sm">No creators yet</p>
-                    ) : (
-                      creators.map(u => <UserCard key={u.id} u={u} />)
-                    )}
-                  </CardContent>
-                </Card>
+                <Card><CardContent className="p-2 divide-y divide-border">
+                  {creators.length === 0 ? <p className="text-center py-8 text-muted-foreground text-sm">No creators yet</p> : creators.map(u => <UserCard key={u.id} u={u} />)}
+                </CardContent></Card>
               </TabsContent>
 
               <TabsContent value="admins">
-                <Card>
-                  <CardContent className="p-2 divide-y divide-border">
-                    {admins.length === 0 ? (
-                      <p className="text-center py-8 text-muted-foreground text-sm">No admins found</p>
-                    ) : (
-                      admins.map(u => <UserCard key={u.id} u={u} />)
-                    )}
-                  </CardContent>
-                </Card>
+                <Card><CardContent className="p-2 divide-y divide-border">
+                  {admins.length === 0 ? <p className="text-center py-8 text-muted-foreground text-sm">No admins found</p> : admins.map(u => <UserCard key={u.id} u={u} />)}
+                </CardContent></Card>
               </TabsContent>
             </>
           )}
         </Tabs>
       </div>
+
+      {/* ── Rejection dialog ── */}
+      <Dialog open={!!reviewApp} onOpenChange={open => { if (!open) { setReviewApp(null); setRejectionReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Application — {reviewApp?.profile?.display_name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">Provide a reason. This will be shown to the applicant in their creator portal.</p>
+            <Textarea
+              placeholder="e.g. Follower count doesn't meet our current requirements. Feel free to reapply once you've grown your audience."
+              value={rejectionReason}
+              onChange={e => setRejectionReason(e.target.value)}
+              rows={4}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setReviewApp(null); setRejectionReason(''); }}>Cancel</Button>
+            <Button variant="destructive" onClick={() => reviewApp && handleReject(reviewApp)} disabled={processing}>
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Confirm Rejection'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

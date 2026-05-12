@@ -68,6 +68,7 @@ import ConversionTracking from "./pages/ConversionTracking";
 import CreatorOnboarding from "./pages/CreatorOnboarding";
 import CreatorVerification from "./pages/CreatorVerification";
 import CreatorWaitlist from "./pages/CreatorWaitlist";
+import CreatorApplicationPending from "./pages/CreatorApplicationPending";
 import CustomerSpendingAnalytics from "./pages/CustomerSpendingAnalytics";
 import EmailPreferences from "./pages/EmailPreferences";
 import GlobalSearch from "./pages/GlobalSearch";
@@ -113,6 +114,7 @@ const App = () => {
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
           <Route path="/creator-waitlist" element={<CreatorWaitlist />} />
+          <Route path="/creator-application-pending" element={<CreatorApplicationPending />} />
 
           {/* Public creator profile routes - accessible without login */}
           <Route path="/creator/:id" element={<CreatorProfile />} />
