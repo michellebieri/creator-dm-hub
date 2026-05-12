@@ -55,58 +55,37 @@ export const useUnlockables = () => {
 
     setLoading(true);
     try {
-      // Deduct from wallet using atomic RPC (prevents race conditions)
-      const { data: spendResult, error: spendError } = await supabase.rpc('spend_wallet_balance', {
-        p_user_id: user.id,
-        p_amount: price,
-        p_transaction_type: 'unlockable',
-        p_description: 'Unlocked content in message',
-        p_related_user_id: creatorId,
+      // Single atomic RPC: checks already-unlocked, deducts wallet, updates
+      // unlocked_by, and records the transaction — all in one DB transaction.
+      // If any step fails the entire operation rolls back (no partial charges).
+      const { data: result, error } = await supabase.rpc('unlock_content', {
+        p_unlockable_id: unlockableId,
+        p_creator_id:    creatorId,
+        p_price:         price,
       });
 
-      if (spendError) {
-        console.error('Wallet spend error:', spendError.message);
+      if (error) {
+        console.error('unlock_content RPC error:', error.message);
         toast.error('Failed to process payment');
         return null;
       }
 
-      const result = spendResult as { success: boolean; error?: string } | null;
-      if (!result?.success) {
-        toast.error(result?.error === 'Insufficient balance' ? 'Insufficient wallet balance' : 'Payment failed');
+      const res = result as { success: boolean; error?: string; already_unlocked?: boolean } | null;
+
+      if (!res?.success) {
+        const msg = res?.error === 'Insufficient balance'
+          ? 'Insufficient wallet balance'
+          : (res?.error || 'Payment failed');
+        toast.error(msg);
         return null;
       }
 
-      // Update unlocked_by array
-      const { data: unlockable, error: unlockError } = await supabase
-        .from('unlockables')
-        .select('unlocked_by')
-        .eq('id', unlockableId)
-        .single();
-
-      if (unlockError) throw unlockError;
-
-      const unlockedBy = unlockable.unlocked_by || [];
-      if (!unlockedBy.includes(user.id)) {
-        unlockedBy.push(user.id);
+      if (res.already_unlocked) {
+        // Already paid — just surface the content without charging
+        return true;
       }
 
-      const { error: finalError } = await supabase
-        .from('unlockables')
-        .update({ unlocked_by: unlockedBy })
-        .eq('id', unlockableId);
-
-      if (finalError) console.error('Failed to update unlocked_by:', finalError.message);
-
-      // Record earning in transactions table so creator sees revenue
-      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
-        p_creator_id: creatorId,
-        p_amount: price,
-        p_transaction_type: 'unlockable',
-      });
-      if (txError) console.error('Transaction RPC error:', txError.message);
-      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
-
-      // Notify creator
+      // Notify creator (fire-and-forget — non-critical)
       supabase.functions.invoke('create-notification', {
         body: {
           userId: creatorId,
@@ -115,7 +94,7 @@ export const useUnlockables = () => {
           message: `Someone unlocked your content for $${price.toFixed(2)}`,
           link: '/earnings',
         },
-      }).catch(err => console.log('Notification error:', err));
+      }).catch(err => console.log('Notification error (non-fatal):', err));
 
       toast.success('Content unlocked!');
       return true;
