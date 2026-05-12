@@ -169,14 +169,15 @@ const Conversations = () => {
   }, [user, showArchived]);
 
   const handleViewProfile = (conversation: Conversation) => {
-    const otherUser = user?.id === conversation.customer_id 
-      ? conversation.creator 
+    const otherUser = user?.id === conversation.customer_id
+      ? conversation.creator
       : conversation.customer;
-    
+
     if (!otherUser) return;
-    
-    // Navigate to appropriate profile based on role
-    if (otherUser.role === 'creator') {
+
+    // Determine role from conversation structure (reliable — profiles.role is not maintained)
+    const otherUserIsCreator = otherUser.id === conversation.creator_id;
+    if (otherUserIsCreator) {
       navigate(`/creator/${otherUser.username}`);
     } else {
       // For creators viewing customers, show customer profile with payment history

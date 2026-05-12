@@ -42,11 +42,11 @@ const EarningsDashboard = () => {
         // Enrich transactions with bundle/content names
         const enrichedTx = await Promise.all((txData || []).map(async (tx) => {
           let itemName = '';
-          if (tx.pack_id) {
+          if (tx.bundle_id) {
             const { data: bundle } = await supabase
               .from('content_bundles')
               .select('title')
-              .eq('id', tx.pack_id)
+              .eq('id', tx.bundle_id)
               .single();
             itemName = bundle?.title || 'Bundle';
           }
@@ -159,7 +159,11 @@ const EarningsDashboard = () => {
                 >
                   <div>
                     <p className="font-medium capitalize">
-                      {tx.transaction_type === 'pack' ? 'Bundle Purchase' : tx.transaction_type.replace('_', ' ')}
+                      {(tx.transaction_type === 'pack' || (tx.transaction_type === 'unlockable' && tx.bundle_id))
+                        ? 'Bundle Purchase'
+                        : tx.transaction_type === 'unlockable'
+                          ? 'Content Purchase'
+                          : tx.transaction_type.replace(/_/g, ' ')}
                     </p>
                     {tx.itemName && (
                       <p className="text-sm font-medium text-primary">{tx.itemName}</p>

@@ -55,8 +55,8 @@ export function AppSidebar() {
   const { isPlatformOwner } = usePlatformOwner();
   const isCollapsed = state === "collapsed";
 
-  // Determine if user is creator based on their profile or role
-  const isCreator = user?.user_metadata?.role === 'creator' || hasCreatorRole;
+  // Use user_roles table as authoritative source (hasCreatorRole comes from useRoleCheck)
+  const isCreator = hasCreatorRole;
 
   const creatorItems = [
     { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },

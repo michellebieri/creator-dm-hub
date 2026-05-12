@@ -119,16 +119,35 @@ const MyLibrary = () => {
 
       setUnlockedContent(formattedUnlocked);
 
-      // Fetch purchased bundles from transactions with pack_id
-      const { data: bundleTransactions } = await supabase
+      // Fetch purchased bundles — check both bundle_id (new) and pack_id (legacy)
+      // New purchases use transaction_type='unlockable' with bundle_id set
+      // Old purchases used transaction_type='pack' with pack_id set
+      const { data: newBundleTx } = await supabase
+        .from('transactions')
+        .select('id, created_at, bundle_id')
+        .eq('customer_id', user.id)
+        .eq('status', 'completed')
+        .not('bundle_id', 'is', null);
+
+      const { data: legacyBundleTx } = await supabase
         .from('transactions')
         .select('id, created_at, pack_id')
         .eq('customer_id', user.id)
         .eq('transaction_type', 'pack')
         .not('pack_id', 'is', null);
 
+      // Merge and de-duplicate by bundle id
+      const allBundleTxMap = new Map<string, { id: string; created_at: string; bundle_id: string }>();
+      (legacyBundleTx || []).forEach((t: any) => {
+        if (t.pack_id) allBundleTxMap.set(t.pack_id, { id: t.id, created_at: t.created_at, bundle_id: t.pack_id });
+      });
+      (newBundleTx || []).forEach((t: any) => {
+        if (t.bundle_id) allBundleTxMap.set(t.bundle_id, { id: t.id, created_at: t.created_at, bundle_id: t.bundle_id });
+      });
+      const bundleTransactions = Array.from(allBundleTxMap.values());
+
       if (bundleTransactions && bundleTransactions.length > 0) {
-        const bundleIds = bundleTransactions.map(t => t.pack_id);
+        const bundleIds = bundleTransactions.map(t => t.bundle_id);
         
         // Fetch bundle details
         const { data: bundles } = await supabase
@@ -157,7 +176,7 @@ const MyLibrary = () => {
         });
 
         const formattedBundles = bundles?.map(bundle => {
-          const transaction = bundleTransactions.find(t => t.pack_id === bundle.id);
+          const transaction = bundleTransactions.find(t => t.bundle_id === bundle.id);
           return {
             id: bundle.id,
             title: bundle.title,

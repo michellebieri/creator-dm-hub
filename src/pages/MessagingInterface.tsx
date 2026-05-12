@@ -27,6 +27,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useMessages } from '@/hooks/useMessages';
 import { useWallet } from '@/hooks/useWallet';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useReadReceipts } from '@/hooks/useReadReceipts';
 import { useScheduledMessages } from '@/hooks/useScheduledMessages';
@@ -48,7 +49,6 @@ const MessagingInterface = () => {
   const MAX_MESSAGE_LENGTH = 350;
   const [sending, setSending] = useState(false);
   const [packs, setPacks] = useState([]);
-  const [isCreator, setIsCreator] = useState(false);
   const [pricePerMessage, setPricePerMessage] = useState(0);
   const [showSearchDialog, setShowSearchDialog] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState('');
@@ -65,6 +65,7 @@ const MessagingInterface = () => {
   const [creatorProfile, setCreatorProfile] = useState<{ display_name: string; avatar_url: string | null; username: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  const { isCreator } = useRoleCheck();
   const { messages, loading: messagesLoading, refetch, sendMessage, sending: messageSending } = useMessages(conversationId, creatorId);
   const { balance, spend } = useWallet();
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(conversationId, user?.id || null);
@@ -112,31 +113,22 @@ const MessagingInterface = () => {
     if (!creatorId || !user) return;
 
     const fetchData = async () => {
-      // Check if current user is a creator (by role)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      const userIsCreator = profile?.role === 'creator';
-      setIsCreator(userIsCreator);
-
       // Fetch the other user's profile info (the person we're chatting with)
       const { data: otherUserData } = await supabase
         .from('profiles')
         .select('display_name, avatar_url, username')
         .eq('id', creatorId)
         .single();
-      
+
       if (otherUserData) {
         setCreatorProfile(otherUserData);
       }
 
       // Fetch or find conversation based on who the current user is
+      // isCreator comes from useRoleCheck (reads user_roles table — authoritative)
       let conversation;
-      
-      if (userIsCreator) {
+
+      if (isCreator) {
         // If current user is creator, the creatorId param is actually the customer
         // Look for conversation where current user is creator and creatorId is customer
         const { data: conv } = await supabase
@@ -162,7 +154,7 @@ const MessagingInterface = () => {
       }
 
       // Only fetch packs and pricing if current user is NOT a creator (they need to pay)
-      if (!userIsCreator) {
+      if (!isCreator) {
         // Fetch packs for the creator
         const { data: packsData } = await supabase
           .from('message_packs')
@@ -188,7 +180,7 @@ const MessagingInterface = () => {
     };
 
     fetchData();
-  }, [creatorId, user]);
+  }, [creatorId, user, isCreator]);
 
   // Fetch pending AI drafts for creators
   useEffect(() => {

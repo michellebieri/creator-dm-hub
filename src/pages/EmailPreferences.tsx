@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useRoleCheck } from '@/hooks/useRoleCheck';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -24,6 +25,7 @@ interface EmailPrefs {
 
 const EmailPreferences = () => {
   const { user } = useAuth();
+  const { isCreator } = useRoleCheck();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [preferences, setPreferences] = useState<EmailPrefs>({
@@ -103,8 +105,6 @@ const EmailPreferences = () => {
   if (loading) {
     return <LoadingSpinner />;
   }
-
-  const isCreator = user?.user_metadata?.role === 'creator';
 
   return (
     <div className="min-h-screen bg-background pb-20">

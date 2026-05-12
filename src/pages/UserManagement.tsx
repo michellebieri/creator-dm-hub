@@ -117,9 +117,9 @@ const UserManagement = () => {
   useEffect(() => {
     let filtered = users;
 
-    // Apply role filter
+    // Apply role filter — use app_roles (user_roles table) as authoritative source
     if (roleFilter !== 'all') {
-      filtered = filtered.filter(u => u.role === roleFilter);
+      filtered = filtered.filter(u => u.app_roles?.includes(roleFilter));
     }
 
     // Apply search filter
@@ -137,7 +137,9 @@ const UserManagement = () => {
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
-    setEditedRole(user.role);
+    // Use app_roles (user_roles table) as authoritative source; fall back to profiles.role
+    const currentRole = user.app_roles?.includes('creator') ? 'creator' : 'customer';
+    setEditedRole(currentRole);
     setEditDialogOpen(true);
   };
 
@@ -146,12 +148,26 @@ const UserManagement = () => {
 
     setSaving(true);
     try {
+      // Update user_roles table (authoritative source for roles)
+      // First remove all existing creator/customer roles for this user
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', selectedUser.id)
+        .in('role', ['creator', 'customer']);
+
+      // Insert the new role
       const { error } = await supabase
+        .from('user_roles')
+        .insert({ user_id: selectedUser.id, role: editedRole });
+
+      if (error) throw error;
+
+      // Also update profiles.role for consistency (legacy field)
+      await supabase
         .from('profiles')
         .update({ role: editedRole })
         .eq('id', selectedUser.id);
-
-      if (error) throw error;
 
       toast({
         title: "User updated",
@@ -253,8 +269,8 @@ const UserManagement = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <p className="font-medium truncate">{user.display_name}</p>
-                        <Badge variant={user.role === 'creator' ? 'default' : 'secondary'}>
-                          {user.role}
+                        <Badge variant={user.app_roles?.includes('creator') ? 'default' : 'secondary'}>
+                          {user.app_roles?.includes('creator') ? 'creator' : 'customer'}
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
