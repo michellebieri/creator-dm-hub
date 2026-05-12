@@ -75,11 +75,18 @@ const CreatorOnboarding = () => {
         .update({
           display_name: displayName,
           bio: bio || null,
-          role: 'creator',
+          role: 'creator', // legacy field — also write to user_roles below
         })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Grant creator role in user_roles (authoritative source for all role checks)
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({ user_id: user.id, role: 'creator' }, { onConflict: 'user_id,role' });
+
+      if (roleError) console.error('Failed to insert creator role:', roleError.message);
 
       // Create or update creator settings
       const { error: settingsError } = await supabase

@@ -66,14 +66,16 @@ const GlobalSearch = () => {
         setMessages(messagesData || []);
       }
 
-      // Search unlockable content
+      // Search unlockable content — only show content the user has unlocked or created
       const { data: contentData } = await supabase
         .from('unlockables')
         .select(`
-          *,
-          creator:profiles!unlockables_creator_id_fkey(id, username, display_name, avatar_url),
-          message:messages!unlockables_message_id_fkey(content)
+          id, caption, media_type, price, created_at,
+          creator_id, unlocked_by,
+          creator:profiles!unlockables_creator_id_fkey(id, username, display_name, avatar_url)
         `)
+        .or(`creator_id.eq.${user.id},unlocked_by.cs.{${user.id}}`)
+        .ilike('caption', `%${searchQuery}%`)
         .limit(10);
 
       setContent(contentData || []);

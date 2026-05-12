@@ -47,7 +47,7 @@ export const UnlockableContent = ({ unlockable }: UnlockableContentProps) => {
           <Lock className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground">Locked Content</p>
           <Button onClick={handleUnlock} disabled={loading}>
-            Unlock for {unlockable.price} credits
+            Unlock for ${unlockable.price.toFixed(2)}
           </Button>
         </div>
       );
@@ -90,7 +90,7 @@ export const UnlockableContent = ({ unlockable }: UnlockableContentProps) => {
           {getMediaIcon()}
           <div>
             <p className="font-semibold">Premium Content</p>
-            <p className="text-sm text-muted-foreground">{unlockable.price} credits to unlock</p>
+            <p className="text-sm text-muted-foreground">${unlockable.price.toFixed(2)} to unlock</p>
           </div>
         </div>
       )}

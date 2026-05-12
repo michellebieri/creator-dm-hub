@@ -334,13 +334,21 @@ const Dashboard = () => {
         unlockedBy.push(user.id);
       }
 
-      await supabase
+      const { error: unlockUpdateErr } = await supabase
         .from('unlockables')
         .update({ unlocked_by: unlockedBy })
         .eq('id', selectedPost.id);
 
-      // Transaction is already recorded by the spend() function via wallet_transactions
-      // No need for client-side transaction insert - this is handled server-side
+      if (unlockUpdateErr) console.error('Failed to update unlocked_by:', unlockUpdateErr.message);
+
+      // Record earning in transactions table so creator sees revenue
+      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: selectedPost.creator.id,
+        p_amount: selectedPost.price,
+        p_transaction_type: 'unlockable',
+      });
+      if (txError) console.error('Transaction RPC error:', txError.message);
+      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
 
       toast({
         title: "Content Unlocked!",

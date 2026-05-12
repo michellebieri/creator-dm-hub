@@ -55,29 +55,28 @@ export const useUnlockables = () => {
 
     setLoading(true);
     try {
-      // Check if user has enough credits
-      const { data: credits, error: creditsError } = await supabase
-        .from('customer_credits')
-        .select('credits_remaining')
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId)
-        .single();
+      // Deduct from wallet using atomic RPC (prevents race conditions)
+      const { data: spendResult, error: spendError } = await supabase.rpc('spend_wallet_balance', {
+        p_user_id: user.id,
+        p_amount: price,
+        p_transaction_type: 'unlockable',
+        p_description: 'Unlocked content in message',
+        p_related_user_id: creatorId,
+      });
 
-      if (creditsError || !credits || credits.credits_remaining < price) {
-        toast.error('Insufficient credits');
+      if (spendError) {
+        console.error('Wallet spend error:', spendError.message);
+        toast.error('Failed to process payment');
         return null;
       }
 
-      // Deduct credits
-      const { error: updateError } = await supabase
-        .from('customer_credits')
-        .update({ credits_remaining: credits.credits_remaining - price })
-        .eq('customer_id', user.id)
-        .eq('creator_id', creatorId);
+      const result = spendResult as { success: boolean; error?: string } | null;
+      if (!result?.success) {
+        toast.error(result?.error === 'Insufficient balance' ? 'Insufficient wallet balance' : 'Payment failed');
+        return null;
+      }
 
-      if (updateError) throw updateError;
-
-      // Update unlockable
+      // Update unlocked_by array
       const { data: unlockable, error: unlockError } = await supabase
         .from('unlockables')
         .select('unlocked_by')
@@ -96,12 +95,18 @@ export const useUnlockables = () => {
         .update({ unlocked_by: unlockedBy })
         .eq('id', unlockableId);
 
-      if (finalError) throw finalError;
+      if (finalError) console.error('Failed to update unlocked_by:', finalError.message);
 
-      // Transaction is handled by the credits system - already tracked in customer_credits
-      // No need for client-side transaction insert - payment flow is handled server-side
+      // Record earning in transactions table so creator sees revenue
+      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
+        p_creator_id: creatorId,
+        p_amount: price,
+        p_transaction_type: 'unlockable',
+      });
+      if (txError) console.error('Transaction RPC error:', txError.message);
+      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
 
-      // Create notification for creator
+      // Notify creator
       supabase.functions.invoke('create-notification', {
         body: {
           userId: creatorId,

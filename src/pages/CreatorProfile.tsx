@@ -307,13 +307,6 @@ const CreatorProfile = () => {
         return;
       }
 
-      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
-      await supabase.rpc('insert_completed_transaction', {
-        p_creator_id: profile.id,
-        p_amount: selectedContent.price,
-        p_transaction_type: 'unlockable',
-      });
-
       const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
       const { error: unlockErr } = await supabase
         .from('unlockables')
@@ -321,12 +314,14 @@ const CreatorProfile = () => {
         .eq('id', selectedContent.id);
       if (unlockErr) console.error('Failed to update unlocked_by:', unlockErr.message);
 
-      // Record transaction
-      await supabase.rpc('insert_completed_transaction', {
+      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
+      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
         p_creator_id: profile.id,
         p_amount: selectedContent.price,
         p_transaction_type: 'unlockable',
       });
+      if (txError) console.error('Transaction RPC error:', txError.message);
+      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
 
       toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
       setUnlockDialogOpen(false);
