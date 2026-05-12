@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { useWallet } from '@/hooks/useWallet';
+import { useWallet } from '@/hooks/useWallet'; // balance display only — purchases go through purchase_subscription RPC
 
 interface SubscriptionTier {
   id: string;
@@ -30,7 +30,7 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { balance, spend } = useWallet();
+  const { balance } = useWallet();
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -78,17 +78,15 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         .from('creator_subscriptions')
         .select('*, subscription_tiers(*)')
         .eq('customer_id', user.id)
+        .eq('creator_id', creatorId)
         .in('status', ['active', 'canceling'])
         .maybeSingle();
 
       if (data && data.subscription_tiers) {
-        const tier = data.subscription_tiers as any;
-        if (tier.creator_id === creatorId) {
-          const periodEnd = new Date(data.current_period_end);
-          if (periodEnd > new Date()) {
-            setIsSubscribed(true);
-            setCurrentSubscription(data);
-          }
+        const periodEnd = new Date(data.current_period_end);
+        if (periodEnd > new Date()) {
+          setIsSubscribed(true);
+          setCurrentSubscription(data);
         }
       }
     } catch (error) {
@@ -121,63 +119,28 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
     setSubscribing(true);
 
     try {
-      // 1. Deduct from wallet (like content purchase)
-      const spendSuccess = await spend(
-        selectedTier.price, 
-        'subscription', 
-        `Subscription to ${creatorName} - ${selectedTier.name}`,
-        creatorId
-      );
+      // Use the purchase_subscription RPC — it atomically:
+      // 1. Locks the wallet row and deducts balance
+      // 2. Creates creator_subscriptions with creator_id
+      // 3. Creates subscription_message_usage if applicable
+      // 4. Records a transactions row (creator earnings) + platform_fees
+      // Doing this client-side piece by piece risks creator revenue never being recorded.
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('purchase_subscription', {
+        p_tier_id: selectedTier.id,
+        p_creator_id: creatorId,
+      });
 
-      if (!spendSuccess) {
-        throw new Error('Failed to process payment from wallet');
+      if (rpcError) throw rpcError;
+
+      const result = rpcResult as { success: boolean; error?: string; subscription_id?: string; period_end?: string };
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to activate subscription');
       }
 
-      // 2. Calculate subscription period
-      const now = new Date();
-      const periodEnd = new Date(now);
-      if (selectedTier.billing_interval === 'monthly') {
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-      } else if (selectedTier.billing_interval === 'yearly') {
-        periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-      } else {
-        periodEnd.setMonth(periodEnd.getMonth() + 1); // default to monthly
-      }
+      const periodEnd = result.period_end ? new Date(result.period_end) : new Date();
 
-      // 3. Create subscription record
-      const { data: subscription, error: subError } = await supabase
-        .from('creator_subscriptions')
-        .insert({
-          customer_id: user.id,
-          tier_id: selectedTier.id,
-          status: 'active',
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
-        })
-        .select()
-        .single();
-
-      if (subError) throw subError;
-
-      // 4. Create message usage tracking if tier has free messages
-      if (selectedTier.free_messages_per_month && selectedTier.free_messages_per_month > 0) {
-        await supabase
-          .from('subscription_message_usage')
-          .insert({
-            subscription_id: subscription.id,
-            customer_id: user.id,
-            creator_id: creatorId,
-            messages_allowed: selectedTier.free_messages_per_month,
-            messages_used: 0,
-            period_start: now.toISOString(),
-            period_end: periodEnd.toISOString(),
-          });
-      }
-
-      // Transaction is already recorded by the spend() function via wallet_transactions
-      // No need for client-side transaction insert - this is handled server-side
-
-      // 6. Notify creator
+      // Notify creator (fire-and-forget)
       supabase.functions.invoke('create-notification', {
         body: {
           userId: creatorId,
@@ -188,15 +151,15 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
         },
       }).catch(err => console.log('Notification error:', err));
 
-      // 7. Update UI
+      // Update UI
       setIsSubscribed(true);
-      setCurrentSubscription({ ...subscription, subscription_tiers: selectedTier });
+      setCurrentSubscription({ id: result.subscription_id, subscription_tiers: selectedTier, current_period_end: result.period_end });
       setConfirmStep(false);
       setDialogOpen(false);
-      
+
       toast({
         title: "Subscription Active!",
-        description: `You are now subscribed to ${creatorName}. Your subscription will renew on ${periodEnd.toLocaleDateString()}.`,
+        description: `You are now subscribed to ${creatorName}. Your subscription renews on ${periodEnd.toLocaleDateString()}.`,
       });
 
     } catch (error: any) {

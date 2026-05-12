@@ -30,20 +30,26 @@ const PayoutSettings = () => {
   const fetchData = async () => {
     if (!user) return;
 
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('net_amount')
-      .eq('creator_id', user.id)
-      .eq('status', 'completed');
+    const [{ data: transactions }, { data: payouts }] = await Promise.all([
+      supabase
+        .from('transactions')
+        .select('net_amount')
+        .eq('creator_id', user.id)
+        .eq('status', 'completed'),
+      supabase
+        .from('payouts')
+        .select('*')
+        .eq('creator_id', user.id)
+        .order('created_at', { ascending: false }),
+    ]);
 
-    const total = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
-    setEarnings(total);
-
-    const { data: payouts } = await supabase
-      .from('payouts')
-      .select('*')
-      .eq('creator_id', user.id)
-      .order('created_at', { ascending: false});
+    const totalEarned = transactions?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+    // Subtract already paid-out amounts so creators can't request the same earnings twice
+    const totalPaidOut = (payouts || [])
+      .filter((p: any) => p.status === 'completed' || p.status === 'pending')
+      .reduce((sum: number, p: any) => sum + p.amount, 0);
+    const available = Math.max(0, totalEarned - totalPaidOut);
+    setEarnings(available);
 
     setPendingPayouts(payouts || []);
 

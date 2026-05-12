@@ -85,6 +85,28 @@ Deno.serve(async (req) => {
 
     const amountDollars = paymentIntent.amount / 100
 
+    // ── Idempotency: prevent double-crediting if called twice for same payment ──
+    const { data: existingTx } = await supabaseAdmin
+      .from('wallet_transactions')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('stripe_payment_intent_id', paymentIntentId)
+      .maybeSingle()
+
+    if (existingTx) {
+      console.log('Wallet deposit already processed for payment intent:', paymentIntentId)
+      const { data: currentProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('wallet_balance')
+        .eq('id', user.id)
+        .single()
+      return new Response(
+        JSON.stringify({ success: true, balance: currentProfile?.wallet_balance ?? 0, alreadyProcessed: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    // ──────────────────────────────────────────────────────────────────────────
+
     // Get current wallet balance
     const { data: profile } = await supabaseAdmin
       .from('profiles')
@@ -114,7 +136,7 @@ Deno.serve(async (req) => {
       if (insertError) throw new Error('Failed to create profile: ' + insertError.message)
     }
 
-    // Record the transaction
+    // Record the transaction (with stripe_payment_intent_id for idempotency checks)
     const { error: txError } = await supabaseAdmin
       .from('wallet_transactions')
       .insert({
@@ -124,6 +146,7 @@ Deno.serve(async (req) => {
         description: 'Wallet top-up via Stripe',
         balance_after: newBalance,
         payment_method: 'stripe',
+        stripe_payment_intent_id: paymentIntentId,
       })
 
     if (txError) {

@@ -44,6 +44,32 @@ serve(async (req) => {
       throw new Error("Stripe account not connected");
     }
 
+    // ── Balance verification: prevent double-payouts ─────────────────────────
+    // Available balance = total net earnings - total already paid out
+    const [{ data: txData }, { data: payoutData }] = await Promise.all([
+      supabaseClient
+        .from('transactions')
+        .select('net_amount')
+        .eq('creator_id', user.id)
+        .eq('status', 'completed'),
+      supabaseClient
+        .from('payouts')
+        .select('amount')
+        .eq('creator_id', user.id)
+        .in('status', ['completed', 'pending']),
+    ]);
+
+    const totalEarned = (txData || []).reduce((sum, t) => sum + (t.net_amount || 0), 0);
+    const totalPaidOut = (payoutData || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+    const availableBalance = totalEarned - totalPaidOut;
+
+    console.log(`Payout check — earned: ${totalEarned}, paid out: ${totalPaidOut}, available: ${availableBalance}, requested: ${amount}`);
+
+    if (amount > availableBalance + 0.01) { // 0.01 tolerance for floating-point
+      throw new Error(`Insufficient balance. Available: $${availableBalance.toFixed(2)}`);
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",

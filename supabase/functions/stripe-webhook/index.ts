@@ -65,66 +65,71 @@ serve(async (req) => {
         if (session.payment_status === "paid") {
           const metadata = session.metadata || {};
           
+          const paymentIntentId = session.payment_intent as string;
+
+          // Global idempotency: if any transaction already exists for this payment intent,
+          // the purchase was already processed (e.g. by verify-bundle-payment or a previous
+          // webhook delivery). Skip to avoid double-recording money.
+          const { data: existingTx } = await supabaseClient
+            .from("transactions")
+            .select("id")
+            .eq("stripe_payment_id", paymentIntentId)
+            .maybeSingle();
+
+          if (existingTx) {
+            console.log("Payment already recorded, skipping:", paymentIntentId);
+            break;
+          }
+
           // Handle message pack purchase
           if (metadata.pack_id && metadata.creator_id && metadata.customer_id) {
             const quantity = parseInt(metadata.quantity || "0");
-            
-            // Check if credits already exist
-            const { data: existingCredits } = await supabaseClient
-              .from("customer_credits")
-              .select("*")
-              .eq("customer_id", metadata.customer_id)
-              .eq("creator_id", metadata.creator_id)
-              .eq("pack_id", metadata.pack_id)
-              .single();
+            const amount = session.amount_total! / 100;
 
-            if (!existingCredits) {
-              // Add credits
-              await supabaseClient.from("customer_credits").insert({
-                customer_id: metadata.customer_id,
-                creator_id: metadata.creator_id,
-                pack_id: metadata.pack_id,
-                credits_remaining: quantity,
-              });
+            // Add credits — always insert a new row so repeat purchases stack correctly
+            await supabaseClient.from("customer_credits").insert({
+              customer_id: metadata.customer_id,
+              creator_id: metadata.creator_id,
+              pack_id: metadata.pack_id,
+              credits_remaining: quantity,
+            });
 
-              // Record transaction — use valid enum value 'pack' (not 'pack_purchase')
-              await supabaseClient.from("transactions").insert({
-                customer_id: metadata.customer_id,
-                creator_id: metadata.creator_id,
-                pack_id: metadata.pack_id,
-                amount: session.amount_total! / 100,
-                net_amount: (session.amount_total! / 100) * 0.85,
-                platform_fee: (session.amount_total! / 100) * 0.15,
-                processor_fee: 0,
-                transaction_type: "pack",
-                status: "completed",
-                stripe_payment_id: session.payment_intent as string,
-              });
+            // Record transaction
+            await supabaseClient.from("transactions").insert({
+              customer_id: metadata.customer_id,
+              creator_id: metadata.creator_id,
+              pack_id: metadata.pack_id,
+              amount,
+              net_amount: amount * 0.85,
+              platform_fee: amount * 0.15,
+              processor_fee: 0,
+              transaction_type: "pack",
+              status: "completed",
+              stripe_payment_id: paymentIntentId,
+            });
 
-              // Send notifications
-              await supabaseClient.functions.invoke("create-notification", {
-                body: {
-                  userId: metadata.customer_id,
-                  type: "payment_success",
-                  title: "Credits Purchased",
-                  message: `You successfully purchased ${quantity} message credits!`,
-                  link: "/messages",
-                },
-              });
-
-              await supabaseClient.functions.invoke("create-notification", {
-                body: {
-                  userId: metadata.creator_id,
-                  type: "new_sale",
-                  title: "New Sale",
-                  message: `You earned $${((session.amount_total! / 100) * 0.85).toFixed(2)} from a message pack purchase!`,
-                  link: "/earnings",
-                },
-              });
-            }
+            // Notifications
+            await supabaseClient.functions.invoke("create-notification", {
+              body: {
+                userId: metadata.customer_id,
+                type: "payment_success",
+                title: "Credits Purchased",
+                message: `You successfully purchased ${quantity} message credits!`,
+                link: "/messages",
+              },
+            });
+            await supabaseClient.functions.invoke("create-notification", {
+              body: {
+                userId: metadata.creator_id,
+                type: "new_sale",
+                title: "New Sale",
+                message: `You earned $${(amount * 0.85).toFixed(2)} from a message pack purchase!`,
+                link: "/earnings",
+              },
+            });
           }
-          
-          // Handle bundle purchase
+
+          // Handle bundle purchase (Stripe checkout path)
           if (metadata.bundle_id && metadata.customer_id) {
             const { data: bundleContents } = await supabaseClient
               .from("bundle_contents")
@@ -132,7 +137,7 @@ serve(async (req) => {
               .eq("bundle_id", metadata.bundle_id);
 
             if (bundleContents) {
-              // Unlock all content
+              // Unlock all content (idempotent — checks unlocked_by before appending)
               for (const content of bundleContents) {
                 const { data: unlockable } = await supabaseClient
                   .from("unlockables")
@@ -151,7 +156,6 @@ serve(async (req) => {
                 }
               }
 
-              // Record transaction
               const { data: bundle } = await supabaseClient
                 .from("content_bundles")
                 .select("price, creator_id")
@@ -162,16 +166,16 @@ serve(async (req) => {
                 await supabaseClient.from("transactions").insert({
                   customer_id: metadata.customer_id,
                   creator_id: bundle.creator_id,
+                  bundle_id: metadata.bundle_id,
                   amount: bundle.price,
                   net_amount: bundle.price * 0.85,
                   platform_fee: bundle.price * 0.15,
                   processor_fee: 0,
                   transaction_type: "unlockable",
                   status: "completed",
-                  stripe_payment_id: session.payment_intent as string,
+                  stripe_payment_id: paymentIntentId,
                 });
 
-                // Send notification
                 await supabaseClient.functions.invoke("create-notification", {
                   body: {
                     userId: bundle.creator_id,
@@ -232,18 +236,10 @@ serve(async (req) => {
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         });
 
-        // Record transaction
-        await supabaseClient.from("transactions").insert({
-          customer_id: userId,
-          creator_id: tier.creator_id,
-          amount: tier.price,
-          net_amount: tier.price * 0.85,
-          platform_fee: tier.price * 0.15,
-          processor_fee: 0,
-          transaction_type: "subscription",
-          status: "completed",
-          stripe_payment_id: subscription.latest_invoice as string,
-        });
+        // NOTE: Do NOT record the payment transaction here.
+        // The initial invoice fires invoice.payment_succeeded immediately after subscription
+        // creation, which handles ALL payment recording consistently (initial + renewals).
+        // Recording it here too would create a duplicate transaction for the first month.
 
         // Send notifications
         await supabaseClient.functions.invoke("create-notification", {
