@@ -53,7 +53,7 @@ export const PaymentRequiredOverlay = ({
   const navigate = useNavigate();
   const { isSubscribed, loading: subLoading } = useSubscription(user?.id, creatorId);
   const { credits, loading: creditsLoading } = useCredits(creatorId);
-  const { balance, spend } = useWallet();
+  const { balance } = useWallet();
   
   const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
   const [loadingTiers, setLoadingTiers] = useState(true);

@@ -293,37 +293,41 @@ const CreatorProfile = () => {
 
   const handleUnlockContent = async () => {
     if (!selectedContent || !user || !profile) return;
-    if (selectedContent.unlocked_by?.includes(user.id)) {
-      toast({ title: "Already unlocked", description: "You have already purchased this content" });
-      return;
-    }
 
     setUnlocking(true);
     try {
-      const success = await spend(selectedContent.price, 'content_unlock', `Unlocked: ${selectedContent.title || 'content'}`, profile.id);
-      if (!success) {
+      // Single atomic RPC: checks already-unlocked, deducts wallet, updates unlocked_by,
+      // and records the transaction — all in one DB transaction. Any failure rolls back
+      // automatically so the user can never lose money without receiving content.
+      const { data: result, error } = await supabase.rpc('unlock_content', {
+        p_unlockable_id: selectedContent.id,
+        p_creator_id: profile.id,
+        p_price: selectedContent.price,
+      });
+
+      if (error) {
+        console.error('unlock_content RPC error:', error.message);
         toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
-        setUnlocking(false);
         return;
       }
 
-      const updatedUnlockedBy = [...(selectedContent.unlocked_by || []), user.id];
-      const { error: unlockErr } = await supabase
-        .from('unlockables')
-        .update({ unlocked_by: updatedUnlockedBy })
-        .eq('id', selectedContent.id);
-      if (unlockErr) console.error('Failed to update unlocked_by:', unlockErr.message);
+      const res = result as { success: boolean; error?: string; already_unlocked?: boolean } | null;
 
-      // Record in transactions table via secure RPC so creator dashboard/analytics reflects this
-      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
-        p_creator_id: profile.id,
-        p_amount: selectedContent.price,
-        p_transaction_type: 'unlockable',
-      });
-      if (txError) console.error('Transaction RPC error:', txError.message);
-      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
+      if (!res?.success) {
+        const msg = res?.error === 'Insufficient balance'
+          ? 'Insufficient wallet balance — add funds below'
+          : (res?.error || 'Payment failed');
+        toast({ title: "Error", description: msg, variant: "destructive" });
+        if (res?.error === 'Insufficient balance') setShowAddFunds(true);
+        return;
+      }
 
-      toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
+      if (res.already_unlocked) {
+        toast({ title: "Already unlocked", description: "You have already purchased this content" });
+      } else {
+        toast({ title: "Content unlocked!", description: "You can now view this content in your library" });
+      }
+
       setUnlockDialogOpen(false);
       fetchCreatorData();
     } catch (error: any) {

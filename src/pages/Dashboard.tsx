@@ -58,7 +58,7 @@ const Dashboard = () => {
   const { isCreator } = useRoleCheck();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { balance, spend } = useWallet();
+  const { balance } = useWallet();
   const [loading, setLoading] = useState(true);
   const [creators, setCreators] = useState<Creator[]>([]);
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
@@ -305,50 +305,29 @@ const Dashboard = () => {
     if (!selectedPost || !user) return;
 
     try {
-      // Spend from wallet
-      const success = await spend(
-        selectedPost.price,
-        'unlockable',
-        `Unlocked content from ${selectedPost.creator.display_name}`,
-        selectedPost.creator.id
-      );
+      // Single atomic RPC: balance check, wallet deduction, unlocked_by update,
+      // and transaction recording — all in one DB transaction with automatic rollback.
+      const { data: result, error } = await supabase.rpc('unlock_content', {
+        p_unlockable_id: selectedPost.id,
+        p_creator_id: selectedPost.creator.id,
+        p_price: selectedPost.price,
+      });
 
-      if (!success) {
-        toast({
-          title: "Error",
-          description: "Failed to unlock content",
-          variant: "destructive",
-        });
+      if (error) {
+        console.error('unlock_content RPC error:', error.message);
+        toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
         return;
       }
 
-      // Update unlockable in database
-      const { data: unlockable } = await supabase
-        .from('unlockables')
-        .select('unlocked_by')
-        .eq('id', selectedPost.id)
-        .single();
+      const res = result as { success: boolean; error?: string; already_unlocked?: boolean } | null;
 
-      const unlockedBy = unlockable?.unlocked_by || [];
-      if (!unlockedBy.includes(user.id)) {
-        unlockedBy.push(user.id);
+      if (!res?.success) {
+        const msg = res?.error === 'Insufficient balance'
+          ? 'Insufficient wallet balance'
+          : (res?.error || 'Payment failed');
+        toast({ title: "Error", description: msg, variant: "destructive" });
+        return;
       }
-
-      const { error: unlockUpdateErr } = await supabase
-        .from('unlockables')
-        .update({ unlocked_by: unlockedBy })
-        .eq('id', selectedPost.id);
-
-      if (unlockUpdateErr) console.error('Failed to update unlocked_by:', unlockUpdateErr.message);
-
-      // Record earning in transactions table so creator sees revenue
-      const { data: txResult, error: txError } = await supabase.rpc('insert_completed_transaction', {
-        p_creator_id: selectedPost.creator.id,
-        p_amount: selectedPost.price,
-        p_transaction_type: 'unlockable',
-      });
-      if (txError) console.error('Transaction RPC error:', txError.message);
-      if (txResult && !txResult.success) console.error('Transaction failed:', txResult.error);
 
       toast({
         title: "Content Unlocked!",
