@@ -53,34 +53,48 @@ serve(async (req) => {
       throw new Error("Invalid session metadata");
     }
 
-    // Check if already processed
-    const { data: existingTransaction } = await supabaseClient
-      .from('wallet_transactions')
-      .select('id')
-      .eq('user_id', user_id)
-      .eq('description', `Stripe payment ${session.payment_intent}`)
-      .single();
+    const depositAmount = parseFloat(amount);
+    const paymentIntentId = session.payment_intent as string;
 
-    if (existingTransaction) {
-      return new Response(JSON.stringify({ success: true, message: "Already processed" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+    // Atomically insert the wallet_transaction first using the unique index on
+    // (user_id, stripe_payment_intent_id) to prevent double-crediting.
+    // If this insert fails with a unique violation, the deposit was already processed.
+    const { error: txInsertError } = await supabaseClient
+      .from('wallet_transactions')
+      .insert({
+        user_id,
+        amount: depositAmount,
+        transaction_type: 'deposit',
+        description: `Stripe payment ${paymentIntentId}`,
+        stripe_payment_intent_id: paymentIntentId,
       });
+
+    if (txInsertError) {
+      if (txInsertError.code === '23505') {
+        // Unique violation — already processed, return current balance
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('wallet_balance')
+          .eq('id', user_id)
+          .single();
+        return new Response(JSON.stringify({ success: true, balance: profile?.wallet_balance || 0, message: "Already processed" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+      throw new Error("Failed to record transaction");
     }
 
-    const depositAmount = parseFloat(amount);
-
-    // Get current balance
-    const { data: profile } = await supabaseClient
+    // Transaction recorded — only ONE caller can reach here per payment intent
+    // (unique index on wallet_transactions guarantees it), so read-then-write is safe.
+    const { data: currentProfile } = await supabaseClient
       .from('profiles')
       .select('wallet_balance')
       .eq('id', user_id)
       .single();
 
-    const currentBalance = profile?.wallet_balance || 0;
-    const newBalance = parseFloat(currentBalance) + depositAmount;
+    const newBalance = (currentProfile?.wallet_balance || 0) + depositAmount;
 
-    // Update wallet balance
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({ wallet_balance: newBalance })
@@ -89,21 +103,6 @@ serve(async (req) => {
     if (updateError) {
       console.error("Error updating wallet balance:", updateError);
       throw new Error("Failed to update wallet balance");
-    }
-
-    // Record transaction
-    const { error: transactionError } = await supabaseClient
-      .from('wallet_transactions')
-      .insert({
-        user_id,
-        amount: depositAmount,
-        transaction_type: 'deposit',
-        description: `Stripe payment ${session.payment_intent}`,
-        balance_after: newBalance,
-      });
-
-    if (transactionError) {
-      console.error("Error recording transaction:", transactionError);
     }
 
     // Create notification

@@ -338,17 +338,16 @@ const MessagingInterface = () => {
 
     setSending(true);
     try {
-      // Create conversation if doesn't exist
+      // Create conversation if doesn't exist (upsert prevents duplicate on double-tap)
       let convId = conversationId;
       if (!convId) {
-        // If current user is creator, they are creator_id and the other user is customer_id
-        const conversationData = isCreator 
+        const conversationData = isCreator
           ? { creator_id: user.id, customer_id: creatorId }
           : { customer_id: user.id, creator_id: creatorId };
 
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert(conversationData)
+          .upsert(conversationData, { onConflict: 'creator_id,customer_id', ignoreDuplicates: false })
           .select('id')
           .single();
 
