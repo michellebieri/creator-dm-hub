@@ -316,9 +316,12 @@ const MyLibrary = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${unlockedContent.reduce((sum, item) => sum + item.price, 0).toFixed(2)}
+              ${(
+                unlockedContent.reduce((sum, item) => sum + item.price, 0) +
+                purchasedBundles.reduce((sum, b) => sum + b.price, 0)
+              ).toFixed(2)}
             </div>
-            <p className="text-xs text-muted-foreground">On content</p>
+            <p className="text-xs text-muted-foreground">On content &amp; bundles</p>
           </CardContent>
         </Card>
       </div>

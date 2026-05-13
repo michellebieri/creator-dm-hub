@@ -156,16 +156,44 @@ serve(async (req) => {
   }
 });
 
+function isWithinSchedule(reply: any): boolean {
+  if (!reply.schedule_start || !reply.schedule_end) return false;
+  if (!reply.days_active || reply.days_active.length === 0) return false;
+
+  const now = new Date();
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const todayName = dayNames[now.getUTCDay()];
+  if (!reply.days_active.includes(todayName)) return false;
+
+  // Compare HH:MM strings against current UTC time
+  const currentTime = now.toISOString().slice(11, 16); // "HH:MM"
+  const start = reply.schedule_start.slice(0, 5);
+  const end = reply.schedule_end.slice(0, 5);
+
+  // Handle overnight schedules (e.g., 22:00–06:00)
+  if (start <= end) {
+    return currentTime >= start && currentTime <= end;
+  } else {
+    return currentTime >= start || currentTime <= end;
+  }
+}
+
 async function handleLegacyAutoReply(supabase: any, conversationId: string, senderId: string, recipientId: string, corsHeaders: any) {
   const { data: autoReplies } = await supabase.from('auto_replies').select('*').eq('creator_id', recipientId).eq('is_active', true);
   if (!autoReplies || autoReplies.length === 0) return new Response(JSON.stringify({ triggered: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   let applicableReply = null;
   for (const reply of autoReplies) {
-    if (reply.trigger_condition === 'always') { applicableReply = reply; break; }
+    if (reply.trigger_condition === 'always') {
+      applicableReply = reply;
+      break;
+    }
     if (reply.trigger_condition === 'first_message') {
       const { data: prev } = await supabase.from('messages').select('id').eq('conversation_id', conversationId).eq('sender_id', senderId).limit(2);
       if (prev && prev.length <= 1) { applicableReply = reply; break; }
+    }
+    if (reply.trigger_condition === 'scheduled') {
+      if (isWithinSchedule(reply)) { applicableReply = reply; break; }
     }
   }
   if (!applicableReply) return new Response(JSON.stringify({ triggered: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

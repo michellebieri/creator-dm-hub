@@ -108,6 +108,7 @@ export function AutoReplyManager({ creatorId }: AutoReplyManagerProps) {
       creator_id: creatorId,
       title,
       message,
+      is_active: true,
       trigger_condition: triggerCondition,
       schedule_start: scheduleStart || null,
       schedule_end: scheduleEnd || null,

@@ -254,6 +254,10 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
                 ...prev,
                 freeMessagesRemaining: hasUnlimitedMessages ? 999 : Number(remaining),
               } : null);
+              // Trigger auto-reply check (fire-and-forget)
+              supabase.functions.invoke('check-auto-reply', {
+                body: { conversationId, senderId: user.id, recipientId: creatorId },
+              }).catch(() => {});
               setSending(false);
               return { id: res.message_id };
             }
@@ -280,6 +284,10 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
       if (bundle?.success) {
         toast.success(`Message sent (${bundle.remaining ?? 0} bundle credits remaining)`);
+        // Trigger auto-reply check (fire-and-forget)
+        supabase.functions.invoke('check-auto-reply', {
+          body: { conversationId, senderId: user.id, recipientId: creatorId },
+        }).catch(() => {});
         setSending(false);
         return { id: bundle.message_id };
       }
@@ -324,6 +332,10 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
               ? `Message sent free (${remaining} free message${remaining !== 1 ? 's' : ''} remaining)`
               : 'Message sent free (last free message used)'
             );
+            // Trigger auto-reply check (fire-and-forget)
+            supabase.functions.invoke('check-auto-reply', {
+              body: { conversationId, senderId: user.id, recipientId: creatorId },
+            }).catch(() => {});
             setSending(false);
             return { id: freeMsg.id };
           }
