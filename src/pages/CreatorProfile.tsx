@@ -51,6 +51,7 @@ interface Bundle {
   original_price?: number;
   description?: string;
   purchased?: boolean;
+  bundleContents?: { unlockable_id: string }[];
 }
 
 type FolderType = 'all' | 'photos' | 'videos' | 'bundles';
@@ -171,7 +172,6 @@ const CreatorProfile = () => {
         .eq('creator_id', profileData.id)
         .order('created_at', { ascending: false })
         .limit(itemsToShow);
-      setContent(contentData || []);
 
       const { data: bundlesData } = await supabase
         .from('content_bundles')
@@ -245,10 +245,18 @@ const CreatorProfile = () => {
             }
           }
           
-          return { ...bundle, content_count, thumbnail_urls, purchased };
+          return { ...bundle, content_count, thumbnail_urls, purchased, bundleContents };
         })
       );
       setBundles(bundlesWithCounts);
+
+      // Exclude unlockable items that belong to a bundle — those are only accessible
+      // via bundle purchase, not individually. Showing them at price $0 would let
+      // users unlock bundle content for free.
+      const bundledUnlockableIds = new Set(
+        bundlesWithCounts.flatMap(b => (b.bundleContents || []).map((c: any) => c.unlockable_id))
+      );
+      setContent((contentData || []).filter(item => !bundledUnlockableIds.has(item.id)));
     } catch (error: any) {
       toast({ title: "Error", description: "Could not load creator profile", variant: "destructive" });
       navigate('/');

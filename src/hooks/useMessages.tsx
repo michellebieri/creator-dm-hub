@@ -287,11 +287,48 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       // ── STEP 3: Wallet pay-per-message (atomic: deduct + insert + record) ──
       const { data: creatorSettings } = await supabase
         .from('creator_settings')
-        .select('price_per_message')
+        .select('price_per_message, first_three_free')
         .eq('user_id', creatorId)
         .maybeSingle();
 
       const pricePerMessage = creatorSettings?.price_per_message || 5.00;
+
+      // Check "first 3 messages free" — count how many paid messages the customer
+      // has already sent in this conversation. If < 3, send for free.
+      if (creatorSettings?.first_three_free) {
+        const { count } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', conversationId)
+          .eq('sender_id', user.id)
+          .eq('is_paid', true);
+
+        if ((count ?? 0) < 3) {
+          const { data: freeMsg, error: freeMsgError } = await supabase
+            .from('messages')
+            .insert({
+              conversation_id: conversationId,
+              sender_id: user.id,
+              content,
+              message_type: messageType,
+              voice_url: voiceUrl || null,
+              voice_duration: voiceDuration || null,
+              is_paid: true,
+            })
+            .select()
+            .single();
+
+          if (!freeMsgError && freeMsg) {
+            const remaining = 2 - (count ?? 0);
+            toast.success(remaining > 0
+              ? `Message sent free (${remaining} free message${remaining !== 1 ? 's' : ''} remaining)`
+              : 'Message sent free (last free message used)'
+            );
+            setSending(false);
+            return { id: freeMsg.id };
+          }
+        }
+      }
 
       const { data: walletResult, error: walletError } = await supabase.rpc('send_paid_message', {
         p_conversation_id: conversationId,
