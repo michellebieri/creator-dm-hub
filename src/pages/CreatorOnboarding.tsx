@@ -120,7 +120,7 @@ const CreatorOnboarding = () => {
         .from('user_roles')
         .upsert({ user_id: user.id, role: 'creator' }, { onConflict: 'user_id,role' });
 
-      if (roleError) console.error('Failed to insert creator role:', roleError.message);
+      if (roleError) throw roleError; // critical — creator can't access any features without this role
 
       // Create or update creator settings (upsert preserves stripe_account_id if already set)
       const { error: settingsError } = await supabase

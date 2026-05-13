@@ -46,10 +46,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        *,
-        unlockables (*)
-      `)
+      .select(`*, unlockables (*)`)
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -61,16 +58,16 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     setLoading(false);
   };
 
+  // READ-ONLY: never creates rows. Row creation happens lazily in sendMessage.
   const fetchSubscriptionInfo = async () => {
     if (!user || !creatorId) return;
 
     try {
-      // Get active subscription for this creator
       const { data: subscriptions } = await supabase
         .from('creator_subscriptions')
         .select('*, subscription_tiers!inner(*)')
         .eq('customer_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'canceling'])
         .gte('current_period_end', new Date().toISOString());
 
       if (!subscriptions || subscriptions.length === 0) {
@@ -78,9 +75,8 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         return;
       }
 
-      // Find subscription for this specific creator
-      const subscription = subscriptions.find((sub: any) => 
-        sub.subscription_tiers?.creator_id === creatorId
+      const subscription = subscriptions.find(
+        (sub: any) => sub.subscription_tiers?.creator_id === creatorId
       );
 
       if (!subscription) {
@@ -102,32 +98,15 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         return;
       }
 
-      // Get or create message usage record for current period
-      const { data: existingUsage } = await supabase
+      // Read only — never insert here
+      const { data: usageRecord } = await supabase
         .from('subscription_message_usage')
-        .select('*')
+        .select('messages_used, messages_allowed')
         .eq('subscription_id', subscription.id)
         .eq('period_start', subscription.current_period_start)
         .maybeSingle();
 
-      let messagesUsed = 0;
-
-      if (existingUsage) {
-        messagesUsed = existingUsage.messages_used;
-      } else {
-        // Create new usage record for this period
-        await supabase
-          .from('subscription_message_usage')
-          .insert({
-            subscription_id: subscription.id,
-            customer_id: user.id,
-            creator_id: creatorId,
-            period_start: subscription.current_period_start,
-            period_end: subscription.current_period_end,
-            messages_used: 0,
-            messages_allowed: freeMessagesAllowed,
-          });
-      }
+      const messagesUsed = usageRecord?.messages_used ?? 0;
 
       setSubscriptionInfo({
         hasSubscription: true,
@@ -146,42 +125,21 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
     if (!conversationId) return;
 
-    // Subscribe to new messages and updates
     const channel = supabase
       .channel(`messages-${conversationId}`)
       .on(
         'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          setMessages((current) => [...current, payload.new as Message]);
-        }
+        { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        (payload) => setMessages((current) => [...current, payload.new as Message])
       )
       .on(
         'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          setMessages((current) =>
-            current.map((msg) =>
-              msg.id === payload.new.id ? (payload.new as Message) : msg
-            )
-          );
-        }
+        { event: 'UPDATE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
+        (payload) => setMessages((current) => current.map((msg) => msg.id === payload.new.id ? (payload.new as Message) : msg))
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [conversationId, creatorId]);
 
   const sendMessage = async (
@@ -194,7 +152,6 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
     setSending(true);
     try {
-      // Get conversation details to check role
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .select('creator_id, customer_id')
@@ -205,7 +162,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
       const isCustomer = conversation.customer_id === user.id;
 
-      // Creator sending - no credit deduction
+      // ── Creator sends: free, no payment logic ──────────────────────────────
       if (!isCustomer) {
         const { data, error } = await supabase
           .from('messages')
@@ -222,34 +179,22 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
           .single();
 
         if (error) throw error;
-        
-        toast.success("Message sent");
         setSending(false);
         return data;
       }
 
-      // Customer sending - implement hierarchical payment check
       if (!creatorId) throw new Error('Creator ID required');
 
-      // Get creator's price per message
-      const { data: creatorSettings } = await supabase
-        .from('creator_settings')
-        .select('price_per_message')
-        .eq('user_id', creatorId)
-        .single();
-
-      const pricePerMessage = creatorSettings?.price_per_message || 5.00;
-
-      // STEP 1: Check for active subscription with message allowance
+      // ── STEP 1: Subscription messages ─────────────────────────────────────
       const { data: subscriptions } = await supabase
         .from('creator_subscriptions')
         .select('*, subscription_tiers!inner(*)')
         .eq('customer_id', user.id)
-        .eq('status', 'active')
+        .in('status', ['active', 'canceling'])
         .gte('current_period_end', new Date().toISOString());
 
-      const activeSubscription = subscriptions?.find((sub: any) => 
-        sub.subscription_tiers?.creator_id === creatorId
+      const activeSubscription = subscriptions?.find(
+        (sub: any) => sub.subscription_tiers?.creator_id === creatorId
       );
 
       if (activeSubscription?.subscription_tiers) {
@@ -258,180 +203,133 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         const freeMessagesPerMonth = tierData.free_messages_per_month || 0;
 
         if (hasUnlimitedMessages || freeMessagesPerMonth > 0) {
-          // Get current period usage
-          const { data: usageRecord } = await supabase
+          // Get or lazily create usage record for this billing period
+          let { data: usageRecord } = await supabase
             .from('subscription_message_usage')
             .select('*')
             .eq('subscription_id', activeSubscription.id)
             .eq('period_start', activeSubscription.current_period_start)
             .maybeSingle();
 
-          let messagesUsed = usageRecord?.messages_used || 0;
-          const remainingMessages = hasUnlimitedMessages ? 999 : (freeMessagesPerMonth - messagesUsed);
-
-          if (remainingMessages > 0) {
-            // Use subscription message - update usage
-            if (usageRecord) {
-              await supabase
-                .from('subscription_message_usage')
-                .update({ 
-                  messages_used: messagesUsed + 1,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', usageRecord.id);
-            } else {
-              // Create usage record if it doesn't exist
-              await supabase
-                .from('subscription_message_usage')
-                .insert({
-                  subscription_id: activeSubscription.id,
-                  customer_id: user.id,
-                  creator_id: creatorId,
-                  period_start: activeSubscription.current_period_start,
-                  period_end: activeSubscription.current_period_end,
-                  messages_used: 1,
-                  messages_allowed: freeMessagesPerMonth,
-                });
-            }
-
-            // Send message
-            const { data: messageData, error: messageError } = await supabase
-              .from('messages')
+          if (!usageRecord) {
+            const { data: newUsage } = await supabase
+              .from('subscription_message_usage')
               .insert({
-                conversation_id: conversationId,
-                sender_id: user.id,
-                content,
-                message_type: messageType,
-                voice_url: voiceUrl,
-                voice_duration: voiceDuration,
-                is_paid: true,
+                subscription_id: activeSubscription.id,
+                customer_id: user.id,
+                creator_id: creatorId,
+                period_start: activeSubscription.current_period_start,
+                period_end: activeSubscription.current_period_end,
+                messages_used: 0,
+                messages_allowed: freeMessagesPerMonth,
               })
               .select()
               .single();
+            usageRecord = newUsage;
+          }
 
-            if (messageError) throw messageError;
+          if (usageRecord && (hasUnlimitedMessages || usageRecord.messages_used < usageRecord.messages_allowed)) {
+            // Atomically increment usage + insert message in one DB transaction
+            const { data: result, error: rpcError } = await supabase.rpc('use_subscription_message', {
+              p_usage_record_id: usageRecord.id,
+              p_conversation_id: conversationId,
+              p_sender_id: user.id,
+              p_content: content,
+              p_message_type: messageType,
+              p_voice_url: voiceUrl || null,
+              p_voice_duration: voiceDuration || null,
+              p_is_unlimited: hasUnlimitedMessages,
+              p_allowed: freeMessagesPerMonth,
+            });
 
-            const newRemaining = hasUnlimitedMessages ? '∞' : (remainingMessages - 1);
-            const successMessage = hasUnlimitedMessages 
-              ? "Message sent (unlimited subscription messages)" 
-              : `Message sent (${newRemaining} free messages remaining this month)`;
-            toast.success(successMessage);
-            
-            // Update local subscription info
-            setSubscriptionInfo(prev => prev ? {
-              ...prev,
-              freeMessagesRemaining: hasUnlimitedMessages ? 999 : remainingMessages - 1,
-            } : null);
+            const res = result as { success: boolean; message_id?: string; messages_used?: number; messages_allowed?: number; error?: string } | null;
 
-            setSending(false);
-            return messageData;
+            if (res?.success) {
+              const remaining = hasUnlimitedMessages ? '∞' : Math.max(0, (res.messages_allowed ?? 0) - (res.messages_used ?? 0));
+              toast.success(hasUnlimitedMessages
+                ? 'Message sent (unlimited subscription)'
+                : `Message sent (${remaining} free messages remaining this month)`
+              );
+              setSubscriptionInfo(prev => prev ? {
+                ...prev,
+                freeMessagesRemaining: hasUnlimitedMessages ? 999 : Number(remaining),
+              } : null);
+              setSending(false);
+              return { id: res.message_id };
+            }
+            // If error is "No free messages remaining", fall through to next tier
+            if (res?.error && res.error !== 'No free messages remaining') {
+              throw new Error(res.error);
+            }
           }
         }
       }
 
-      // STEP 2: Check for message bundle credits using atomic function
-      const { data: bundleCreditResult, error: bundleError } = await supabase
-        .rpc('spend_bundle_credit', {
-          p_customer_id: user.id,
-          p_creator_id: creatorId,
-        });
+      // ── STEP 2: Bundle credits (atomic: decrement + insert in one tx) ──────
+      const { data: bundleResult, error: bundleError } = await supabase.rpc('send_bundle_message', {
+        p_customer_id:     user.id,
+        p_creator_id:      creatorId,
+        p_conversation_id: conversationId,
+        p_content:         content,
+        p_message_type:    messageType,
+        p_voice_url:       voiceUrl || null,
+        p_voice_duration:  voiceDuration || null,
+      });
 
-      const bundleResult = bundleCreditResult as { success: boolean; remaining?: number; error?: string } | null;
+      const bundle = bundleResult as { success: boolean; message_id?: string; remaining?: number; error?: string } | null;
 
-      if (bundleResult?.success) {
-
-        // Send message
-        const { data: messageData, error: messageError } = await supabase
-          .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            sender_id: user.id,
-            content,
-            message_type: messageType,
-            voice_url: voiceUrl,
-            voice_duration: voiceDuration,
-            is_paid: true,
-          })
-          .select()
-          .single();
-
-        if (messageError) throw messageError;
-
-        toast.success(`Message sent (${bundleResult.remaining ?? 0} bundle credits remaining)`);
+      if (bundle?.success) {
+        toast.success(`Message sent (${bundle.remaining ?? 0} bundle credits remaining)`);
         setSending(false);
-        return messageData;
+        return { id: bundle.message_id };
       }
 
-      // STEP 3: Check for pay-per-message wallet balance using atomic database function
-      const { data: spendResult, error: spendError } = await supabase
-        .rpc('spend_wallet_balance', {
-          p_user_id: user.id,
-          p_amount: pricePerMessage,
-          p_transaction_type: 'message',
-          p_description: 'Message to creator',
-          p_related_user_id: creatorId,
-        });
+      // ── STEP 3: Wallet pay-per-message (atomic: deduct + insert + record) ──
+      const { data: creatorSettings } = await supabase
+        .from('creator_settings')
+        .select('price_per_message')
+        .eq('user_id', creatorId)
+        .maybeSingle();
 
-      if (spendError) {
-        console.error('Wallet spend error:', spendError);
-        throw new Error('Failed to process payment');
-      }
+      const pricePerMessage = creatorSettings?.price_per_message || 5.00;
 
-      // Cast the result to check success property
-      const result = spendResult as { success: boolean; new_balance?: number; error?: string } | null;
+      const { data: walletResult, error: walletError } = await supabase.rpc('send_paid_message', {
+        p_conversation_id: conversationId,
+        p_sender_id:       user.id,
+        p_creator_id:      creatorId,
+        p_content:         content,
+        p_message_type:    messageType,
+        p_voice_url:       voiceUrl || null,
+        p_voice_duration:  voiceDuration || null,
+        p_price:           pricePerMessage,
+      });
 
-      if (result?.success) {
+      const wallet = walletResult as { success: boolean; message_id?: string; new_balance?: number; error?: string } | null;
 
-        // Send message
-        const { data: messageData, error: messageError } = await supabase
-          .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            sender_id: user.id,
-            content,
-            message_type: messageType,
-            voice_url: voiceUrl,
-            voice_duration: voiceDuration,
-            is_paid: true,
-          })
-          .select()
-          .single();
+      if (wallet?.success) {
+        // Also trigger auto-reply check (fire-and-forget)
+        supabase.functions.invoke('check-auto-reply', {
+          body: { conversationId, senderId: user.id, recipientId: creatorId },
+        }).catch(() => {});
 
-        if (messageError) throw messageError;
-
-        // Record transaction via secure RPC (bypasses service-role-only RLS policy)
-        await supabase.rpc('insert_completed_transaction', {
-          p_creator_id: creatorId,
-          p_amount: pricePerMessage,
-          p_transaction_type: 'message',
-          p_message_id: messageData.id,
-        });
-
-        // Check for auto-reply from creator
-        try {
-          await supabase.functions.invoke('check-auto-reply', {
-            body: {
-              conversationId,
-              senderId: user.id,
-              recipientId: creatorId,
-            },
-          });
-        } catch (autoReplyError) {
-          console.error('Auto-reply check failed:', autoReplyError);
-        }
-
-        toast.success("Message sent");
+        toast.success('Message sent');
         setSending(false);
-        return messageData;
+        return { id: wallet.message_id };
       }
 
-      // STEP 4: Block message - no entitlements available
-      toast.error("You need a subscription, message bundle, or credits to send messages. Please purchase one to continue.");
+      if (wallet?.error === 'Insufficient balance') {
+        toast.error('Insufficient wallet balance. Please add funds.');
+        setSending(false);
+        return null;
+      }
+
+      // ── STEP 4: No entitlements ───────────────────────────────────────────
+      toast.error('You need a subscription, message bundle, or wallet funds to send messages.');
       setSending(false);
-      return;
+      return null;
     } catch (error) {
       console.error('Error sending message:', error);
-      toast.error("Failed to send message");
+      toast.error('Failed to send message');
       setSending(false);
       throw error;
     }

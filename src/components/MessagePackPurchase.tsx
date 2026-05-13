@@ -31,11 +31,7 @@ export const MessagePackPurchase = ({ creatorId, packs }: MessagePackPurchasePro
       if (error) throw error;
 
       if (data?.url) {
-        window.open(data.url, '_blank');
-        toast({
-          title: "Opening checkout",
-          description: "Complete your purchase in the new tab",
-        });
+        window.location.href = data.url;
       }
     } catch (error: any) {
       toast({

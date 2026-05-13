@@ -16,11 +16,12 @@ export const useSubscription = (userId: string | undefined, creatorId: string | 
 
     try {
       // Get all active subscriptions for this user
+      // Include 'canceling' — user keeps access until current_period_end
       const { data } = await supabase
         .from('creator_subscriptions')
         .select('*, subscription_tiers!inner(*)')
         .eq('customer_id', userId)
-        .eq('status', 'active');
+        .in('status', ['active', 'canceling']);
 
       if (data && data.length > 0) {
         // Check if any subscription is for this creator

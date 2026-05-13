@@ -63,7 +63,7 @@ const SubscribersList = () => {
           current_period_end,
           tier_id
         `)
-        .eq('status', 'active')
+        .in('status', ['active', 'canceling']) // canceling = paid through period end
         .in('tier_id', creatorTierIds)
         .order('created_at', { ascending: false });
 

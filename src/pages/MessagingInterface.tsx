@@ -259,7 +259,7 @@ const MessagingInterface = () => {
 
         const { data: newConv, error: convError } = await supabase
           .from('conversations')
-          .insert(conversationData)
+          .upsert(conversationData, { onConflict: 'creator_id,customer_id', ignoreDuplicates: false })
           .select('id')
           .single();
 
@@ -268,20 +268,26 @@ const MessagingInterface = () => {
         setConversationId(convId);
       }
 
-      // Send message using the hook (handles credit deduction)
-      await sendMessage(messageToSend);
-
-      // Record tip transaction if fan added a tip
+      // Deduct tip BEFORE sending so the tip text in the message is always backed by payment.
+      // If spend fails, we throw and the message is never sent.
       if (activeTip > 0 && !isCreator) {
-        // Deduct tip from wallet first
-        await spend(activeTip, 'tip', `Tip to creator ${creatorId}`, creatorId);
-        // Record in transactions table via secure RPC (bypasses service-role-only RLS)
+        const tipSuccess = await spend(activeTip, 'tip', `Tip to creator ${creatorId}`, creatorId);
+        if (!tipSuccess) {
+          // Restore message for retry
+          setMessage(messageToSend);
+          setSending(false);
+          return;
+        }
+        // Record creator earnings for the tip
         await supabase.rpc('insert_completed_transaction', {
           p_creator_id: creatorId,
           p_amount: activeTip,
           p_transaction_type: 'message',
         });
       }
+
+      // Send message using the hook (handles credit/wallet deduction)
+      await sendMessage(messageToSend);
 
       // Send notification to recipient (the other user = creatorId param)
       const recipientId = creatorId;
