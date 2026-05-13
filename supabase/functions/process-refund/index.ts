@@ -65,18 +65,48 @@ serve(async (req) => {
     }
 
     if (action === 'approve') {
-      // Process refund through Stripe
-      const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-        apiVersion: "2025-08-27.basil",
-      });
+      let stripeRefundId: string | null = null;
 
-      const stripeRefund = await stripe.refunds.create({
-        payment_intent: refund.transaction.stripe_payment_id,
-        amount: Math.round(refund.amount * 100), // Convert to cents
-        reason: 'requested_by_customer',
-      });
+      if (refund.transaction.stripe_payment_id) {
+        // Stripe-based payment — refund via Stripe
+        const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+          apiVersion: "2025-08-27.basil",
+        });
 
-      console.log("Stripe refund created:", stripeRefund.id);
+        const stripeRefund = await stripe.refunds.create({
+          payment_intent: refund.transaction.stripe_payment_id,
+          amount: Math.round(refund.amount * 100),
+          reason: 'requested_by_customer',
+        });
+
+        stripeRefundId = stripeRefund.id;
+        console.log("Stripe refund created:", stripeRefundId);
+      } else {
+        // Wallet-based payment — credit the customer's wallet directly
+        const { data: customerProfile } = await supabaseClient
+          .from('profiles')
+          .select('wallet_balance')
+          .eq('id', refund.transaction.customer_id)
+          .single();
+
+        const currentBalance = customerProfile?.wallet_balance || 0;
+        const { error: walletError } = await supabaseClient
+          .from('profiles')
+          .update({ wallet_balance: currentBalance + refund.amount })
+          .eq('id', refund.transaction.customer_id);
+
+        if (walletError) throw walletError;
+
+        // Record the wallet credit
+        await supabaseClient.from('wallet_transactions').insert({
+          user_id: refund.transaction.customer_id,
+          amount: refund.amount,
+          transaction_type: 'refund',
+          description: `Refund for transaction ${refund.transaction_id}`,
+        });
+
+        console.log("Wallet refund credited:", refund.amount, "to customer:", refund.transaction.customer_id);
+      }
 
       // Update refund record
       const { error: updateError } = await supabaseClient
@@ -84,7 +114,7 @@ serve(async (req) => {
         .update({
           status: 'approved',
           processed_at: new Date().toISOString(),
-          stripe_refund_id: stripeRefund.id,
+          stripe_refund_id: stripeRefundId,
         })
         .eq('id', refundId);
 
@@ -107,10 +137,10 @@ serve(async (req) => {
         },
       });
 
-      return new Response(JSON.stringify({ 
-        success: true, 
+      return new Response(JSON.stringify({
+        success: true,
         message: 'Refund approved and processed',
-        stripeRefundId: stripeRefund.id 
+        stripeRefundId,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
