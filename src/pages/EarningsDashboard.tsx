@@ -28,7 +28,7 @@ const EarningsDashboard = () => {
 
     const fetchData = async () => {
       try {
-        // Fetch transactions
+        // Fetch recent transactions for the list (display only)
         const { data: txData, error: txError } = await supabase
           .from('transactions')
           .select('*, customer:customer_id(display_name)')
@@ -55,15 +55,26 @@ const EarningsDashboard = () => {
 
         setTransactions(enrichedTx);
 
-        // Calculate stats
-        const total = txData?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
-        
+        // Fetch ALL transactions for accurate stats (no limit)
         const now = new Date();
         const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisMonthTx = txData?.filter(
-          (t) => new Date(t.created_at) >= firstDayOfMonth
-        );
-        const thisMonth = thisMonthTx?.reduce((sum, t) => sum + t.net_amount, 0) || 0;
+
+        const [{ data: allTx }, { data: thisMonthTx }] = await Promise.all([
+          supabase
+            .from('transactions')
+            .select('net_amount')
+            .eq('creator_id', user.id)
+            .eq('status', 'completed'),
+          supabase
+            .from('transactions')
+            .select('net_amount')
+            .eq('creator_id', user.id)
+            .eq('status', 'completed')
+            .gte('created_at', firstDayOfMonth.toISOString()),
+        ]);
+
+        const total = allTx?.reduce((sum, t) => sum + (t.net_amount || 0), 0) || 0;
+        const thisMonth = thisMonthTx?.reduce((sum, t) => sum + (t.net_amount || 0), 0) || 0;
 
         // Fetch pending payouts
         const { data: payoutData } = await supabase

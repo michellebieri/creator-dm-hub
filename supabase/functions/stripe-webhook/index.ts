@@ -269,17 +269,20 @@ serve(async (req) => {
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
 
-        // Update subscription status
+        // If cancel_at_period_end is true, Stripe keeps status as 'active' but
+        // our app uses 'canceling' to mean "active but not renewing". Preserve that.
+        const dbStatus = subscription.cancel_at_period_end ? "canceling" : subscription.status;
+
         await supabaseClient
           .from("creator_subscriptions")
           .update({
-            status: subscription.status,
+            status: dbStatus,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           })
           .eq("stripe_subscription_id", subscription.id);
 
-        console.log("Subscription updated:", subscription.id, "Status:", subscription.status);
+        console.log("Subscription updated:", subscription.id, "Status:", dbStatus, "cancel_at_period_end:", subscription.cancel_at_period_end);
         break;
       }
 

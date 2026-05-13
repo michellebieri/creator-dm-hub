@@ -75,31 +75,49 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Create Stripe transfer
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: 'usd',
-      destination: settings.stripe_account_id,
-      description: `Payout for creator ${user.id}`,
-    });
-
-    console.log("Stripe transfer created:", transfer.id);
-
-    // Create payout record
+    // Insert payout as 'pending' BEFORE sending to Stripe so we have a record.
+    // If Stripe transfer fails, roll back the record immediately.
     const { data: payout, error: payoutError } = await supabaseClient
       .from('payouts')
       .insert({
         creator_id: user.id,
         amount,
         scheduled_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-        status: 'completed',
-        stripe_transfer_id: transfer.id,
+        status: 'pending',
       })
       .select()
       .single();
 
     if (payoutError) throw payoutError;
+
+    let transfer;
+    try {
+      transfer = await stripe.transfers.create({
+        amount: Math.round(amount * 100),
+        currency: 'usd',
+        destination: settings.stripe_account_id,
+        description: `Payout for creator ${user.id}`,
+        metadata: { payout_id: payout.id },
+      });
+    } catch (stripeError) {
+      // Stripe transfer failed — remove the pending record so balance is not locked
+      await supabaseClient.from('payouts').delete().eq('id', payout.id);
+      throw stripeError;
+    }
+
+    console.log("Stripe transfer created:", transfer.id);
+
+    // Mark payout as completed now that Stripe accepted the transfer
+    const { error: updateError } = await supabaseClient
+      .from('payouts')
+      .update({
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        stripe_transfer_id: transfer.id,
+      })
+      .eq('id', payout.id);
+
+    if (updateError) console.error("Failed to update payout status:", updateError);
 
     // Create notification for creator
     await supabaseClient.functions.invoke('create-notification', {

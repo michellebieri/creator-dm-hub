@@ -208,8 +208,6 @@ const CreatorProfile = () => {
           
           // Check if bundle is purchased - check transactions table for bundle_id OR pack_id (backward compatibility)
           if (user) {
-            console.log('[BUNDLE_OWNERSHIP_CHECK] Checking ownership for bundle:', bundle.id, 'user:', user.id);
-            
             // Check for transaction with bundle_id (new format)
             const { data: bundleIdTransaction } = await supabase
               .from('transactions')
@@ -218,7 +216,7 @@ const CreatorProfile = () => {
               .eq('bundle_id', bundle.id)
               .eq('status', 'completed')
               .maybeSingle();
-            
+
             // Also check for transaction with pack_id (old format for backward compatibility)
             const { data: packIdTransaction } = await supabase
               .from('transactions')
@@ -227,12 +225,9 @@ const CreatorProfile = () => {
               .eq('pack_id', bundle.id)
               .eq('status', 'completed')
               .maybeSingle();
-            
-            console.log('[BUNDLE_OWNERSHIP_CHECK] bundle_id transaction:', bundleIdTransaction, 'pack_id transaction:', packIdTransaction);
-            
+
             if (bundleIdTransaction || packIdTransaction) {
               purchased = true;
-              console.log('[BUNDLE_OWNERSHIP_CHECK] ✓ Bundle OWNED via transaction');
             } else if (bundleContents && bundleContents.length > 0) {
               // Fallback: Check if all items are individually unlocked
               const unlockables = await Promise.all(
@@ -247,7 +242,6 @@ const CreatorProfile = () => {
               );
               
               purchased = unlockables.every(u => u?.unlocked_by?.includes(user.id));
-              console.log('[BUNDLE_OWNERSHIP_CHECK] Fallback unlockables check:', purchased);
             }
           }
           
@@ -402,8 +396,6 @@ const CreatorProfile = () => {
     try {
       // Double-check ownership at transaction level to prevent race conditions
       // Check both bundle_id (new) and pack_id (old) for backward compatibility
-      console.log('[BUNDLE_PURCHASE] Checking for existing purchase:', selectedBundle.id);
-      
       const { data: existingBundleIdTx } = await supabase
         .from('transactions')
         .select('id')
@@ -411,7 +403,7 @@ const CreatorProfile = () => {
         .eq('bundle_id', selectedBundle.id)
         .eq('status', 'completed')
         .maybeSingle();
-      
+
       const { data: existingPackIdTx } = await supabase
         .from('transactions')
         .select('id')
@@ -419,11 +411,8 @@ const CreatorProfile = () => {
         .eq('pack_id', selectedBundle.id)
         .eq('status', 'completed')
         .maybeSingle();
-      
-      console.log('[BUNDLE_PURCHASE] Existing transactions - bundle_id:', existingBundleIdTx, 'pack_id:', existingPackIdTx);
-      
+
       if (existingBundleIdTx || existingPackIdTx) {
-        console.log('[BUNDLE_PURCHASE] ✓ Already owned, preventing duplicate purchase');
         toast({ 
           title: "Already Purchased", 
           description: "You already own this bundle.",
