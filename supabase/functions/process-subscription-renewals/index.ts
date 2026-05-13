@@ -21,6 +21,32 @@ serve(async (req) => {
   );
 
   try {
+    // Require admin auth for manual triggers
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabase.auth.getUser(token);
+      if (userData.user) {
+        const { data: hasAdmin } = await supabase.rpc('has_role', { _user_id: userData.user.id, _role: 'admin' });
+        if (!hasAdmin) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 403,
+          });
+        }
+      }
+    } else {
+      // No auth header — only allow from pg_cron (internal) by checking service key header
+      const apiKey = req.headers.get("apikey") || req.headers.get("x-api-key");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (!serviceKey || apiKey !== serviceKey) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        });
+      }
+    }
+
     console.log("[process-subscription-renewals] Manual trigger — calling process_all_subscription_renewals()");
 
     const { data, error } = await supabase.rpc("process_all_subscription_renewals");
