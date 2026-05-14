@@ -251,20 +251,48 @@ const MessagingInterface = () => {
       // Create conversation if doesn't exist
       let convId = conversationId;
       if (!convId) {
-        // If current user is creator, they are creator_id and the other user is customer_id
-        // If current user is customer, they are customer_id and the other user is creator_id
-        const conversationData = isCreator 
-          ? { creator_id: user.id, customer_id: creatorId }
-          : { customer_id: user.id, creator_id: creatorId };
+        // Customers can INSERT new conversations but lack UPDATE permission,
+        // so we can't use upsert (which requires both via ON CONFLICT DO UPDATE).
+        // Instead: SELECT first, INSERT if missing, fall back to SELECT on the
+        // rare unique-violation race (two simultaneous first-clicks).
+        const otherUserId = creatorId!;
+        const conversationData = isCreator
+          ? { creator_id: user.id, customer_id: otherUserId }
+          : { customer_id: user.id, creator_id: otherUserId };
 
-        const { data: newConv, error: convError } = await supabase
+        const { data: existing } = await supabase
           .from('conversations')
-          .upsert(conversationData, { onConflict: 'creator_id,customer_id', ignoreDuplicates: false })
           .select('id')
-          .single();
+          .eq('creator_id', conversationData.creator_id)
+          .eq('customer_id', conversationData.customer_id)
+          .maybeSingle();
 
-        if (convError) throw convError;
-        convId = newConv.id;
+        if (existing) {
+          convId = existing.id;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('conversations')
+            .insert(conversationData)
+            .select('id')
+            .single();
+          if (insertErr) {
+            if ((insertErr as { code?: string }).code === '23505') {
+              // race: another tab/click won the insert — re-fetch
+              const { data: raceWin } = await supabase
+                .from('conversations')
+                .select('id')
+                .eq('creator_id', conversationData.creator_id)
+                .eq('customer_id', conversationData.customer_id)
+                .single();
+              convId = raceWin?.id;
+            } else {
+              throw insertErr;
+            }
+          } else {
+            convId = inserted.id;
+          }
+        }
+        if (!convId) throw new Error('Failed to create or fetch conversation');
         setConversationId(convId);
       }
 
@@ -346,18 +374,45 @@ const MessagingInterface = () => {
       // Create conversation if doesn't exist (upsert prevents duplicate on double-tap)
       let convId = conversationId;
       if (!convId) {
+        // SELECT-then-INSERT pattern (see handleSend for explanation):
+        // customers lack UPDATE permission on conversations, so upsert fails.
+        const otherUserId = creatorId!;
         const conversationData = isCreator
-          ? { creator_id: user.id, customer_id: creatorId }
-          : { customer_id: user.id, creator_id: creatorId };
+          ? { creator_id: user.id, customer_id: otherUserId }
+          : { customer_id: user.id, creator_id: otherUserId };
 
-        const { data: newConv, error: convError } = await supabase
+        const { data: existing } = await supabase
           .from('conversations')
-          .upsert(conversationData, { onConflict: 'creator_id,customer_id', ignoreDuplicates: false })
           .select('id')
-          .single();
+          .eq('creator_id', conversationData.creator_id)
+          .eq('customer_id', conversationData.customer_id)
+          .maybeSingle();
 
-        if (convError) throw convError;
-        convId = newConv.id;
+        if (existing) {
+          convId = existing.id;
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('conversations')
+            .insert(conversationData)
+            .select('id')
+            .single();
+          if (insertErr) {
+            if ((insertErr as { code?: string }).code === '23505') {
+              const { data: raceWin } = await supabase
+                .from('conversations')
+                .select('id')
+                .eq('creator_id', conversationData.creator_id)
+                .eq('customer_id', conversationData.customer_id)
+                .single();
+              convId = raceWin?.id;
+            } else {
+              throw insertErr;
+            }
+          } else {
+            convId = inserted.id;
+          }
+        }
+        if (!convId) throw new Error('Failed to create or fetch conversation');
         setConversationId(convId);
       }
 
