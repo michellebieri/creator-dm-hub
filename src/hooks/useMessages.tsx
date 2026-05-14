@@ -146,16 +146,23 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     content: string,
     messageType: 'text' | 'voice' = 'text',
     voiceUrl?: string,
-    voiceDuration?: number
+    voiceDuration?: number,
+    // convOverride: when the caller has *just* created the conversation
+    // (e.g. first-ever message between this customer ↔ creator), the
+    // `conversationId` prop in this hook is still the stale null from the
+    // closure — React's setConversationId hasn't propagated yet. Allowing the
+    // caller to pass the just-created ID makes the first send work reliably.
+    convOverride?: string
   ) => {
-    if (!user || !conversationId) return;
+    const effectiveConvId = convOverride || conversationId;
+    if (!user || !effectiveConvId) return;
 
     setSending(true);
     try {
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .select('creator_id, customer_id')
-        .eq('id', conversationId)
+        .eq('id', effectiveConvId)
         .single();
 
       if (convError) throw convError;
@@ -167,7 +174,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         const { data, error } = await supabase
           .from('messages')
           .insert({
-            conversation_id: conversationId,
+            conversation_id: effectiveConvId,
             sender_id: user.id,
             content,
             message_type: messageType,
@@ -232,7 +239,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
             // Atomically increment usage + insert message in one DB transaction
             const { data: result, error: rpcError } = await supabase.rpc('use_subscription_message', {
               p_usage_record_id: usageRecord.id,
-              p_conversation_id: conversationId,
+              p_conversation_id: effectiveConvId,
               p_sender_id: user.id,
               p_content: content,
               p_message_type: messageType,
@@ -256,7 +263,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
               } : null);
               // Trigger auto-reply check (fire-and-forget)
               supabase.functions.invoke('check-auto-reply', {
-                body: { conversationId, senderId: user.id, recipientId: creatorId },
+                body: { conversationId: effectiveConvId, senderId: user.id, recipientId: creatorId },
               }).catch(() => {});
               setSending(false);
               return { id: res.message_id };
@@ -273,7 +280,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       const { data: bundleResult, error: bundleError } = await supabase.rpc('send_bundle_message', {
         p_customer_id:     user.id,
         p_creator_id:      creatorId,
-        p_conversation_id: conversationId,
+        p_conversation_id: effectiveConvId,
         p_content:         content,
         p_message_type:    messageType,
         p_voice_url:       voiceUrl || null,
@@ -286,7 +293,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
         toast.success(`Message sent (${bundle.remaining ?? 0} bundle credits remaining)`);
         // Trigger auto-reply check (fire-and-forget)
         supabase.functions.invoke('check-auto-reply', {
-          body: { conversationId, senderId: user.id, recipientId: creatorId },
+          body: { conversationId: effectiveConvId, senderId: user.id, recipientId: creatorId },
         }).catch(() => {});
         setSending(false);
         return { id: bundle.message_id };
@@ -306,7 +313,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       // lock to make the count+insert atomic against spam-click races.
       if (creatorSettings?.first_three_free) {
         const { data: freeResult } = await supabase.rpc('send_first_three_free_message', {
-          p_conversation_id: conversationId,
+          p_conversation_id: effectiveConvId,
           p_sender_id:       user.id,
           p_creator_id:      creatorId,
           p_content:         content,
@@ -324,7 +331,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
             : 'Message sent free (last free message used)'
           );
           supabase.functions.invoke('check-auto-reply', {
-            body: { conversationId, senderId: user.id, recipientId: creatorId },
+            body: { conversationId: effectiveConvId, senderId: user.id, recipientId: creatorId },
           }).catch(() => {});
           setSending(false);
           return { id: free.message_id };
@@ -334,7 +341,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       }
 
       const { data: walletResult, error: walletError } = await supabase.rpc('send_paid_message', {
-        p_conversation_id: conversationId,
+        p_conversation_id: effectiveConvId,
         p_sender_id:       user.id,
         p_creator_id:      creatorId,
         p_content:         content,
@@ -349,7 +356,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       if (wallet?.success) {
         // Also trigger auto-reply check (fire-and-forget)
         supabase.functions.invoke('check-auto-reply', {
-          body: { conversationId, senderId: user.id, recipientId: creatorId },
+          body: { conversationId: effectiveConvId, senderId: user.id, recipientId: creatorId },
         }).catch(() => {});
 
         toast.success('Message sent');

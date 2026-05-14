@@ -286,8 +286,13 @@ const MessagingInterface = () => {
         });
       }
 
-      // Send message using the hook (handles credit/wallet deduction)
-      await sendMessage(messageToSend);
+      // Send message using the hook (handles credit/wallet deduction).
+      // Pass convId explicitly because setConversationId(convId) above is async —
+      // the hook's `conversationId` closure is still the stale null when we get
+      // here on the FIRST send (brand new conversation just created). Without
+      // the override, the first message between any customer/creator pair
+      // silently fails (sendMessage early-bails on null conversationId).
+      await sendMessage(messageToSend, 'text', undefined, undefined, convId);
 
       // Send notification to recipient (the other user = creatorId param)
       const recipientId = creatorId;
@@ -371,8 +376,9 @@ const MessagingInterface = () => {
         .from('unlockables')
         .getPublicUrl(fileName);
 
-      // Send voice message using the hook (handles credit deduction)
-      await sendMessage('Voice message', 'voice', publicUrl, duration);
+      // Send voice message using the hook (handles credit deduction).
+      // Pass convId explicitly — same async-state reason as handleSend above.
+      await sendMessage('Voice message', 'voice', publicUrl, duration, convId);
 
       // Send notification to recipient (the other user = creatorId param)
       const recipientId = creatorId;
