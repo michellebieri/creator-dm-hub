@@ -301,45 +301,36 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
 
       const pricePerMessage = creatorSettings?.price_per_message || 5.00;
 
-      // Check "first 3 messages free" — count how many paid messages the customer
-      // has already sent in this conversation. If < 3, send for free.
+      // "First 3 messages free": delegated to send_first_three_free_message RPC.
+      // The RPC runs SECURITY DEFINER, re-verifies the flag, and uses an advisory
+      // lock to make the count+insert atomic against spam-click races.
       if (creatorSettings?.first_three_free) {
-        const { count } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conversationId)
-          .eq('sender_id', user.id)
-          .eq('is_paid', true);
+        const { data: freeResult } = await supabase.rpc('send_first_three_free_message', {
+          p_conversation_id: conversationId,
+          p_sender_id:       user.id,
+          p_creator_id:      creatorId,
+          p_content:         content,
+          p_message_type:    messageType,
+          p_voice_url:       voiceUrl || null,
+          p_voice_duration:  voiceDuration || null,
+        });
 
-        if ((count ?? 0) < 3) {
-          const { data: freeMsg, error: freeMsgError } = await supabase
-            .from('messages')
-            .insert({
-              conversation_id: conversationId,
-              sender_id: user.id,
-              content,
-              message_type: messageType,
-              voice_url: voiceUrl || null,
-              voice_duration: voiceDuration || null,
-              is_paid: true,
-            })
-            .select()
-            .single();
+        const free = freeResult as { success: boolean; message_id?: string; remaining?: number; error?: string } | null;
 
-          if (!freeMsgError && freeMsg) {
-            const remaining = 2 - (count ?? 0);
-            toast.success(remaining > 0
-              ? `Message sent free (${remaining} free message${remaining !== 1 ? 's' : ''} remaining)`
-              : 'Message sent free (last free message used)'
-            );
-            // Trigger auto-reply check (fire-and-forget)
-            supabase.functions.invoke('check-auto-reply', {
-              body: { conversationId, senderId: user.id, recipientId: creatorId },
-            }).catch(() => {});
-            setSending(false);
-            return { id: freeMsg.id };
-          }
+        if (free?.success) {
+          const remaining = free.remaining ?? 0;
+          toast.success(remaining > 0
+            ? `Message sent free (${remaining} free message${remaining !== 1 ? 's' : ''} remaining)`
+            : 'Message sent free (last free message used)'
+          );
+          supabase.functions.invoke('check-auto-reply', {
+            body: { conversationId, senderId: user.id, recipientId: creatorId },
+          }).catch(() => {});
+          setSending(false);
+          return { id: free.message_id };
         }
+        // If the RPC says no free messages remaining (or any other non-success),
+        // fall through to the paid wallet path below.
       }
 
       const { data: walletResult, error: walletError } = await supabase.rpc('send_paid_message', {
