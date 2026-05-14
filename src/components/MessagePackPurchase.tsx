@@ -34,9 +34,17 @@ export const MessagePackPurchase = ({ creatorId, packs }: MessagePackPurchasePro
         window.location.href = data.url;
       }
     } catch (error: any) {
+      // Surface the real edge function error (default error.message is the
+      // generic "Edge Function returned a non-2xx status code"; the actual
+      // reason is in the response body, accessible via error.context).
+      let detail = error?.message ?? 'unknown';
+      try {
+        const body = await error?.context?.json?.();
+        if (body?.error) detail = body.error;
+      } catch (_) { /* leave generic */ }
       toast({
         title: "Purchase failed",
-        description: error.message,
+        description: detail,
         variant: "destructive",
       });
     } finally {
