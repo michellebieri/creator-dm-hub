@@ -97,12 +97,13 @@ serve(async (req) => {
             .single();
 
           // Fire and forget notification
-          supabase.functions.invoke('send-notification', {
+          supabase.functions.invoke('create-notification', {
             body: {
+              userId: conversation.customer_id,
               type: 'new_message',
-              recipientId: conversation.customer_id,
-              senderName: sender?.display_name || 'Creator',
-              messagePreview: scheduledMsg.content.substring(0, 100),
+              title: `New message from ${sender?.display_name || 'Creator'}`,
+              message: scheduledMsg.content.substring(0, 100),
+              link: '/messages',
             },
           }).catch(err => console.log('Notification error:', err));
         }

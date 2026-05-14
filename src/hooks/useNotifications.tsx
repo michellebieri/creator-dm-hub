@@ -108,6 +108,12 @@ export const useNotifications = () => {
       console.error('Error marking notification as read:', error);
       return false;
     }
+
+    // Optimistic local update (same pattern as markAllAsRead)
+    setNotifications(prev =>
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+    );
+    setUnreadCount(prev => Math.max(0, prev - 1));
     return true;
   };
 

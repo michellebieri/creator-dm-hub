@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Clock, CalendarIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
 
 interface MessageSchedulerProps {
   onSchedule: (date: Date) => void;
@@ -25,6 +26,7 @@ export const MessageScheduler = ({ onSchedule, disabled }: MessageSchedulerProps
 
     // Check if date is in the future
     if (scheduledDateTime <= new Date()) {
+      toast.error('Scheduled time must be in the future');
       return;
     }
 
