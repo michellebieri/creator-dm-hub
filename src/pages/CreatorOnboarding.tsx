@@ -103,24 +103,18 @@ const CreatorOnboarding = () => {
 
     setLoading(true);
     try {
-      // Update profile
+      // Update profile (display_name, bio only — role is granted by admin via
+      // handleApprove writing to user_roles; profiles.role is a legacy column
+      // not used for any auth decisions and is column-revoked from authenticated).
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
           display_name: displayName,
           bio: bio || null,
-          role: 'creator', // legacy field — also write to user_roles below
         })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
-
-      // Grant creator role in user_roles (authoritative source for all role checks)
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({ user_id: user.id, role: 'creator' }, { onConflict: 'user_id,role' });
-
-      if (roleError) throw roleError; // critical — creator can't access any features without this role
 
       // Create or update creator settings (upsert preserves stripe_account_id if already set)
       const { error: settingsError } = await supabase
