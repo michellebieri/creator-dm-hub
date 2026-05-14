@@ -364,7 +364,7 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       }
 
       // ── STEP 4: No entitlements ───────────────────────────────────────────
-      toast.error('You need a subscription, message bundle, or wallet funds to send messages.');
+      toast.error('Send failed: ' + (walletError?.message || wallet?.error || 'unknown (no entitlements found)'));
       setSending(false);
       return null;
     } catch (error) {
