@@ -38,7 +38,10 @@ serve(async (req) => {
 
     console.log("Webhook event type:", event.type, "ID:", event.id);
 
-    // Check if event already processed (idempotency)
+    // Idempotency check: if we've already fully processed this event, ack & skip.
+    // The "processed" marker is inserted AFTER the handler succeeds (see end of try),
+    // so a previous attempt that crashed mid-handler will NOT be marked as processed
+    // and Stripe's retry will land here and be reprocessed cleanly.
     const { data: processedEvent } = await supabaseClient
       .from('processed_webhook_events')
       .select('id')
@@ -52,11 +55,6 @@ serve(async (req) => {
         status: 200,
       });
     }
-
-    // Mark event as being processed
-    await supabaseClient
-      .from('processed_webhook_events')
-      .insert({ event_id: event.id, event_type: event.type });
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -210,6 +208,21 @@ serve(async (req) => {
 
         if (!userId || !priceId) {
           console.error("Missing supabase_user_id in Stripe customer metadata or missing price ID", { customerId, priceId });
+          break;
+        }
+
+        // Payload-level idempotency: if a row already exists for this Stripe
+        // subscription, the previous handler attempt already created it.
+        // (creator_subscriptions has no UNIQUE on stripe_subscription_id yet —
+        // see follow-up — so we guard explicitly.)
+        const { data: existingSub } = await supabaseClient
+          .from("creator_subscriptions")
+          .select("id")
+          .eq("stripe_subscription_id", subscription.id)
+          .maybeSingle();
+
+        if (existingSub) {
+          console.log("Subscription already recorded, skipping:", subscription.id);
           break;
         }
 
@@ -402,6 +415,23 @@ serve(async (req) => {
 
       default:
         console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    // Handler completed without throwing — record the event so future retries
+    // (including redelivery from the Stripe dashboard) short-circuit on the
+    // SELECT above. If a concurrent delivery races past the SELECT, the unique
+    // constraint on event_id ensures only one insert wins; we treat the
+    // 23505 duplicate as a benign "already recorded" signal.
+    const { error: markErr } = await supabaseClient
+      .from('processed_webhook_events')
+      .insert({ event_id: event.id, event_type: event.type });
+
+    if (markErr && (markErr as { code?: string }).code !== '23505') {
+      // Logging-only: don't fail the response. Stripe already saw success.
+      // A missed mark just means a duplicate delivery would re-execute the
+      // handler, which is safe because every money-bearing branch has its
+      // own payload-level idempotency check (stripe_payment_id / subscription id).
+      console.error('Failed to mark event processed:', markErr);
     }
 
     return new Response(JSON.stringify({ received: true }), {
