@@ -152,7 +152,7 @@ const CreatorOnboarding = () => {
       navigate('/dashboard');
     } catch (error) {
       console.error('Onboarding error:', error);
-      toast.error('Failed to complete setup');
+      toast.error('Failed to complete setup: ' + (error?.message || 'Unknown error'));
     } finally {
       setLoading(false);
     }
