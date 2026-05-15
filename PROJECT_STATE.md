@@ -9,7 +9,7 @@ Last updated: 2026-05-15
 ## Current Production Status
 
 - **Hosting:** Vercel auto-deploys on push to `origin/main`. Promote-on-push is enabled.
-- **Latest production commit:** `bbe938c` (docs: PROJECT_STATE.md update). All migrations through `20260515000002` **applied 2026-05-15**. No critical launch blockers remain.
+- **Latest production commit:** `80dec72` (`fix(LB#1): creator approval pipeline + AUDIT-1 + ROUTING-1`). Migration `20260515000003_fix_creator_admin_pipeline.sql` is in repo and **awaiting manual application in Supabase SQL Editor** — see "Critical launch blockers".
 - **Frontend:** React 18 + TypeScript + Vite. Single bundle (~1.86 MB unminified; ~493 KB gzipped). Build clean, typecheck clean.
 - **Backend:** Supabase (Postgres + RLS + Edge Functions + Storage + pg_cron + Realtime).
 - **Payments:** Stripe Connect Express (creator payouts), Stripe Checkout (wallet deposits + bundles). Platform fee: **25%**.
@@ -28,10 +28,21 @@ Last updated: 2026-05-15
 | `20260514130001_audit_cron_balance_after_and_message_type_cast.sql` | 2026-05-14 | balance_after + enum cast fixes in cron + RPCs |
 | `20260515000001_fix_subscription_tiers_grants.sql` | 2026-05-15 | Restored INSERT/UPDATE/DELETE on `subscription_tiers` (was silently 403) |
 | `20260515000002_fix_transaction_type_enum_values.sql` | 2026-05-15 | Added `subscription`, `deposit`, `refund` to enum (was missing — all 3 flows broken) |
+| `20260515000003_fix_creator_admin_pipeline.sql` | **pending CoWork apply** | Admin RLS policies + approve/reject/submit RPCs. Fixes LB#1 DB half. |
 
 ### Critical launch blockers
 
-_None._ The two blockers discovered during today's audit (`subscription_tiers` GRANT and `transaction_type` enum values) are both applied to production and verified by E2E.
+1. **🔴 LB#1 — Creator approval pipeline (DB half awaiting application)**
+   - Discovered by CoWork QA report 2026-05-15. Three compounding defects (broken `CREATE POLICY IF NOT EXISTS` SQL, frontend swallowing write errors, false "Application Under Review" reassurance).
+   - Frontend fixes (Defects A + C, plus AdminDashboard wiring to new RPCs) are landed in commit `80dec72`.
+   - DB fix migration written: [supabase/migrations/20260515000003_fix_creator_admin_pipeline.sql](supabase/migrations/20260515000003_fix_creator_admin_pipeline.sql) — **awaiting manual application in Supabase SQL Editor**.
+   - Includes: admin RLS policies on `creator_verifications` + `profiles` + `user_roles`, plus `admin_approve_creator_application` / `admin_reject_creator_application` / `submit_creator_application` RPCs.
+   - Once applied, run [.qa/lb1_partial.mjs](.qa/lb1_partial.mjs) for autonomous P1-P3 verification, then admin manually approves to verify the full pipeline (or run [.qa/approval_pipeline_e2e.mjs](.qa/approval_pipeline_e2e.mjs) with `ADMIN_PASSWORD` env var set).
+
+2. **🟠 LB#2 — Email confirmation delivery unverified (CoWork suspected blocker)**
+   - Toggle is currently OFF (CoWork turned it off to QA without inbox harness). Must verify real delivery and re-enable.
+   - Affected: Supabase Auth SMTP / redirect URL configuration. Not app code.
+   - Action: send one signup with a real inbox, confirm the email link works, then re-enable the "Confirm email" toggle in Supabase → Authentication → Sign In / Providers → Email.
 
 ### Known temporary workarounds (must be removed)
 
@@ -39,6 +50,9 @@ _None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test
 
 ### Resolved issues (this session 2026-05-15)
 
+- LB#1 frontend half: `submitApplication` swallowed write errors; `handleSignIn` faked "Application Under Review" for no-app users; AdminDashboard handleApprove/handleReject hit column-REVOKE'd `profiles.role` — all rewritten to use new SECURITY DEFINER RPCs + surface real errors. Tabs made controlled so the no-app branch switches to Apply. (commit `80dec72`)
+- AUDIT-1 silent-save in MessagingSettings + SocialsSettings — `.update().eq()` replaced with `.upsert(... onConflict: 'user_id')` and real-error toast. (commit `80dec72`)
+- ROUTING-1 `/:id` catch-all — non-username-shaped IDs now render a clean inline 404 instead of toast + auto-bounce. PROJECT_STATE.md corrected: admin route is `/admin`, not `/admin-dashboard`. (commit `80dec72`)
 - Voice + Stats buttons hidden from customer/fan UI (creator-only) — `1baa7a8`
 - Locked content card redesigned with premium gradient + frosted blur — `1baa7a8`
 - Subscribe button added to chat header (was only on profile page) — `1baa7a8`
@@ -244,7 +258,21 @@ Run after every fix that touches the relevant area.
 
 ## Latest CoWork QA Findings
 
-_Filled by Claude CoWork. Empty initially._
+### 2026-05-15 — Full fresh-user QA sweep (see `QA_REPORT_2026-05-15.md` for the complete report + engineer handoffs)
+
+**⚠️ Email confirmation is currently toggled OFF in Supabase (done for this QA session) — MUST be re-enabled before launch.**
+
+**🔴 LAUNCH BLOCKER #1 — creator approval pipeline is broken end-to-end.** No new creator can be onboarded. Application never reaches `/admin` ("No applications yet"). Root cause: `20260512000006_creator_application_fields.sql` uses invalid `CREATE POLICY IF NOT EXISTS` (not valid Postgres) → admin RLS policy never created; plus `CreatorAuth.tsx` swallows the `creator_verifications` upsert error and its sign-in `else` branch shows a false "Application Under Review". Every existing creator only has the role via direct DB grants — the approval flow has never worked.
+
+**🔴 LAUNCH BLOCKER #2 — email-confirmation delivery is unverified.** Prior QA bypassed it with `UPDATE auth.users` (`.qa/regression.mjs`) and the dead `inboxbear.com`. Whether a real confirmation email delivers / the redirect works has never been tested. Verify before launch.
+
+**🟠 AUDIT-1 (HIGH, confirmed)** — `MessagingSettings.tsx` / `SocialsSettings.tsx` use `.update()` not `.upsert()`; for a creator with no `creator_settings` row, Save shows "saved successfully" but persists nothing (silent data loss).
+
+**Correction:** the previously-recorded "fresh-user E2E 9/9 pass" is invalid — it ran on accounts that bypassed both onboarding gates via manual DB writes. A true fresh-user E2E through the UI has now been done and is recorded in the QA report.
+
+**What DID pass for a brand-new creator + customer:** CreatorOnboarding, tier creation, unlockable upload, wallet deposit (Stripe), first-3-free, paid message, subscribe, free-message enforcement, unlock, 25/75 fee split, creator-side subscriber/earnings reflection, wallet ledger exact to the cent. The monetization engine is sound — only the approval gate that *grants* the creator role is broken.
+
+Other findings (ROUTING-1, CHAT-UX-1, ONBOARDING-2/3, SIGNOUT-1, FORM-1, A11Y-1, `.env` pk_live mismatch): see `QA_REPORT_2026-05-15.md`. Note: documented admin route `/admin-dashboard` is wrong — it is `/admin`.
 
 ---
 
@@ -272,7 +300,11 @@ _Filled by Claude CoWork. Empty initially._
 
 ## Next Priorities
 
-1. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`) — now possible after grant fix.
+1. **CoWork: apply `20260515000003` SQL in Supabase Editor** (the only thing blocking LB#1 from being end-to-end resolved). SQL block is provided in chat.
+2. **Code: run `.qa/lb1_partial.mjs`** the moment SQL is applied — confirms submission writes the verification row.
+3. **Code: run `.qa/approval_pipeline_e2e.mjs`** (with `ADMIN_PASSWORD` env) OR **CoWork manually**: admin login → /admin → Applications → see fresh creator → Approve → confirm role assigned + creator can reach /creator-onboarding.
+4. **CoWork: LB#2** — send one real-inbox signup, verify confirmation email delivers, re-enable the Supabase "Confirm email" toggle.
+5. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`).
 2. **Code: free-message enforcement E2E** — subscribed customer with `unlimited_messages=true` sends a message, verify `use_subscription_message` RPC fires (not `send_paid_message`) and wallet is NOT debited.
 3. **Code: cancel + renewal simulation** — verify `canceling` status keeps access until period_end; backdate a sub's period_end + manually invoke `process_all_subscription_renewals()` to validate cron logic.
 4. **Code: fix `create-notification` 403** (B2) — defer or address.
