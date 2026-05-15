@@ -53,7 +53,19 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
     if (error) {
       console.error('Error fetching messages:', error);
     } else {
-      setMessages(data || []);
+      // Normalize `unlockables` to an array. PostgREST embeds it as an OBJECT
+      // (not array) because messages.id → unlockables.message_id has a UNIQUE
+      // constraint (1-to-1 relationship). The render code below expects
+      // `msg.unlockables.length > 0 && msg.unlockables.map(...)` which silently
+      // does nothing on an object. Without this normalization customers NEVER
+      // see locked content cards.
+      const normalized = (data || []).map(m => ({
+        ...m,
+        unlockables: Array.isArray(m.unlockables)
+          ? m.unlockables
+          : (m.unlockables ? [m.unlockables] : []),
+      }));
+      setMessages(normalized);
     }
     setLoading(false);
   };
@@ -130,7 +142,22 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${conversationId}` },
-        (payload) => setMessages((current) => [...current, payload.new as Message])
+        (payload) => {
+          // Realtime payload only contains the messages row — no embedded
+          // unlockables. For unlockable messages we re-fetch so the locked
+          // card renders correctly without requiring the user to refresh.
+          // For text/voice we just append optimistically.
+          if ((payload.new as any).message_type === 'unlockable') {
+            fetchMessages();
+          } else {
+            setMessages((current) => {
+              // Avoid duplicates if both INSERT realtime and our own send-RPC
+              // returned at the same time.
+              if (current.some(m => m.id === (payload.new as any).id)) return current;
+              return [...current, payload.new as Message];
+            });
+          }
+        }
       )
       .on(
         'postgres_changes',
