@@ -32,7 +32,10 @@ export const useWallet = () => {
 
     fetchBalance();
 
-    // Subscribe to balance changes
+    // Subscribe to balance changes via realtime
+    // (works only if `profiles` is in supabase_realtime publication; the
+    // `wallet-balance-update` window event below is the immediate, reliable
+    // signal for known-good local changes after RPC calls.)
     const channel = supabase
       .channel(`wallet-${user.id}`)
       .on(
@@ -51,8 +54,24 @@ export const useWallet = () => {
       )
       .subscribe();
 
+    // Listen for in-app balance updates dispatched by RPCs that return the
+    // new balance (send_paid_message, spend_wallet_balance, etc). This
+    // guarantees the wallet UI updates immediately after a known mutation,
+    // without depending on Supabase realtime broadcasts being configured.
+    const onBalanceUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && typeof detail.balance === 'number') {
+        setBalance(detail.balance);
+      } else {
+        // No balance in event payload — refetch as safety net
+        fetchBalance();
+      }
+    };
+    window.addEventListener('wallet-balance-update', onBalanceUpdate);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener('wallet-balance-update', onBalanceUpdate);
     };
   }, [user]);
 

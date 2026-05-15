@@ -354,6 +354,15 @@ export const useMessages = (conversationId: string | null, creatorId?: string | 
       const wallet = walletResult as { success: boolean; message_id?: string; new_balance?: number; error?: string } | null;
 
       if (wallet?.success) {
+        // Push the new balance to any useWallet listener so the UI updates
+        // immediately without waiting for realtime broadcasts (which require
+        // `profiles` in the supabase_realtime publication — not guaranteed).
+        if (typeof wallet.new_balance === 'number') {
+          window.dispatchEvent(new CustomEvent('wallet-balance-update', {
+            detail: { balance: wallet.new_balance }
+          }));
+        }
+
         // Also trigger auto-reply check (fire-and-forget)
         supabase.functions.invoke('check-auto-reply', {
           body: { conversationId: effectiveConvId, senderId: user.id, recipientId: creatorId },

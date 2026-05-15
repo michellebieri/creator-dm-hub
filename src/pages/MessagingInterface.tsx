@@ -710,7 +710,9 @@ const MessagingInterface = () => {
                   </div>
                   {msg.sender_id === user?.id && (
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>Y</AvatarFallback>
+                      <AvatarFallback>
+                        {(user?.user_metadata?.display_name || user?.user_metadata?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                      </AvatarFallback>
                     </Avatar>
                   )}
                 </div>
