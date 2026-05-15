@@ -1,0 +1,26 @@
+-- ── LB#1 Fix part 3: GRANT on creator_verifications ────────────────────────
+--
+-- Discovered by the LB#1 partial E2E after columns were added: every read of
+-- creator_verifications via the authenticated role returns
+--   42501 — permission denied for table creator_verifications
+--   hint: Grant the required privileges to the current role with:
+--   GRANT SELECT ON public.creator_verifications TO authenticated;
+--
+-- This is the same RLS-policy-without-underlying-GRANT pattern that bit
+-- subscription_tiers earlier today. RLS scopes which rows a role can
+-- access; GRANT decides whether the role can touch the table at all.
+-- Both layers must allow the action.
+--
+-- Practical impact:
+--   - handleSignIn in CreatorAuth.tsx can't read .status to know whether a
+--     creator has a pending vs rejected vs no application — falls through to
+--     "no application on file" for everyone, even with a pending row.
+--   - AdminDashboard's creator_verifications query (line 117) returns 403
+--     even with the admin policy in place.
+--   - The submit RPC writes successfully (SECURITY DEFINER bypasses) but
+--     no client can read the result back.
+--
+-- Fix: restore the full SELECT/INSERT/UPDATE grant. RLS policies still scope
+-- each role to the right rows (creators see own, admins see all).
+
+GRANT SELECT, INSERT, UPDATE ON public.creator_verifications TO authenticated;
