@@ -66,7 +66,7 @@ export const useUnlockables = () => {
 
       if (error) {
         console.error('unlock_content RPC error:', error.message);
-        toast.error('Failed to process payment');
+        toast.error(error.message || 'Failed to process payment');
         return null;
       }
 

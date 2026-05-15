@@ -315,7 +315,7 @@ const Dashboard = () => {
 
       if (error) {
         console.error('unlock_content RPC error:', error.message);
-        toast({ title: "Error", description: "Failed to process payment", variant: "destructive" });
+        toast({ title: "Error", description: error.message || "Failed to process payment", variant: "destructive" });
         return;
       }
 
