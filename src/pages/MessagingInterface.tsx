@@ -14,7 +14,6 @@ import { MessageScheduler } from '@/components/MessageScheduler';
 import { ScheduledMessagesList } from '@/components/ScheduledMessagesList';
 import { ConversationStats } from '@/components/ConversationStats';
 import { MessageEditDialog } from '@/components/MessageEditDialog';
-import { ConversationExport } from '@/components/ConversationExport';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
@@ -510,10 +509,7 @@ const MessagingInterface = () => {
           </div>
           <div className="flex items-center gap-2">
             {conversationId && user?.id && (
-              <>
-                <ConversationExport conversationId={conversationId} />
-                <ConversationStats conversationId={conversationId} userId={user.id} />
-              </>
+              <ConversationStats conversationId={conversationId} userId={user.id} />
             )}
             
             <Button 
