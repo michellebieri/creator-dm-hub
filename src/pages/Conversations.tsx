@@ -312,7 +312,7 @@ const Conversations = () => {
               />
               {!isCreator && (
                 <div className="text-center mt-4 text-sm text-muted-foreground">
-                  <p>Example: @michelle</p>
+                  <p>Search for a creator by their @username</p>
                 </div>
               )}
             </div>
