@@ -9,7 +9,7 @@ Last updated: 2026-05-15
 ## Current Production Status
 
 - **Hosting:** Vercel auto-deploys on push to `origin/main`. Promote-on-push is enabled.
-- **Latest production commit:** `06b7b77` (`fix: surface real RPC error in unlock toasts`). Migration `20260515000001_fix_subscription_tiers_grants` is in repo but **not yet applied in production** — see "Critical launch blockers" below.
+- **Latest production commit:** `a40b14d` (`fix: add missing transaction_type enum values`). Migration `20260515000001_fix_subscription_tiers_grants` **applied 2026-05-15**. Migration `20260515000002_fix_transaction_type_enum_values` **awaiting application** — see "Critical launch blockers".
 - **Frontend:** React 18 + TypeScript + Vite. Single bundle (~1.86 MB unminified; ~493 KB gzipped). Build clean, typecheck clean.
 - **Backend:** Supabase (Postgres + RLS + Edge Functions + Storage + pg_cron + Realtime).
 - **Payments:** Stripe Connect Express (creator payouts), Stripe Checkout (wallet deposits + bundles). Platform fee: **25%**.
@@ -26,12 +26,15 @@ Last updated: 2026-05-15
 | `20260514120001_restore_table_grants.sql` | 2026-05-14 | Restored grants for conversations, user_roles, etc. — missed `subscription_tiers` |
 | `20260514120002_subscription_creator_id_and_pricing_policy.sql` | 2026-05-14 | BUG A (`creator_subscriptions.creator_id`) + BUG B (`creator_settings` RLS) |
 | `20260514130001_audit_cron_balance_after_and_message_type_cast.sql` | 2026-05-14 | balance_after + enum cast fixes in cron + RPCs |
+| `20260515000001_fix_subscription_tiers_grants.sql` | 2026-05-15 | Restored INSERT/UPDATE/DELETE on `subscription_tiers` (was silently 403) |
 
 ### Critical launch blockers
 
-1. **🔴 `subscription_tiers` missing INSERT/UPDATE/DELETE grant to `authenticated` role.**
-   - Discovered 2026-05-15 by fresh-user E2E. No creator on the platform can create tiers via UI — silent 403.
-   - Fix file: [supabase/migrations/20260515000001_fix_subscription_tiers_grants.sql](supabase/migrations/20260515000001_fix_subscription_tiers_grants.sql) — **awaiting manual application in Supabase SQL Editor**.
+1. **🔴 `transaction_type` enum missing values `'subscription'`, `'deposit'`, `'refund'`.**
+   - Discovered 2026-05-15 by subscription-lifecycle E2E.
+   - Without these: `purchase_subscription` crashes 22P02, renewal cron silently fails, wallet deposits via Stripe webhook fail, refunds impossible.
+   - Migration `20260513000000_fix_transaction_type_enum.sql` was supposed to add `subscription` weeks ago but the handoff doc was wrong — never actually ran in production (same pattern as `unlock_content`).
+   - Fix file: [supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql](supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql) — **awaiting manual application in Supabase SQL Editor**.
 
 ### Known temporary workarounds (must be removed)
 
@@ -155,12 +158,12 @@ Last updated: 2026-05-15
 
 ### 🔴 Critical
 
-**B1. `subscription_tiers` missing INSERT/UPDATE/DELETE grant**
-- Severity: **launch blocker** (no creator can create tiers via UI)
-- Reproduction: log in as any creator → `/settings/subscription` → click "Add Tier" → fill name + price → click "Create Tier" → silent failure
-- Root cause: `20260514120001_restore_table_grants` granted only SELECT on `subscription_tiers`; INSERT/UPDATE/DELETE not granted. RLS policy "Creators can manage own subscription tiers" exists but cannot fire without the underlying table grant.
-- Current status: fix migration written, **awaiting manual application in Supabase SQL Editor** (`20260515000001_fix_subscription_tiers_grants.sql`).
-- Files: [supabase/migrations/20260515000001_fix_subscription_tiers_grants.sql](supabase/migrations/20260515000001_fix_subscription_tiers_grants.sql)
+**B3. `transaction_type` enum incomplete (`subscription`, `deposit`, `refund` missing)**
+- Severity: **launch blocker** (no customer can subscribe, deposits and refunds broken)
+- Reproduction: any customer subscribes via UI → silent error toast → wallet not debited → no `creator_subscriptions` row
+- Root cause: enum created with only `('message','pack','unlockable')`. Earlier `ADD VALUE` migration was claimed-applied but never ran in production.
+- Current status: fix migration written, **awaiting manual application in Supabase SQL Editor** (`20260515000002_fix_transaction_type_enum_values.sql`).
+- Files: [supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql](supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql)
 
 ### 🟡 Cosmetic
 
@@ -173,6 +176,7 @@ Last updated: 2026-05-15
 
 ### 🟢 Resolved (kept for reference)
 
+- ~~`subscription_tiers` missing INSERT/UPDATE/DELETE grant~~ → migration `20260515000001` applied 2026-05-15. Verified by fresh-user E2E.
 - ~~`unlock_content` RPC missing in prod~~ → applied 2026-05-15
 - ~~First-send silent fail~~ → `convOverride` fix in `useMessages.tsx`
 - ~~Locked content "fat white block"~~ → premium gradient in `UnlockableContent.tsx`
@@ -258,11 +262,11 @@ _Filled by Claude CoWork. Empty initially._
 ## Latest Claude Code Changes
 
 ### 2026-05-15 (this session)
+- `a40b14d` — fix: add missing `transaction_type` enum values (`subscription`, `deposit`, `refund`)
+- `2e726bf` — docs+fix: add PROJECT_STATE.md + GRANT migration + remove `@michelle` placeholder
 - `06b7b77` — fix: surface real RPC error in unlock toasts instead of generic 'Failed to process payment'
 - `eef37ac` — feat: admin panel rebuild + creator dashboard subscription nudges
 - `1baa7a8` — fix: 4 customer-side UX bugs (subscribe button, locked content, lists, hide creator-only tools)
-- (uncommitted at time of writing) `supabase/migrations/20260515000001_fix_subscription_tiers_grants.sql` — fix: restore INSERT/UPDATE/DELETE grants on `subscription_tiers`
-- (uncommitted) `src/pages/Conversations.tsx` — replace `@michelle` example with generic copy
 
 ### 2026-05-14
 - `ba8df07` — fix: render unlockables in customer chat (PostgREST object→array bug)
@@ -279,10 +283,10 @@ _Filled by Claude CoWork. Empty initially._
 
 ## Next Priorities
 
-1. **CoWork: apply `20260515000001` SQL in Supabase Editor** (unblocks tier creation for all creators).
-2. **Code: re-run fresh-user E2E** after grant lands → verify creator can create tier via UI → customer can subscribe via UI → subscription appears in `/subscribers` + `/subscriptions`.
-3. **Code: delete the spurious tier row** inserted at the QA Fresh Creator UUID (band-aid cleanup).
-4. **CoWork: create one real tier on `@Michellebieri` via UI** to confirm the platform-wide fix works for the actual creator account (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`).
-5. **Code: full subscription lifecycle E2E** — purchase → renewal simulation (backdate + call cron RPC) → cancel → period expiry.
+1. **CoWork: apply `20260515000002` SQL in Supabase Editor** (unblocks subscribe + deposit + refund flows).
+2. **Code: re-run subscription lifecycle E2E** after enum fix lands — verify purchase → wallet deduct → `creator_subscriptions` row → `/subscriptions` + `/subscribers` visible.
+3. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`) — now possible after grant fix.
+4. **Code: delete spurious test tier rows** on QA creator UUID after lifecycle E2E passes.
+5. **Code: renewal cron simulation** — backdate `current_period_end` on a sub, call `process_all_subscription_renewals()`, verify row renewed and wallet debited.
 6. **Code: fix `create-notification` 403** (B2) — defer or address.
-7. **CoWork: regression sweep** using the checklist above on a brand-new creator + brand-new customer pair.
+7. **CoWork: regression sweep** using the [Regression Checklist](#regression-checklist) on a brand-new creator + brand-new customer pair signed up today.
