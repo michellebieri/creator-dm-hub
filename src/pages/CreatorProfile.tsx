@@ -96,10 +96,23 @@ const CreatorProfile = () => {
 
   const fetchCreatorData = async () => {
     if (!id) return;
-    
+
     // Clean the identifier (remove @ if present at start)
     const cleanId = id.startsWith('@') ? id.substring(1) : id;
-    
+
+    // Defensive: the /:id route catches anything single-segment. Reject IDs
+    // that look like a typo of a top-level page rather than a username so
+    // we don't spam "Creator not found" toasts for stale or wrong URLs.
+    // Usernames are alphanumeric + underscore, 2-20 chars (matches signup
+    // validation). Anything containing a dash, dot, or slash is rejected
+    // cleanly with a single 404 state and no auto-redirect.
+    const looksLikeUsername = /^[A-Za-z0-9_]{2,30}$/.test(cleanId);
+    if (!looksLikeUsername && cleanId.length !== 36) {
+      setLoading(false);
+      setProfile(null);
+      return;
+    }
+
     try {
       // Try multiple lookup methods for flexibility
       let profileData: any = null;
@@ -142,12 +155,12 @@ const CreatorProfile = () => {
       }
       
       if (!profileData) {
-        toast({
-          title: 'Creator not found',
-          description: `Could not find a creator matching "${cleanId}"`,
-          variant: 'destructive',
-        });
-        navigate('/');
+        // Render an inline 404 instead of toast + auto-bounce. Auto-bounce
+        // makes typos and stale links land on Home with a destructive toast
+        // — confusing and unhelpful. The page itself shows a clean message
+        // with a Home button.
+        setLoading(false);
+        setProfile(null);
         return;
       }
       
@@ -565,7 +578,21 @@ const CreatorProfile = () => {
       </div>
     );
   }
-  if (!profile) return null;
+  if (!profile) {
+    // Clean inline 404 — used when the /:id catch-all matches a typo'd or
+    // stale URL (e.g. "/admin-dashboard" when the actual route is "/admin").
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="text-center space-y-4 max-w-sm">
+          <h1 className="text-2xl font-semibold">Page not found</h1>
+          <p className="text-muted-foreground text-sm">
+            No creator with this handle, and no page at this URL.
+          </p>
+          <Button onClick={() => navigate('/')}>Go home</Button>
+        </div>
+      </div>
+    );
+  }
 
   // Check if content is accessible: user owns it OR (user is subscribed AND content is free for subscribers)
   const isUnlocked = (item: ContentItem) => {

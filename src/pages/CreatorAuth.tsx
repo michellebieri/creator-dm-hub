@@ -47,6 +47,10 @@ const CreatorAuth = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [signupSuccess, setSignupSuccess] = useState(false);
 
+  // Controlled tabs so we can programmatically switch users to "Apply" if
+  // they try to sign in without an existing application.
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+
   // Step-based signup
   const [step, setStep] = useState<'account' | 'application'>('account');
   const [accountData, setAccountData] = useState<{ email: string; password: string; username: string; displayName: string } | null>(null);
@@ -133,25 +137,25 @@ const CreatorAuth = () => {
       const userId = authData.user?.id;
       if (!userId) throw new Error('Account creation failed');
 
-      // If email confirmation is required, submit application via a small delay so the
-      // profile trigger has time to run. If session is immediate, submit now.
-      const submitApplication = async (uid: string) => {
-        await supabase.from('creator_verifications').upsert({
-          creator_id: uid,
-          status: 'pending',
-          instagram_handle: instagramHandle || null,
-          tiktok_handle: tiktokHandle || null,
-          twitter_handle: twitterHandle || null,
-          follower_count: followerRange,
-          content_niche: niche,
-          about_yourself: aboutYourself,
-          submitted_at: new Date().toISOString(),
-        }, { onConflict: 'creator_id' });
+      // Submit application via SECURITY DEFINER RPC so any failure surfaces
+      // as a real error instead of being swallowed at the REST layer.
+      const submitApplication = async () => {
+        const { data, error } = await supabase.rpc('submit_creator_application', {
+          p_instagram: instagramHandle || null,
+          p_tiktok: tiktokHandle || null,
+          p_twitter: twitterHandle || null,
+          p_follower_range: followerRange,
+          p_niche: niche,
+          p_about: aboutYourself,
+        });
+        if (error) throw new Error(error.message);
+        const result = data as { success: boolean; error?: string } | null;
+        if (!result?.success) throw new Error(result?.error || 'Application submission failed');
       };
 
       if (authData.session) {
         // Email confirmation off — user is active immediately
-        await submitApplication(userId);
+        await submitApplication();
         setSignupSuccess(true);
       } else {
         // Email confirmation required — store application data in localStorage
@@ -197,12 +201,17 @@ const CreatorAuth = () => {
         const storedApp = localStorage.getItem(`creator_application_${uid}`);
         if (storedApp) {
           const appData = JSON.parse(storedApp);
-          await supabase.from('creator_verifications').upsert({
-            creator_id: uid,
-            status: 'pending',
-            ...appData,
-            submitted_at: new Date().toISOString(),
-          }, { onConflict: 'creator_id' });
+          const { data, error } = await supabase.rpc('submit_creator_application', {
+            p_instagram: appData.instagram_handle ?? null,
+            p_tiktok: appData.tiktok_handle ?? null,
+            p_twitter: appData.twitter_handle ?? null,
+            p_follower_range: appData.follower_count ?? null,
+            p_niche: appData.content_niche ?? null,
+            p_about: appData.about_yourself ?? null,
+          });
+          if (error) throw new Error(error.message);
+          const result = data as { success: boolean; error?: string } | null;
+          if (!result?.success) throw new Error(result?.error || 'Application submission failed');
           localStorage.removeItem(`creator_application_${uid}`);
         }
 
@@ -217,21 +226,32 @@ const CreatorAuth = () => {
           toast({ title: 'Welcome back!', description: "You've signed in as a creator." });
           navigate('/dashboard');
         } else {
-          // Check if application is pending
+          // Look up the verification row. maybeSingle() returns null instead of
+          // throwing when zero rows exist — we explicitly distinguish the cases.
           const { data: verification } = await supabase
             .from('creator_verifications')
             .select('status')
             .eq('creator_id', uid)
-            .single();
+            .maybeSingle();
 
           if (verification?.status === 'pending') {
             navigate('/creator-application-pending');
           } else if (verification?.status === 'rejected') {
             await supabase.auth.signOut();
-            toast({ title: 'Application not approved', description: 'Your creator application was not approved. Please contact support.', variant: 'destructive' });
+            toast({
+              title: 'Application not approved',
+              description: 'Your creator application was not approved. Please contact support.',
+              variant: 'destructive',
+            });
           } else {
-            // No application yet — send to apply
-            navigate('/creator-application-pending');
+            // No application exists yet — do NOT fake "Application Under Review".
+            // Send the user back to the apply form with a clear toast.
+            toast({
+              title: 'No application on file',
+              description: "You haven't submitted a creator application yet. Please apply below.",
+            });
+            setMode('signup');
+            setStep('account');
           }
         }
       }
@@ -311,7 +331,7 @@ const CreatorAuth = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="signin" className="w-full">
+            <Tabs value={mode} onValueChange={(v) => setMode(v as 'signin' | 'signup')} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Apply</TabsTrigger>

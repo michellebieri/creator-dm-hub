@@ -61,11 +61,18 @@ const SocialsSettings = () => {
   };
 
   const handleSave = async () => {
+    if (!user?.id) {
+      toast.error('Not signed in');
+      return;
+    }
     try {
       setSaving(true);
+      // Upsert so a fresh creator with no creator_settings row gets one
+      // created. .update().eq() silently affected 0 rows and toasted success.
       const { error } = await supabase
         .from('creator_settings')
-        .update({
+        .upsert({
+          user_id: user.id,
           social_facebook: socials.facebook,
           social_instagram: socials.instagram,
           social_tiktok: socials.tiktok,
@@ -74,14 +81,13 @@ const SocialsSettings = () => {
           social_twitter: socials.twitter,
           social_snapchat: socials.snapchat,
           social_other_url: socials.other_url,
-        })
-        .eq('user_id', user?.id);
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
       toast.success('Social links saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving socials:', error);
-      toast.error('Failed to save social links');
+      toast.error(error?.message || 'Failed to save social links');
     } finally {
       setSaving(false);
     }

@@ -62,11 +62,19 @@ const MessagingSettings = () => {
   };
 
   const handleSave = async () => {
+    if (!user?.id) {
+      toast.error('Not signed in');
+      return;
+    }
     try {
       setSaving(true);
+      // Upsert so a fresh creator with no creator_settings row gets one
+      // created on first save. The previous .update().eq() pattern silently
+      // affected 0 rows and the success toast fired anyway — corrosive data loss.
       const { error } = await supabase
         .from('creator_settings')
-        .update({
+        .upsert({
+          user_id: user.id,
           is_accepting_messages: settings.pay_per_message,
           price_per_message: settings.price_per_message,
           bulk_message_amount: settings.bulk_message_amount,
@@ -75,14 +83,13 @@ const MessagingSettings = () => {
           ai_messaging: settings.ai_messaging,
           gift_messages: settings.gift_messages,
           gift_message_count: settings.gift_message_count,
-        })
-        .eq('user_id', user?.id);
+        }, { onConflict: 'user_id' });
 
       if (error) throw error;
       toast.success('Settings saved successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      toast.error('Failed to save settings');
+      toast.error(error?.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }

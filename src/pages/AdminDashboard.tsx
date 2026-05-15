@@ -212,16 +212,23 @@ export default function AdminDashboard() {
   const handleApprove = async (app: Application) => {
     setProcessing(true);
     try {
-      // 1. Grant creator role
-      await supabase.from('user_roles').upsert({ user_id: app.creator_id, role: 'creator' }, { onConflict: 'user_id,role' });
-      // 2. Update profiles.role (legacy)
-      await supabase.from('profiles').update({ role: 'creator' }).eq('id', app.creator_id);
-      // 3. Mark verification approved
-      await supabase.from('creator_verifications').update({ status: 'approved', verified_at: new Date().toISOString(), reviewed_by: user!.id }).eq('id', app.id);
-      // 4. Notify creator
-      await supabase.functions.invoke('create-notification', {
-        body: { userId: app.creator_id, type: 'creator_approved', title: 'You\'re Approved!', message: 'Your creator application has been approved. Set up your profile to start earning.', link: '/creator-onboarding' },
+      // Single SECURITY DEFINER RPC: verifies admin, grants creator role,
+      // updates profiles.role (bypasses column-REVOKE), marks verification
+      // approved — all atomic. Returns { success, error } so failures surface.
+      const { data, error } = await supabase.rpc('admin_approve_creator_application', {
+        p_application_id: app.id,
       });
+      if (error) throw new Error(error.message);
+      const res = data as { success: boolean; error?: string } | null;
+      if (!res?.success) throw new Error(res?.error || 'Approval failed');
+
+      // Best-effort notification (failures non-blocking — see B2 in PROJECT_STATE).
+      try {
+        await supabase.functions.invoke('create-notification', {
+          body: { userId: app.creator_id, type: 'creator_approved', title: "You're Approved!", message: 'Your creator application has been approved. Set up your profile to start earning.', link: '/creator-onboarding' },
+        });
+      } catch { /* noop */ }
+
       toast({ title: 'Approved', description: `${app.profile?.display_name || 'Creator'} is now live.` });
       setReviewApp(null);
       fetchAll();
@@ -239,10 +246,20 @@ export default function AdminDashboard() {
     }
     setProcessing(true);
     try {
-      await supabase.from('creator_verifications').update({ status: 'rejected', rejection_reason: rejectionReason, reviewed_by: user!.id }).eq('id', app.id);
-      await supabase.functions.invoke('create-notification', {
-        body: { userId: app.creator_id, type: 'creator_rejected', title: 'Application Update', message: 'Your creator application was not approved. Please check the creator portal for details.', link: '/creator-auth' },
+      const { data, error } = await supabase.rpc('admin_reject_creator_application', {
+        p_application_id: app.id,
+        p_reason: rejectionReason,
       });
+      if (error) throw new Error(error.message);
+      const res = data as { success: boolean; error?: string } | null;
+      if (!res?.success) throw new Error(res?.error || 'Rejection failed');
+
+      try {
+        await supabase.functions.invoke('create-notification', {
+          body: { userId: app.creator_id, type: 'creator_rejected', title: 'Application Update', message: 'Your creator application was not approved. Please check the creator portal for details.', link: '/creator-auth' },
+        });
+      } catch { /* noop */ }
+
       toast({ title: 'Rejected', description: 'Applicant has been notified.' });
       setReviewApp(null);
       setRejectionReason('');
