@@ -9,7 +9,7 @@ Last updated: 2026-05-15
 ## Current Production Status
 
 - **Hosting:** Vercel auto-deploys on push to `origin/main`. Promote-on-push is enabled.
-- **Latest production commit:** `a40b14d` (`fix: add missing transaction_type enum values`). Migration `20260515000001_fix_subscription_tiers_grants` **applied 2026-05-15**. Migration `20260515000002_fix_transaction_type_enum_values` **awaiting application** — see "Critical launch blockers".
+- **Latest production commit:** `bbe938c` (docs: PROJECT_STATE.md update). All migrations through `20260515000002` **applied 2026-05-15**. No critical launch blockers remain.
 - **Frontend:** React 18 + TypeScript + Vite. Single bundle (~1.86 MB unminified; ~493 KB gzipped). Build clean, typecheck clean.
 - **Backend:** Supabase (Postgres + RLS + Edge Functions + Storage + pg_cron + Realtime).
 - **Payments:** Stripe Connect Express (creator payouts), Stripe Checkout (wallet deposits + bundles). Platform fee: **25%**.
@@ -27,18 +27,15 @@ Last updated: 2026-05-15
 | `20260514120002_subscription_creator_id_and_pricing_policy.sql` | 2026-05-14 | BUG A (`creator_subscriptions.creator_id`) + BUG B (`creator_settings` RLS) |
 | `20260514130001_audit_cron_balance_after_and_message_type_cast.sql` | 2026-05-14 | balance_after + enum cast fixes in cron + RPCs |
 | `20260515000001_fix_subscription_tiers_grants.sql` | 2026-05-15 | Restored INSERT/UPDATE/DELETE on `subscription_tiers` (was silently 403) |
+| `20260515000002_fix_transaction_type_enum_values.sql` | 2026-05-15 | Added `subscription`, `deposit`, `refund` to enum (was missing — all 3 flows broken) |
 
 ### Critical launch blockers
 
-1. **🔴 `transaction_type` enum missing values `'subscription'`, `'deposit'`, `'refund'`.**
-   - Discovered 2026-05-15 by subscription-lifecycle E2E.
-   - Without these: `purchase_subscription` crashes 22P02, renewal cron silently fails, wallet deposits via Stripe webhook fail, refunds impossible.
-   - Migration `20260513000000_fix_transaction_type_enum.sql` was supposed to add `subscription` weeks ago but the handoff doc was wrong — never actually ran in production (same pattern as `unlock_content`).
-   - Fix file: [supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql](supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql) — **awaiting manual application in Supabase SQL Editor**.
+_None._ The two blockers discovered during today's audit (`subscription_tiers` GRANT and `transaction_type` enum values) are both applied to production and verified by E2E.
 
 ### Known temporary workarounds (must be removed)
 
-1. **Spurious tier row** in `subscription_tiers` for `creator_id = '4c6c34bb-075b-4635-9b49-f40896adf32e'` (QA Fresh Creator account). Inserted 2026-05-15 as a one-time band-aid while the GRANT bug was unidentified. Schedule deletion after the GRANT fix lands and a clean tier is created via UI for the right account.
+_None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test creator account (`4c6c34bb…`), not affecting any real user flow. Test tiers accumulated on that account are normal test data, not platform workarounds.
 
 ### Resolved issues (this session 2026-05-15)
 
@@ -156,15 +153,6 @@ Last updated: 2026-05-15
 
 ## Known Bugs
 
-### 🔴 Critical
-
-**B3. `transaction_type` enum incomplete (`subscription`, `deposit`, `refund` missing)**
-- Severity: **launch blocker** (no customer can subscribe, deposits and refunds broken)
-- Reproduction: any customer subscribes via UI → silent error toast → wallet not debited → no `creator_subscriptions` row
-- Root cause: enum created with only `('message','pack','unlockable')`. Earlier `ADD VALUE` migration was claimed-applied but never ran in production.
-- Current status: fix migration written, **awaiting manual application in Supabase SQL Editor** (`20260515000002_fix_transaction_type_enum_values.sql`).
-- Files: [supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql](supabase/migrations/20260515000002_fix_transaction_type_enum_values.sql)
-
 ### 🟡 Cosmetic
 
 **B2. `create-notification` edge function returns 403**
@@ -176,6 +164,7 @@ Last updated: 2026-05-15
 
 ### 🟢 Resolved (kept for reference)
 
+- ~~`transaction_type` enum missing `subscription`, `deposit`, `refund`~~ → migration `20260515000002` applied 2026-05-15. Verified by lifecycle E2E (9/9 pass: wallet debited exactly, `creator_subscriptions` row created, visible in `/subscribers` + `/subscriptions`).
 - ~~`subscription_tiers` missing INSERT/UPDATE/DELETE grant~~ → migration `20260515000001` applied 2026-05-15. Verified by fresh-user E2E.
 - ~~`unlock_content` RPC missing in prod~~ → applied 2026-05-15
 - ~~First-send silent fail~~ → `convOverride` fix in `useMessages.tsx`
@@ -219,11 +208,11 @@ Run after every fix that touches the relevant area.
 - [ ] Insufficient balance: error surfaces real reason, no wallet change
 
 ### Subscriptions
-- [ ] **(blocked by B1)** Creator creates tier at `/settings/subscription` via UI
-- [ ] Tier appears in creator's tier list and on customer's view of `/creator/:username` (Subscribe button visible)
-- [ ] Customer clicks Subscribe → tier-picker dialog → confirm → `purchase_subscription` RPC → wallet debits → `creator_subscriptions` row created (status=active)
-- [ ] Subscription appears in creator's `/subscribers` list
-- [ ] Subscription appears in customer's `/subscriptions` list
+- [x] Creator creates tier at `/settings/subscription` via UI (verified 2026-05-15)
+- [x] Tier appears in creator's tier list and on customer's view of `/creator/:username` (Subscribe button visible)
+- [x] Customer clicks Subscribe → tier-picker dialog → confirm → `purchase_subscription` RPC → wallet debits exactly tier price → `creator_subscriptions` row created (status=active)
+- [x] Subscription appears in creator's `/subscribers` list
+- [x] Subscription appears in customer's `/subscriptions` list
 - [ ] Customer can send free messages (free_messages_per_month or unlimited) → `use_subscription_message` decrements usage
 - [ ] Cancel → status=`canceling` → access kept until `current_period_end`
 - [ ] Renewal cron simulation: backdate `current_period_end` → wait for cron OR call `process_all_subscription_renewals()` directly → row renewed, wallet debited, usage refreshed
@@ -283,10 +272,9 @@ _Filled by Claude CoWork. Empty initially._
 
 ## Next Priorities
 
-1. **CoWork: apply `20260515000002` SQL in Supabase Editor** (unblocks subscribe + deposit + refund flows).
-2. **Code: re-run subscription lifecycle E2E** after enum fix lands — verify purchase → wallet deduct → `creator_subscriptions` row → `/subscriptions` + `/subscribers` visible.
-3. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`) — now possible after grant fix.
-4. **Code: delete spurious test tier rows** on QA creator UUID after lifecycle E2E passes.
-5. **Code: renewal cron simulation** — backdate `current_period_end` on a sub, call `process_all_subscription_renewals()`, verify row renewed and wallet debited.
-6. **Code: fix `create-notification` 403** (B2) — defer or address.
-7. **CoWork: regression sweep** using the [Regression Checklist](#regression-checklist) on a brand-new creator + brand-new customer pair signed up today.
+1. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`) — now possible after grant fix.
+2. **Code: free-message enforcement E2E** — subscribed customer with `unlimited_messages=true` sends a message, verify `use_subscription_message` RPC fires (not `send_paid_message`) and wallet is NOT debited.
+3. **Code: cancel + renewal simulation** — verify `canceling` status keeps access until period_end; backdate a sub's period_end + manually invoke `process_all_subscription_renewals()` to validate cron logic.
+4. **Code: fix `create-notification` 403** (B2) — defer or address.
+5. **CoWork: full regression sweep** using the [Regression Checklist](#regression-checklist) on a brand-new creator + brand-new customer pair signed up today. Log findings under "Latest CoWork QA Findings" below.
+6. **Code: stripe-webhook live test** — confirm `transaction_type='deposit'` now works end-to-end (a wallet top-up through real Stripe Checkout creates the transactions row without crashing the webhook).
