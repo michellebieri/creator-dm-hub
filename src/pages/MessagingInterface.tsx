@@ -18,7 +18,6 @@ import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
 
-import { BulkContentUpload } from '@/components/BulkContentUpload';
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, Heart, Bot, Check, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -813,16 +812,13 @@ const MessagingInterface = () => {
           
           {isCreator && conversationId && (
             <div className="mb-3 flex justify-end gap-2">
-              <UnlockableUpload 
+              <UnlockableUpload
                 conversationId={conversationId}
                 creatorId={user?.id || ''}
                 onSuccess={refetch}
               />
-              <BulkContentUpload
-                conversationId={conversationId}
-                creatorId={user?.id || ''}
-                onSuccess={refetch}
-              />
+              {/* Bulk Upload removed from chat UI — not production-ready, caused UX confusion.
+                  Component file kept in repo in case it's re-enabled behind a feature flag later. */}
             </div>
           )}
           <div className="flex gap-2 items-center">
