@@ -20,17 +20,31 @@ interface Follower {
   };
 }
 
+type FilterKey =
+  | 'all'
+  | 'paying'
+  | 'nonpaying'
+  | 'subscribers'
+  | 'lostSubs'
+  | 'spenders100'
+  | 'spenders1000';
+
 const Lists = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [followers, setFollowers] = useState<Follower[]>([]);
   const [loading, setLoading] = useState(true);
+  const [spendByCustomer, setSpendByCustomer] = useState<Record<string, number>>({});
+  const [activeSubscriberIds, setActiveSubscriberIds] = useState<Set<string>>(new Set());
+  const [lostSubscriberIds, setLostSubscriberIds] = useState<Set<string>>(new Set());
+  const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
 
   useEffect(() => {
     if (user) {
       fetchFollowers();
-      
-      // Set up realtime subscription
+      fetchCustomerSpend();
+      fetchSubscriptions();
+
       const channel = supabase
         .channel('followers-changes')
         .on(
@@ -84,16 +98,80 @@ const Lists = () => {
     }
   };
 
-  const defaultLists = [
-    { name: `All followers (${followers.length})`, path: '#', active: true },
-    { name: 'Paying followers (0)', path: '#', active: false },
-    { name: 'Non-paying followers (0)', path: '#', active: false },
-    { name: 'All subscribers (0)', path: '/subscriptions', active: false },
-    { name: 'Lost subscribers (0)', path: '#', active: false },
-    { name: 'Other customers (0)', path: '#', active: false },
-    { name: '$100+ spenders (0)', path: '#', active: false },
-    { name: '$1000+ spenders (0)', path: '#', active: false },
-    { name: 'Avoid sending mass messages (0)', path: '#', active: false },
+  const fetchCustomerSpend = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('customer_id, amount')
+        .eq('creator_id', user.id)
+        .eq('status', 'completed');
+      if (error) throw error;
+      const totals: Record<string, number> = {};
+      for (const t of data || []) {
+        const cid = (t as any).customer_id as string;
+        const amt = Number((t as any).amount) || 0;
+        if (!cid) continue;
+        totals[cid] = (totals[cid] || 0) + amt;
+      }
+      setSpendByCustomer(totals);
+    } catch (e) {
+      console.error('Error fetching transactions:', e);
+    }
+  };
+
+  const fetchSubscriptions = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('creator_subscriptions')
+        .select('customer_id, status')
+        .eq('creator_id', user.id);
+      if (error) throw error;
+      const active = new Set<string>();
+      const lost = new Set<string>();
+      for (const s of data || []) {
+        const cid = (s as any).customer_id as string;
+        const status = (s as any).status as string;
+        if (!cid) continue;
+        if (status === 'active' || status === 'canceling') active.add(cid);
+        else if (status === 'cancelled' || status === 'expired' || status === 'past_due') lost.add(cid);
+      }
+      setActiveSubscriberIds(active);
+      setLostSubscriberIds(lost);
+    } catch (e) {
+      console.error('Error fetching subscriptions:', e);
+    }
+  };
+
+  const followerIds = followers.map(f => f.follower_id);
+  const payingCount = followerIds.filter(id => (spendByCustomer[id] || 0) > 0).length;
+  const subscribersCount = followerIds.filter(id => activeSubscriberIds.has(id)).length;
+  const lostSubscribersCount = followerIds.filter(id => lostSubscriberIds.has(id)).length;
+  const spender100Count = followerIds.filter(id => (spendByCustomer[id] || 0) >= 100).length;
+  const spender1000Count = followerIds.filter(id => (spendByCustomer[id] || 0) >= 1000).length;
+
+  const filteredFollowers = followers.filter(f => {
+    const spend = spendByCustomer[f.follower_id] || 0;
+    switch (activeFilter) {
+      case 'paying': return spend > 0;
+      case 'nonpaying': return spend === 0;
+      case 'subscribers': return activeSubscriberIds.has(f.follower_id);
+      case 'lostSubs': return lostSubscriberIds.has(f.follower_id);
+      case 'spenders100': return spend >= 100;
+      case 'spenders1000': return spend >= 1000;
+      default: return true;
+    }
+  });
+
+  const defaultLists: { key: FilterKey; name: string; path: string }[] = [
+    { key: 'all', name: `All followers (${followers.length})`, path: '#' },
+    { key: 'paying', name: `Paying followers (${payingCount})`, path: '#' },
+    { key: 'nonpaying', name: `Non-paying followers (${followers.length - payingCount})`, path: '#' },
+    { key: 'subscribers', name: `All subscribers (${subscribersCount})`, path: '#' },
+    { key: 'lostSubs', name: `Lost subscribers (${lostSubscribersCount})`, path: '#' },
+    { key: 'spenders100', name: `$100+ spenders (${spender100Count})`, path: '#' },
+    { key: 'spenders1000', name: `$1000+ spenders (${spender1000Count})`, path: '#' },
   ];
 
   return (
@@ -120,31 +198,40 @@ const Lists = () => {
             <Card className="p-6">
               <p className="text-center text-muted-foreground">Loading followers...</p>
             </Card>
-          ) : followers.length === 0 ? (
+          ) : filteredFollowers.length === 0 ? (
             <Card className="p-6">
-              <p className="text-center text-muted-foreground">No followers yet. Share your profile to get followers!</p>
+              <p className="text-center text-muted-foreground">
+                {followers.length === 0
+                  ? 'No followers yet. Share your profile to get followers!'
+                  : 'No followers match this filter.'}
+              </p>
             </Card>
           ) : (
             <div className="space-y-2">
-              {followers.map((follower) => (
-                <Card key={follower.id} className="p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={follower.profiles?.avatar_url || ''} />
-                      <AvatarFallback>
-                        {follower.profiles?.display_name?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="font-semibold">{follower.profiles?.display_name}</p>
-                      <p className="text-sm text-muted-foreground">@{follower.profiles?.username}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Followed {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
-                      </p>
+              {filteredFollowers.map((follower) => {
+                const spend = spendByCustomer[follower.follower_id] || 0;
+                return (
+                  <Card key={follower.id} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src={follower.profiles?.avatar_url || ''} />
+                        <AvatarFallback>
+                          {follower.profiles?.display_name?.charAt(0) || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <p className="font-semibold">{follower.profiles?.display_name}</p>
+                        <p className="text-sm text-muted-foreground">@{follower.profiles?.username}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Followed {formatDistanceToNow(new Date(follower.created_at), { addSuffix: true })}
+                          {spend > 0 && ` • $${spend.toFixed(2)} spent`}
+                          {activeSubscriberIds.has(follower.follower_id) && ' • Subscriber'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
@@ -155,20 +242,23 @@ const Lists = () => {
         </div>
 
         <div className="px-4 space-y-2">
-          {defaultLists.map((list, index) => (
-            <button
-              key={index}
-              onClick={() => list.path !== '#' && navigate(list.path)}
-              className={`flex items-center justify-between w-full px-4 py-3 ${
-                list.active
-                  ? 'bg-primary/10 border-primary/30'
-                  : 'bg-card border-border hover:bg-muted/50'
-              } transition-colors rounded-lg border`}
-            >
-              <span className={`text-base ${list.active ? 'font-semibold text-primary' : 'font-normal'}`}>{list.name}</span>
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            </button>
-          ))}
+          {defaultLists.map((list) => {
+            const isActive = activeFilter === list.key;
+            return (
+              <button
+                key={list.key}
+                onClick={() => setActiveFilter(list.key)}
+                className={`flex items-center justify-between w-full px-4 py-3 ${
+                  isActive
+                    ? 'bg-primary/10 border-primary/30'
+                    : 'bg-card border-border hover:bg-muted/50'
+                } transition-colors rounded-lg border`}
+              >
+                <span className={`text-base ${isActive ? 'font-semibold text-primary' : 'font-normal'}`}>{list.name}</span>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

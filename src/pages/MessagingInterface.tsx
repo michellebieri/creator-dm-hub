@@ -17,6 +17,7 @@ import { MessageEditDialog } from '@/components/MessageEditDialog';
 import { ReadReceiptIndicator } from '@/components/ReadReceiptIndicator';
 import { MessageSearchDialog } from '@/components/MessageSearchDialog';
 import { PaymentRequiredOverlay } from '@/components/PaymentRequiredOverlay';
+import { SubscriptionTiersDisplay } from '@/components/SubscriptionTiersDisplay';
 
 import { AddFundsDialog } from '@/components/AddFundsDialog';
 import { Send, ArrowLeft, AlertCircle, Search, Forward, Pencil, Heart, Bot, Check, X } from 'lucide-react';
@@ -507,12 +508,18 @@ const MessagingInterface = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {conversationId && user?.id && (
+            {!isCreator && creatorId && creatorProfile && (
+              <SubscriptionTiersDisplay
+                creatorId={creatorId}
+                creatorName={creatorProfile.display_name}
+              />
+            )}
+            {isCreator && conversationId && user?.id && (
               <ConversationStats conversationId={conversationId} userId={user.id} />
             )}
-            
-            <Button 
-              variant="ghost" 
+
+            <Button
+              variant="ghost"
               size="icon"
               onClick={() => setShowSearchDialog(true)}
             >
@@ -836,10 +843,12 @@ const MessagingInterface = () => {
                 disabled={sending || !message.trim()}
               />
             )}
-            <VoiceRecorder 
-              onSendVoice={handleSendVoice}
-              disabled={sending || (balance < pricePerMessage && !isCreator)}
-            />
+            {isCreator && (
+              <VoiceRecorder
+                onSendVoice={handleSendVoice}
+                disabled={sending}
+              />
+            )}
             <div className="flex-1 flex flex-col gap-1">
               <Textarea
                 ref={textareaRef}
