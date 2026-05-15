@@ -53,7 +53,25 @@ interface StatsType {
   totalUsers: number;
   totalCreators: number;
   totalTransactions: number;
-  totalRevenue: number;
+  grossVolume: number;       // SUM(transactions.amount) — total money flowing through
+  platformEarnings: number;  // SUM(transactions.platform_fee) — what platform keeps (25%)
+  activeSubscribers: number;
+}
+
+interface SourceRow {
+  type: string;
+  count: number;
+  gross: number;
+  platformFee: number;
+}
+
+interface TopCreatorRow {
+  creator_id: string;
+  display_name: string;
+  username: string;
+  avatar_url: string | null;
+  net_earnings: number;
+  tx_count: number;
 }
 
 export default function AdminDashboard() {
@@ -66,7 +84,16 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [fetching, setFetching] = useState(true);
   const [search, setSearch] = useState('');
-  const [stats, setStats] = useState<StatsType>({ totalUsers: 0, totalCreators: 0, totalTransactions: 0, totalRevenue: 0 });
+  const [stats, setStats] = useState<StatsType>({
+    totalUsers: 0,
+    totalCreators: 0,
+    totalTransactions: 0,
+    grossVolume: 0,
+    platformEarnings: 0,
+    activeSubscribers: 0,
+  });
+  const [sourceBreakdown, setSourceBreakdown] = useState<SourceRow[]>([]);
+  const [topCreators, setTopCreators] = useState<TopCreatorRow[]>([]);
 
   // Application review dialog
   const [reviewApp, setReviewApp] = useState<Application | null>(null);
@@ -84,12 +111,17 @@ export default function AdminDashboard() {
   const fetchAll = async () => {
     setFetching(true);
     try {
-      const [profilesRes, rolesRes, appsRes, txCountRes, revRes] = await Promise.all([
+      const [profilesRes, rolesRes, appsRes, txCountRes, txRes, subCountRes] = await Promise.all([
         supabase.from('profiles').select('id, display_name, username, avatar_url, created_at').order('created_at', { ascending: false }),
         supabase.from('user_roles').select('user_id, role'),
         supabase.from('creator_verifications').select('*, profile:creator_id(display_name, username, avatar_url)').order('submitted_at', { ascending: false }),
         supabase.from('transactions').select('*', { count: 'exact', head: true }),
-        supabase.from('transactions').select('amount').eq('status', 'completed'),
+        supabase.from('transactions')
+          .select('amount, platform_fee, net_amount, transaction_type, creator_id')
+          .eq('status', 'completed'),
+        supabase.from('creator_subscriptions')
+          .select('id', { count: 'exact', head: true })
+          .in('status', ['active', 'canceling']),
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
@@ -101,20 +133,79 @@ export default function AdminDashboard() {
       });
 
       const enriched: UserRow[] = (profilesRes.data || []).map(p => ({ ...p, roles: roleMap[p.id] || [] }));
+      const profileById = new Map(enriched.map(p => [p.id, p]));
       setUsers(enriched);
       setApplications((appsRes.data || []) as Application[]);
 
-      const totalRev = (revRes.data || []).reduce((s, t) => s + (t.amount || 0), 0);
+      const txList = (txRes.data || []) as Array<{
+        amount: number; platform_fee: number | null; net_amount: number | null;
+        transaction_type: string | null; creator_id: string | null;
+      }>;
+
+      const grossVolume = txList.reduce((s, t) => s + (Number(t.amount) || 0), 0);
+      const platformEarnings = txList.reduce((s, t) => s + (Number(t.platform_fee) || 0), 0);
+
+      // Revenue by source (transaction_type)
+      const bySource = new Map<string, SourceRow>();
+      for (const t of txList) {
+        const key = t.transaction_type || 'other';
+        const row = bySource.get(key) || { type: key, count: 0, gross: 0, platformFee: 0 };
+        row.count += 1;
+        row.gross += Number(t.amount) || 0;
+        row.platformFee += Number(t.platform_fee) || 0;
+        bySource.set(key, row);
+      }
+      setSourceBreakdown(Array.from(bySource.values()).sort((a, b) => b.gross - a.gross));
+
+      // Top creators by net earnings
+      const byCreator = new Map<string, { net: number; count: number }>();
+      for (const t of txList) {
+        if (!t.creator_id) continue;
+        const row = byCreator.get(t.creator_id) || { net: 0, count: 0 };
+        row.net += Number(t.net_amount) || 0;
+        row.count += 1;
+        byCreator.set(t.creator_id, row);
+      }
+      const topRows: TopCreatorRow[] = Array.from(byCreator.entries())
+        .map(([cid, r]) => {
+          const p = profileById.get(cid);
+          return {
+            creator_id: cid,
+            display_name: p?.display_name || 'Unknown',
+            username: p?.username || 'unknown',
+            avatar_url: p?.avatar_url || null,
+            net_earnings: r.net,
+            tx_count: r.count,
+          };
+        })
+        .sort((a, b) => b.net_earnings - a.net_earnings)
+        .slice(0, 10);
+      setTopCreators(topRows);
+
       setStats({
         totalUsers: enriched.length,
         totalCreators: enriched.filter(u => u.roles.includes('creator')).length,
         totalTransactions: txCountRes.count || 0,
-        totalRevenue: totalRev,
+        grossVolume,
+        platformEarnings,
+        activeSubscribers: subCountRes.count || 0,
       });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
       setFetching(false);
+    }
+  };
+
+  const sourceLabel = (t: string) => {
+    switch (t) {
+      case 'subscription': return 'Subscriptions';
+      case 'message': return 'Message payments';
+      case 'unlock': return 'Content unlocks';
+      case 'tip': return 'Tips';
+      case 'bundle': return 'Bundle purchases';
+      case 'deposit': return 'Wallet deposits';
+      default: return t.charAt(0).toUpperCase() + t.slice(1);
     }
   };
 
@@ -249,23 +340,97 @@ export default function AdminDashboard() {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
 
-        {/* Stats row */}
+        {/* Primary KPIs — platform-level only, not mixed with creator earnings */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-primary' },
-            { label: 'Creators', value: stats.totalCreators, icon: Crown, color: 'text-primary' },
-            { label: 'Transactions', value: stats.totalTransactions, icon: TrendingUp, color: 'text-primary' },
-            { label: 'Revenue', value: `$${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-primary' },
-          ].map(s => (
-            <Card key={s.label} className="p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <s.icon className={`h-4 w-4 ${s.color}`} />
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </div>
-              <p className="text-2xl font-bold">{fetching ? '—' : s.value}</p>
-            </Card>
-          ))}
+          <Card className="p-4 border-primary/30 bg-primary/5">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="h-4 w-4 text-primary" />
+              <p className="text-xs text-muted-foreground">Platform earnings</p>
+            </div>
+            <p className="text-2xl font-bold">{fetching ? '—' : `$${stats.platformEarnings.toFixed(2)}`}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">25% fees collected</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Gross volume</p>
+            </div>
+            <p className="text-2xl font-bold">{fetching ? '—' : `$${stats.grossVolume.toFixed(2)}`}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">All money flowing through</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Crown className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Active subscribers</p>
+            </div>
+            <p className="text-2xl font-bold">{fetching ? '—' : stats.activeSubscribers}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">recurring revenue base</p>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">Users / Creators</p>
+            </div>
+            <p className="text-2xl font-bold">{fetching ? '—' : `${stats.totalUsers} / ${stats.totalCreators}`}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{stats.totalTransactions} transactions total</p>
+          </Card>
         </div>
+
+        {/* Revenue by source */}
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold mb-3">Revenue by source</h2>
+          {fetching ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : sourceBreakdown.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No transactions yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {sourceBreakdown.map(row => {
+                const pct = stats.grossVolume > 0 ? (row.gross / stats.grossVolume) * 100 : 0;
+                return (
+                  <div key={row.type} className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{sourceLabel(row.type)}</span>
+                      <span className="text-muted-foreground">
+                        ${row.gross.toFixed(2)} <span className="text-xs">• fee ${row.platformFee.toFixed(2)} • {row.count} tx</span>
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded overflow-hidden">
+                      <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        {/* Top earning creators */}
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold mb-3">Top earning creators</h2>
+          {fetching ? (
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          ) : topCreators.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No creator revenue yet.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {topCreators.map((c, idx) => (
+                <div key={c.creator_id} className="flex items-center gap-3 py-2.5">
+                  <span className="text-xs font-mono text-muted-foreground w-5 text-right">{idx + 1}</span>
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={c.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs">{c.display_name?.charAt(0).toUpperCase() || '?'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{c.display_name}</p>
+                    <p className="text-xs text-muted-foreground truncate">@{c.username} • {c.tx_count} tx</p>
+                  </div>
+                  <p className="text-sm font-semibold">${c.net_earnings.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
 
         {/* Search */}
         <div className="relative">

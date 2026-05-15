@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
-import { PieChart, Users, ChevronLeft, DollarSign, Copy, Check, ExternalLink } from 'lucide-react';
+import { PieChart, Users, ChevronLeft, DollarSign, Copy, Check, ExternalLink, Crown, Wallet, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -23,12 +23,27 @@ const CreatorDashboard = () => {
   const [timePeriod, setTimePeriod] = useState<'today' | 'week' | 'month' | 'all'>('today');
   const [username, setUsername] = useState('');
   const [copied, setCopied] = useState(false);
+  const [hasTiers, setHasTiers] = useState<boolean | null>(null);
+  const [activeSubscribers, setActiveSubscribers] = useState(0);
 
   useEffect(() => {
-    if (user) {
-      supabase.from('profiles').select('username').eq('id', user.id).single()
-        .then(({ data }) => { if (data?.username) setUsername(data.username); });
-    }
+    if (!user) return;
+    supabase.from('profiles').select('username').eq('id', user.id).single()
+      .then(({ data }) => { if (data?.username) setUsername(data.username); });
+
+    supabase
+      .from('subscription_tiers')
+      .select('id', { count: 'exact', head: true })
+      .eq('creator_id', user.id)
+      .eq('is_active', true)
+      .then(({ count }) => setHasTiers((count ?? 0) > 0));
+
+    supabase
+      .from('creator_subscriptions')
+      .select('id', { count: 'exact', head: true })
+      .eq('creator_id', user.id)
+      .in('status', ['active', 'canceling'])
+      .then(({ count }) => setActiveSubscribers(count ?? 0));
   }, [user]);
 
   const profileUrl = username ? `${window.location.origin}/${username}` : '';
@@ -163,6 +178,49 @@ const CreatorDashboard = () => {
           </div>
           <p className="text-xs text-muted-foreground mt-2">Share this link with your fans so they can message you</p>
         </Card>
+
+        {/* Empty-state nudge: prompt creators with no subscription tiers */}
+        {hasTiers === false && (
+          <Card className="p-4 border-primary/40 bg-primary/5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Set up subscription tiers to unlock recurring revenue</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fans can subscribe monthly for free messages or exclusive perks. Without tiers, the Subscribe button is hidden on your profile.
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => navigate('/settings/subscription')}
+                >
+                  <Crown className="h-4 w-4 mr-1.5" />
+                  Create your first tier
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Quick actions */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate('/subscribers')}>
+            <Users className="h-4 w-4" />
+            <span className="text-xs">Subscribers ({activeSubscribers})</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate('/settings/subscription')}>
+            <Crown className="h-4 w-4" />
+            <span className="text-xs">Subscription tiers</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate('/earnings')}>
+            <Wallet className="h-4 w-4" />
+            <span className="text-xs">Earnings</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-3 flex-col gap-1" onClick={() => navigate('/settings/messaging')}>
+            <SettingsIcon className="h-4 w-4" />
+            <span className="text-xs">Messaging settings</span>
+          </Button>
+        </div>
 
         <Card className="p-4">
           <div className="flex items-center justify-between mb-4">
