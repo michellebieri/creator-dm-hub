@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { AuthErrorBanner } from '@/components/AuthErrorBanner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
@@ -123,7 +124,10 @@ const CreatorAuth = () => {
         email: accountData.email,
         password: accountData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/creator-auth`,
+          // PKCE callback — the email link lands at /auth/callback which
+          // exchanges ?code= for a session, submits the cached application
+          // RPC, then navigates to /creator-application-pending.
+          emailRedirectTo: `${window.location.origin}/auth/callback?intent=creator`,
           data: {
             username: accountData.username,
             display_name: accountData.displayName,
@@ -331,6 +335,7 @@ const CreatorAuth = () => {
             </div>
           </CardHeader>
           <CardContent>
+            <AuthErrorBanner intent="creator" />
             <Tabs value={mode} onValueChange={(v) => setMode(v as 'signin' | 'signup')} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>

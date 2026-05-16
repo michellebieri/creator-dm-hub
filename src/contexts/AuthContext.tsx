@@ -52,6 +52,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         options: {
+          // PKCE callback — the link in the confirmation email lands here,
+          // exchanges ?code= for a session, then navigates to /dashboard.
+          emailRedirectTo: `${window.location.origin}/auth/callback?intent=customer`,
           data: { username, display_name: displayName, role },
         },
       });

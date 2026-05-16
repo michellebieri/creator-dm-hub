@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthErrorBanner } from '@/components/AuthErrorBanner';
 import { z } from 'zod';
 
 const signUpSchema = z.object({
@@ -119,6 +120,7 @@ const Auth = () => {
             <CardDescription>Connect with your favorite creators</CardDescription>
           </CardHeader>
           <CardContent>
+            <AuthErrorBanner intent="customer" />
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
