@@ -9,7 +9,7 @@ Last updated: 2026-05-15
 ## Current Production Status
 
 - **Hosting:** Vercel auto-deploys on push to `origin/main`. Promote-on-push is enabled.
-- **Latest production commit:** `560bb6f` (`fix(LB#1): GRANT SELECT/INSERT/UPDATE on creator_verifications`). All LB#1 migrations through `20260515000005` **applied 2026-05-15** and verified by end-to-end test ([.qa/lb1_partial.mjs](.qa/lb1_partial.mjs) 3/3 pass). LB#1 creator-side resolved; admin-side awaiting manual CoWork verification (admin login → /admin → Approve a real fresh application).
+- **Latest production commit:** `45a670d` (`fix(LB#2): PKCE email-confirmation + error-fragment banner`). LB#1 closed (creator-side E2E-verified + admin-side CoWork-verified in round-2 report). LB#2 code fix landed; awaiting CoWork re-verification with a real Gmail inbox before re-enabling the Supabase Confirm-email toggle.
 - **Frontend:** React 18 + TypeScript + Vite. Single bundle (~1.86 MB unminified; ~493 KB gzipped). Build clean, typecheck clean.
 - **Backend:** Supabase (Postgres + RLS + Edge Functions + Storage + pg_cron + Realtime).
 - **Payments:** Stripe Connect Express (creator payouts), Stripe Checkout (wallet deposits + bundles). Platform fee: **25%**.
@@ -34,22 +34,22 @@ Last updated: 2026-05-15
 
 ### Critical launch blockers
 
-1. **🟠 LB#2 — Email confirmation delivery unverified (pure CoWork task)**
-   - Toggle is currently OFF in Supabase. Must verify real delivery + re-enable.
-   - Not app-code; can't be verified from code without inbox access.
-   - **Action for CoWork:** sign up one account with a real inbox (Gmail/iCloud), confirm the email arrives + the redirect link logs the user in, then re-enable "Confirm email" toggle in Supabase → Authentication → Sign In / Providers → Email.
-
-2. **🟡 LB#1 admin-side manual verification needed (creator-side resolved + E2E-verified)**
-   - **Creator-side fully resolved.** Fresh signup → application submission → DB row with status=pending → clean signin all working ([.qa/lb1_partial.mjs](.qa/lb1_partial.mjs) 3/3 pass against brand-new account today).
-   - **Admin-side still needs manual confirmation** that Approve flips role correctly end-to-end. I can't sign in as admin from code (no password in chat).
-   - **Action for CoWork:** sign in as admin → `/admin` → Applications tab → find a fresh QA account (most recent was username `qap778857163`, display name "QA Pipeline 1778857163...") → click Approve → confirm: (a) success toast, (b) row moves out of pending list, (c) sign out, sign in as that creator → land on `/dashboard` or `/creator-onboarding`, NOT `/creator-application-pending`. If the new account doesn't appear → it's a real regression; report it.
+1. **🟠 LB#2 — Email confirmation: code fix landed, awaiting CoWork re-verification**
+   - Round-2 QA report identified two distinct defects (Defect 1: Gmail safelinks pre-fetch consuming the OTP; Defect 2: frontend silently swallowing `#error=` fragments). Both have shipped in commit `45a670d`:
+     - Supabase client switched to **PKCE flow** (`flowType: 'pkce'`). Confirmation links now carry a `?code=` that must be exchanged using the originating client's `code_verifier` in localStorage — prefetchers can't complete the exchange.
+     - New [/auth/callback](src/pages/AuthCallback.tsx) page handles the exchange + completes any cached creator application + routes by intent.
+     - New [<AuthErrorBanner />](src/components/AuthErrorBanner.tsx) on both /auth and /creator-auth surfaces stale-link errors with a Resend CTA.
+   - **Action for CoWork:** real-Gmail signup → click confirmation link → confirm: (a) lands logged in (customer to `/dashboard`, creator to `/creator-application-pending`), (b) no `#error=` left in URL, (c) Supabase Users panel shows `Confirmed at` matching when the user actually clicked (not earlier from a scanner). Then re-enable the Supabase Confirm-email toggle.
+   - **Also (pre-launch):** Bump Supabase email send rate limit (default 2/hour) — see B14 below.
 
 ### Known temporary workarounds (must be removed)
 
 _None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test creator account (`4c6c34bb…`), not affecting any real user flow. Test tiers accumulated on that account are normal test data, not platform workarounds.
 
-### Resolved issues (this session 2026-05-15)
+### Resolved issues (this session 2026-05-15 / 2026-05-16)
 
+- **LB#2 code fix shipped (commit `45a670d`)** — PKCE flow + AuthErrorBanner with Resend CTA. Defeats Gmail/Outlook safelinks pre-fetching of single-use OTP tokens. Stale-link error fragments now render a clear banner instead of being silently swallowed.
+- **LB#1 admin-side verified by CoWork (round-2 report).** Approve + Reject flows both work end-to-end through the real UI; approved creator lands on `/dashboard`, rejected creator gets signed out at `/creator-auth`. **LB#1 fully closed.**
 - **LB#1 — Creator approval pipeline fully resolved (creator-side, verified by E2E).** Four compounding bugs found and fixed:
   - **Defect B (SQL syntax)**: `CREATE POLICY IF NOT EXISTS` in `20260512000006` invalid → entire transaction aborted → admin policy + 7 columns never landed. Fix split into three migrations: `20260515000003` (admin policies + admin RPCs), `20260515000004` (missing columns), `20260515000005` (`GRANT SELECT/INSERT/UPDATE` on creator_verifications).
   - **Defect A (frontend swallowed errors)**: `submitApplication` now calls `submit_creator_application` SECURITY DEFINER RPC and throws on any error.
@@ -214,6 +214,8 @@ _None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test
 
 **B13. Logged-out landing page** renders authenticated bottom nav (Home/Messages/Vault/More) that just bounces to `/auth`.
 
+**B14. Supabase email rate limit at 2/hour (default)** — per round-2 report. Will silently break onboarding the moment real volume hits. Bump via custom SMTP (Resend/Postmark/SendGrid) or upgrade Supabase plan. Action: pre-launch config.
+
 ### 🟢 Resolved (kept for reference)
 
 - ~~LB#1 creator approval pipeline~~ (4 defects: invalid SQL, swallowed errors, false reassurance, missing GRANT) → migrations `20260515000003-5` applied + frontend rewritten in commit `80dec72`. Verified by [.qa/lb1_partial.mjs](.qa/lb1_partial.mjs) 3/3 pass; subscription lifecycle regression `subs_lifecycle.mjs` 9/9 pass.
@@ -307,7 +309,21 @@ Run after every fix that touches the relevant area.
 
 ## Latest CoWork QA Findings
 
-### 2026-05-15 — Full fresh-user QA sweep (see `QA_REPORT_2026-05-15.md` for the complete report + engineer handoffs)
+### 2026-05-15 — ROUND 2 — LB#1 admin-side + LB#2 email confirm (see `QA_REPORT_2026-05-15_round2.md`)
+
+**⚠️ "Confirm email" toggle is currently OFF in Supabase** (toggled off again at end of round 2 because LB#2 is unfixed and leaving it on strands every signup). MUST be re-enabled before launch — after LB#2 fixes ship. Also: Supabase email send rate limit is **2/hour** (free-tier default in Auth → Rate Limits) — needs bumping for real volume.
+
+**✅ LB#1 admin-side fully verified.** Approved `qap854348664` and rejected `qap853892412` through the `/admin` UI. Approve flipped the row to green, atomically granted `user_roles.creator` + `profiles.role` + `creator_verifications.status='approved'`, Creators counter 4→5, Applications counter 2→1. Reject required a reason as designed. Approved creator signed in → landed on `/dashboard` + `/creator-dashboard` (not the fake pending page); rejected creator's sign-in correctly cleared session + stayed on `/creator-auth` per `CreatorAuth.tsx` lines 239-245. **Combined with the round-1 creator-side `lb1_partial.mjs` 3/3 pass, LB#1 is CLOSED.**
+
+**🔴 LB#2 is NOT closed — and now we know exactly why.** Signed up `michellebieriuae@gmail.com` via the real Gmail inbox. Email delivered fine ✓, but clicking the confirmation link returned `#error_code=otp_expired`. Auth logs show FOUR `/verify` hits on the same single-use token within 3 minutes — the FIRST at 11:55:37 succeeded and fired a `Login` event (the account *is* confirmed per the Users panel: `Confirmed at: 11:55`). That first hit wasn't the human — it was **Gmail's safelinks scanner pre-fetching the URL and consuming the single-use token before the human could click**. By the time the real click landed, Supabase returned 403. Frontend silently swallowed the `#error=…` fragment — user saw a clean Sign In form with zero feedback. **Two distinct defects: (1) single-use token + email-client prefetch = systemic broken UX for any Gmail/Outlook/corporate inbox; fix is PKCE / token-hash confirmation flow. (2) `CreatorAuth.tsx` and `Auth.tsx` need to detect `location.hash` error fragments and surface a real message + Resend CTA.** Full evidence (Auth logs, Users panel timestamps, fix directions) in the round-2 report.
+
+**✅ Round-1 fixes verified working:** AUDIT-1 silent-save in settings pages (changed price 3→7 on a creator with no `creator_settings` row, saved, reloaded, persisted); ROUTING-1 catch-all (`/admin-dashboard` now renders a clean "Page not found" with Go home button); creator-side false-reassurance gone. Phase C subscribe-dialog renders 6 tiers, customer chat loads, admin KPIs render consistently.
+
+**Recommended priority order:** LB#2 Defect 1 (PKCE confirmation) + Defect 2 (`#error=…` handling), bump email rate limit / configure custom SMTP, then re-run clean LB#2 verification, then cosmetic cleanup. **LB#2 is the only remaining hard launch blocker.**
+
+---
+
+### 2026-05-15 — ROUND 1 — Full fresh-user QA sweep (see `QA_REPORT_2026-05-15.md` for the complete report + engineer handoffs)
 
 **⚠️ Email confirmation is currently toggled OFF in Supabase (done for this QA session) — MUST be re-enabled before launch.**
 
@@ -326,6 +342,9 @@ Other findings (ROUTING-1, CHAT-UX-1, ONBOARDING-2/3, SIGNOUT-1, FORM-1, A11Y-1,
 ---
 
 ## Latest Claude Code Changes
+
+### 2026-05-16
+- `45a670d` — fix(LB#2): PKCE email-confirmation flow + error-fragment banner with Resend
 
 ### 2026-05-15 (this session)
 - `560bb6f` — fix(LB#1): GRANT SELECT/INSERT/UPDATE on creator_verifications
@@ -353,9 +372,8 @@ Other findings (ROUTING-1, CHAT-UX-1, ONBOARDING-2/3, SIGNOUT-1, FORM-1, A11Y-1,
 
 ## Next Priorities
 
-1. **CoWork: LB#2 email-confirm verification** — send signup with real inbox, confirm link works, re-enable Supabase Confirm-email toggle. Only critical launch blocker remaining.
-2. **CoWork: LB#1 admin-side manual confirmation** — sign in as admin → `/admin` → see fresh QA application (most recent: `qap778857163`, "QA Pipeline 1778857163...") → click Approve → confirm role flips end-to-end.
-3. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`).
+1. **CoWork: LB#2 re-verification (round 3)** — with commit `45a670d` live, real-Gmail signup → click confirmation link → confirm exchange completes + lands logged in + no `#error=` fragment. If clean, **re-enable the Supabase Confirm-email toggle** + bump rate limit (B14) before launch volume.
+2. **CoWork: create one real tier on `@Michellebieri` via UI** at [/settings/subscription](https://creator-dm-hub.vercel.app/settings/subscription) (UUID `e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0`).
 4. **Code: B4 ONBOARDING-3** — route approved creators through `/creator-onboarding` until `creator_settings` exists (closes AUDIT-1 hazard at the source).
 5. **Code: B5 CHAT-UX-1** — collapse payment-option card in active conversations for non-subscribed customers.
 6. **Code: cancel + renewal cron simulation** — verify `canceling` status keeps access until period_end; backdate + invoke `process_all_subscription_renewals()` to validate cron logic.
