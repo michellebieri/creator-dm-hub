@@ -119,6 +119,14 @@ const CreatorAuth = () => {
 
     setIsSubmitting(true);
     try {
+      // Sign out any stale session before creating a new account. If a
+      // previous login is present in localStorage, the GoTrueClient's
+      // auto-refresh ticker can call _removeSession() concurrently with
+      // signUp()'s code_verifier write, wiping the PKCE verifier before
+      // the confirmation link is ever clicked (LB#4). Signing out first
+      // ensures a clean slate — no concurrent token refresh can race.
+      await supabase.auth.signOut();
+
       // Create auth account (no creator role yet — pending approval)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: accountData.email,

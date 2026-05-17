@@ -34,7 +34,15 @@ Last updated: 2026-05-15
 
 ### Critical launch blockers
 
-1. **🟠 LB#2 — Email confirmation: code fix landed, awaiting CoWork re-verification**
+1. **🟢 LB#4 — PKCE code_verifier not persisted on signup — RESOLVED**
+   - Root cause (two compounding defects):
+     1. `storage: localStorage` (raw global) in `client.ts` bypassed Supabase's `supportsLocalStorage()` write-test; replaced with auto-detection.
+     2. Race condition: any existing session in the browser's localStorage (from a prior login during CoWork testing) has a live auto-refresh ticker. When `signUp()` writes the code_verifier then awaits the HTTP request, the concurrent `_removeSession()` triggered by a failing stale-token refresh wiped the verifier before the callback. Fix: `supabase.auth.signOut()` before every `signUp()` call so no concurrent refresh can race.
+   - Files changed: `src/integrations/supabase/client.ts` (removed `storage: localStorage`), `src/pages/CreatorAuth.tsx` (`handleApplicationSubmit` — signOut before signUp), `src/contexts/AuthContext.tsx` (`signUp` — signOut before signUp).
+   - QA script: `.qa/lb4_pkce_verifier.mjs` — PASS (verifier key `sb-jhzcmdsaajvftjbhdunt-auth-token-code-verifier`, 112-char value).
+   - **Action for CoWork:** Fresh signup at `/creator-auth` Apply with real Gmail → check browser localStorage immediately after submit → confirm `sb-jhzcmdsaajvftjbhdunt-auth-token-code-verifier` present → click confirmation link in SAME browser → lands on `/creator-application-pending` (no AuthErrorBanner).
+
+2. **🟠 LB#2 — Email confirmation: code fix landed, awaiting CoWork re-verification**
    - Round-2 QA report identified two distinct defects (Defect 1: Gmail safelinks pre-fetch consuming the OTP; Defect 2: frontend silently swallowing `#error=` fragments). Both have shipped in commit `45a670d`:
      - Supabase client switched to **PKCE flow** (`flowType: 'pkce'`). Confirmation links now carry a `?code=` that must be exchanged using the originating client's `code_verifier` in localStorage — prefetchers can't complete the exchange.
      - New [/auth/callback](src/pages/AuthCallback.tsx) page handles the exchange + completes any cached creator application + routes by intent.
@@ -45,6 +53,10 @@ Last updated: 2026-05-15
 ### Known temporary workarounds (must be removed)
 
 _None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test creator account (`4c6c34bb…`), not affecting any real user flow. Test tiers accumulated on that account are normal test data, not platform workarounds.
+
+### Resolved issues (2026-05-17)
+
+- **LB#4 — PKCE code_verifier not persisted on signup (commit below)** — Two-part fix: (1) removed `storage: localStorage` from supabase client options so Supabase auto-detects localStorage via `supportsLocalStorage()` instead of bypassing it; (2) added `await supabase.auth.signOut()` before every `supabase.auth.signUp()` call (both `CreatorAuth.tsx` and `AuthContext.tsx`) to clear any stale session whose failing auto-refresh could race with and wipe the freshly-written code_verifier. QA: `.qa/lb4_pkce_verifier.mjs` PASS.
 
 ### Resolved issues (this session 2026-05-15 / 2026-05-16)
 

@@ -10,14 +10,19 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
-    storage: localStorage,
+    // Do NOT pass `storage: localStorage` here. Providing the raw global
+    // object bypasses Supabase's supportsLocalStorage() write-test and can
+    // cause the PKCE code_verifier write to fail silently in some Vite/Vercel
+    // evaluation contexts. Let the auth-js client auto-detect localStorage
+    // via supportsLocalStorage() so the verifier is always written to a
+    // validated storage adapter.
     persistSession: true,
     autoRefreshToken: true,
     // PKCE flow: signUp / passwordReset emails contain a `?code=` that must be
     // exchanged for a session using the originating client's code_verifier
     // (stored in localStorage). Defeats email-client safelinks pre-fetchers
     // (Gmail, Outlook, etc.) that previously consumed the single-use OTP
-    // before the real user could click. See LB#2 in PROJECT_STATE.md.
+    // before the real user could click. See LB#2 / LB#4 in PROJECT_STATE.md.
     flowType: 'pkce',
     detectSessionInUrl: true,
   }

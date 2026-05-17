@@ -48,6 +48,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     role: 'creator' | 'customer'
   ) => {
     try {
+      // Sign out any stale session before signUp so no concurrent token
+      // refresh can race with the PKCE code_verifier write (LB#4).
+      await supabase.auth.signOut();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
