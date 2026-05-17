@@ -24,6 +24,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     // (Gmail, Outlook, etc.) that previously consumed the single-use OTP
     // before the real user could click. See LB#2 / LB#4 in PROJECT_STATE.md.
     flowType: 'pkce',
-    detectSessionInUrl: true,
+    // Must be false: with true, auth-js auto-calls exchangeCodeForSession when
+    // /auth/callback?code= loads, succeeds, then deletes the code_verifier.
+    // AuthCallback.tsx's explicit call then finds the verifier gone and fails.
+    // AuthCallback.tsx owns the exchange — auth-js must not race it (LB#4b).
+    detectSessionInUrl: false,
   }
 });
