@@ -579,13 +579,16 @@ const MessagingInterface = () => {
             </div>
           )}
 
-          {/* Payment Required Overlay - Show at top for customers without subscription/credits/balance */}
+          {/* Payment Required Overlay - Show at top for customers without subscription/credits/balance.
+              Collapses to a mini top-up strip when the conversation already has messages and the
+              customer has wallet balance (B5 — CHAT-UX-1). */}
           {!isCreator && creatorProfile && (
             <PaymentRequiredOverlay
               creatorId={creatorId!}
               creatorProfile={creatorProfile}
               pricePerMessage={pricePerMessage}
               packs={packs}
+              hasMessages={messages.length > 0}
               onSubscribed={() => {
                 refetch();
               }}

@@ -73,6 +73,21 @@ const Dashboard = () => {
     }
   }, [user, isCreator]);
 
+  // B4 — ONBOARDING-3: Approved creators with no creator_settings row must
+  // complete onboarding before using the dashboard. Check once isCreator
+  // resolves so we don't flash a redirect on every customer.
+  useEffect(() => {
+    if (!isCreator || !user) return;
+    supabase
+      .from('creator_settings')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) navigate('/creator-onboarding', { replace: true });
+      });
+  }, [isCreator, user, navigate]);
+
   // If user is a creator, show creator dashboard instead
   if (isCreator) {
     return <CreatorDashboard />;

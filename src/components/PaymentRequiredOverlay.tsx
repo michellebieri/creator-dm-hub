@@ -39,14 +39,17 @@ interface PaymentRequiredOverlayProps {
   pricePerMessage: number;
   packs: MessagePack[];
   onSubscribed?: () => void;
+  /** When true and the customer has wallet balance, collapse to a small top-up CTA instead of the full card. */
+  hasMessages?: boolean;
 }
 
-export const PaymentRequiredOverlay = ({ 
-  creatorId, 
-  creatorProfile, 
+export const PaymentRequiredOverlay = ({
+  creatorId,
+  creatorProfile,
   pricePerMessage,
   packs,
-  onSubscribed 
+  onSubscribed,
+  hasMessages = false,
 }: PaymentRequiredOverlayProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -155,6 +158,12 @@ export const PaymentRequiredOverlay = ({
   const loading = subLoading || creditsLoading || loadingTiers;
   const shouldShow = !isSubscribed && credits <= 0;
 
+  // B5 — CHAT-UX-1: Collapse to a mini top-up CTA when the conversation
+  // already has messages and the customer has enough wallet balance to send
+  // at least one more message. The full card is only shown before the
+  // conversation starts or when the wallet is empty.
+  const isCollapsed = hasMessages && balance > 0;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -165,6 +174,27 @@ export const PaymentRequiredOverlay = ({
 
   if (!shouldShow) {
     return null;
+  }
+
+  // Collapsed mini-CTA — conversation in progress, wallet funded
+  if (isCollapsed) {
+    return (
+      <div className="flex items-center justify-between gap-3 px-4 py-2 bg-muted/60 border rounded-lg text-sm">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Wallet className="h-4 w-4 shrink-0" />
+          <span>
+            Balance: <span className="font-medium text-foreground">${balance.toFixed(2)}</span>
+            {pricePerMessage > 0 && (
+              <span className="ml-1">· ${pricePerMessage.toFixed(2)}/msg</span>
+            )}
+          </span>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => navigate('/wallet')}>
+          <Wallet className="h-3 w-3 mr-1" />
+          Top up
+        </Button>
+      </div>
+    );
   }
 
   const hasTiers = tiers.length > 0;
