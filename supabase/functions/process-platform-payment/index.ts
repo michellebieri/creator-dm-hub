@@ -156,6 +156,7 @@ serve(async (req) => {
     const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
       amount: amountInCents,
       currency: 'usd',
+      statement_descriptor: 'DM.me',
       application_fee_amount: platformFeeAmount,
       transfer_data: {
         destination: creatorSettings.stripe_account_id,

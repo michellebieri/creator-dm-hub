@@ -123,6 +123,7 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
+      statement_descriptor: "DM.me",
       success_url: `${req.headers.get("origin")}/payment-success?session_id={CHECKOUT_SESSION_ID}&type=pack`,
       cancel_url: `${req.headers.get("origin")}/messages`,
       metadata: {

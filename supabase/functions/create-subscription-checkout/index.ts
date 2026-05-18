@@ -128,6 +128,7 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
+      statement_descriptor: "DM.me",
       success_url: `${req.headers.get("origin")}/creator/${creator.username}?subscription=success&tier=${tierId}`,
       cancel_url: `${req.headers.get("origin")}/creator/${creator.username}?subscription=cancelled`,
       metadata: {
