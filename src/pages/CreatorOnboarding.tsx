@@ -33,9 +33,18 @@ const CreatorOnboarding = () => {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  // Pre-fill displayName from existing profile
+  // Pre-fill displayName: seed from auth metadata immediately (synchronous),
+  // then confirm/override from profiles table (async). The metadata seed
+  // ensures the field is non-empty on first paint even before the DB
+  // round-trip completes.
   useEffect(() => {
     if (!user) return;
+
+    // Immediate seed from auth user_metadata (set at signup)
+    const metaName = (user.user_metadata?.display_name as string | undefined) ?? '';
+    if (metaName) setDisplayName(metaName);
+
+    // Confirm with DB value (may differ if updated since signup)
     supabase
       .from('profiles')
       .select('display_name')

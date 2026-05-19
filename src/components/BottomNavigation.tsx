@@ -7,10 +7,13 @@ import { useRoleCheck } from '@/hooks/useRoleCheck';
 export const BottomNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const { isCreator } = useRoleCheck();
 
-  if (!user) return null;
+  // Hide only once auth has resolved with no session. During the loading
+  // window user is transiently null even for signed-in users, so checking
+  // loading prevents a brief nav flash for authenticated visitors.
+  if (!loading && !user) return null;
   
   const isActive = (path: string) => location.pathname === path;
   
