@@ -83,13 +83,15 @@ serve(async (req) => {
     if (authError || !user) return new Response(JSON.stringify({ error: 'Invalid auth' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const { conversationId, senderId, recipientId } = await req.json();
+    console.log('check-auto-reply received:', { conversationId, senderId, recipientId });
     if (!conversationId || !senderId || !recipientId) throw new Error('Missing fields');
     if (user.id !== senderId) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const supabase = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
 
-    const { data: conversation } = await supabase.from('conversations').select('creator_id, customer_id').eq('id', conversationId).single();
-    if (!conversation) return new Response(JSON.stringify({ error: 'Not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    const { data: conversation, error: convError } = await supabase.from('conversations').select('creator_id, customer_id').eq('id', conversationId).maybeSingle();
+    console.log('conversation lookup:', { conversationId, found: !!conversation, error: convError?.message });
+    if (!conversation) return new Response(JSON.stringify({ error: 'Conversation not found', conversationId }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     const creatorId = recipientId;
 
