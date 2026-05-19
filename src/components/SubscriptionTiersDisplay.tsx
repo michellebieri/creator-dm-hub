@@ -141,6 +141,9 @@ export const SubscriptionTiersDisplay = ({ creatorId, creatorName }: Subscriptio
 
       const periodEnd = result.period_end ? new Date(result.period_end) : new Date();
 
+      // Refresh wallet balance in the UI
+      window.dispatchEvent(new CustomEvent('wallet-balance-update', { detail: { balance: balance - selectedTier.price } }));
+
       // Notify creator (fire-and-forget)
       supabase.functions.invoke('create-notification', {
         body: {

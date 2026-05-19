@@ -282,14 +282,6 @@ const CreatorAuth = () => {
     }
   };
 
-  if (loading || roleLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   if (signupSuccess) {
     return (
       <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
@@ -363,8 +355,8 @@ const CreatorAuth = () => {
                     <Input id="signin-password" name="signin-password" type="password" required />
                     {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                   </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
+                  <Button type="submit" className="w-full" disabled={isSubmitting || loading || roleLoading}>
+                    {isSubmitting || loading || roleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Sign In'}
                   </Button>
                   <div className="text-center text-sm">
                     <Link to="/forgot-password" className="text-primary hover:underline">Forgot password?</Link>
@@ -397,7 +389,7 @@ const CreatorAuth = () => {
                       <Input id="signup-password" name="signup-password" type="password" required />
                       {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
                     </div>
-                    <Button type="submit" className="w-full">Next: Application Details →</Button>
+                    <Button type="submit" className="w-full" disabled={loading || roleLoading}>Next: Application Details →</Button>
                   </form>
                 )}
 

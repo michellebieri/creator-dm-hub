@@ -33,6 +33,19 @@ const CreatorOnboarding = () => {
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
+  // Pre-fill displayName from existing profile
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.display_name) setDisplayName(data.display_name);
+      });
+  }, [user]);
+
   // Restore state if returning from Stripe Connect redirect
   useEffect(() => {
     const stripeReturn = searchParams.get('stripe_connected');
@@ -64,6 +77,13 @@ const CreatorOnboarding = () => {
     if (step === 2 && (!pricePerMessage || Number(pricePerMessage) <= 0)) {
       toast.error('Please set a valid price per message');
       return;
+    }
+    if (step === 3) {
+      const maxPackPrice = Number(packQuantity) * Number(pricePerMessage);
+      if (Number(packPrice) > maxPackPrice) {
+        toast.error(`Pack price can't exceed $${maxPackPrice.toFixed(2)} (${packQuantity} messages × $${Number(pricePerMessage).toFixed(2)})`);
+        return;
+      }
     }
     setStep(step + 1);
   };
@@ -327,9 +347,18 @@ const CreatorOnboarding = () => {
                     value={packPrice}
                     onChange={(e) => setPackPrice(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Suggested: ${(Number(packQuantity) * Number(pricePerMessage) * (1 - Number(packDiscount) / 100)).toFixed(2)}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Suggested: ${(Number(packQuantity) * Number(pricePerMessage) * (1 - Number(packDiscount) / 100)).toFixed(2)}
+                    </p>
+                    <button
+                      type="button"
+                      className="text-xs text-primary underline"
+                      onClick={() => setPackPrice((Number(packQuantity) * Number(pricePerMessage) * (1 - Number(packDiscount) / 100)).toFixed(2))}
+                    >
+                      Use suggested
+                    </button>
+                  </div>
                 </div>
 
                 <Card className="bg-muted/50">

@@ -64,10 +64,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      toast({
-        title: 'Account created!',
-        description: 'Welcome to DM.me! Check your email to confirm your account.',
-      });
+      if (data.session) {
+        // Email confirmation disabled — user is signed in immediately
+        toast({
+          title: 'Account created!',
+          description: "Welcome to DM.me! You're all set.",
+        });
+      } else {
+        // Email confirmation required
+        toast({
+          title: 'Account created!',
+          description: 'Welcome to DM.me! Check your email to confirm your account.',
+        });
+      }
 
       return { data, error: null };
     } catch (error: any) {

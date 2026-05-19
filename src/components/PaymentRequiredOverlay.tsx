@@ -63,6 +63,7 @@ export const PaymentRequiredOverlay = ({
   const [subscribing, setSubscribing] = useState(false);
   const [purchasing, setPurchasing] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'subscribe' | 'credits'>('subscribe');
+  const [confirmingTier, setConfirmingTier] = useState<SubscriptionTier | null>(null);
 
   useEffect(() => {
     fetchTiers();
@@ -86,17 +87,23 @@ export const PaymentRequiredOverlay = ({
     }
   };
 
-  const handleSubscribe = async (tier: SubscriptionTier) => {
+  const handleSubscribeClick = (tier: SubscriptionTier) => {
     if (!user) {
       toast({ title: "Sign in required", description: "Please sign in to subscribe", variant: "destructive" });
       return;
     }
+    setConfirmingTier(tier);
+  };
+
+  const handleConfirmSubscribe = async () => {
+    if (!confirmingTier) return;
+    const tier = confirmingTier;
 
     if (balance < tier.price) {
-      toast({ 
-        title: "Insufficient balance", 
+      toast({
+        title: "Insufficient balance",
         description: `You need $${tier.price.toFixed(2)} in your wallet.`,
-        variant: "destructive" 
+        variant: "destructive"
       });
       navigate('/wallet');
       return;
@@ -113,11 +120,15 @@ export const PaymentRequiredOverlay = ({
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || 'Failed to activate subscription');
 
+      // Refresh wallet balance in header/wherever it's displayed
+      window.dispatchEvent(new CustomEvent('wallet-balance-update', { detail: { balance: balance - tier.price } }));
+
       toast({
         title: "Subscribed!",
         description: `You are now subscribed to ${creatorProfile?.display_name}`,
       });
 
+      setConfirmingTier(null);
       onSubscribed?.();
     } catch (error: any) {
       console.error('Subscription error:', error);
@@ -199,6 +210,49 @@ export const PaymentRequiredOverlay = ({
 
   const hasTiers = tiers.length > 0;
   const hasPacks = packs && packs.length > 0;
+
+  // Confirmation screen
+  if (confirmingTier) {
+    return (
+      <div className="bg-card border rounded-lg p-6 space-y-4">
+        <h3 className="font-semibold text-lg">Confirm Subscription</h3>
+        <div className="p-4 bg-muted/50 rounded-lg space-y-2 text-sm">
+          <div className="flex justify-between font-medium">
+            <span>{confirmingTier.name}</span>
+            <span>${confirmingTier.price}/{confirmingTier.billing_interval}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground pt-2 border-t">
+            <span>Wallet balance:</span>
+            <span className={balance >= confirmingTier.price ? 'text-primary font-medium' : 'text-destructive font-medium'}>
+              ${balance.toFixed(2)}
+            </span>
+          </div>
+          {balance < confirmingTier.price && (
+            <p className="text-xs text-destructive">Insufficient balance. Please add funds.</p>
+          )}
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="flex-1" onClick={() => setConfirmingTier(null)}>
+            Back
+          </Button>
+          {balance < confirmingTier.price ? (
+            <Button className="flex-1" onClick={() => navigate('/wallet')}>
+              <Wallet className="h-4 w-4 mr-2" />
+              Add Funds
+            </Button>
+          ) : (
+            <Button className="flex-1" onClick={handleConfirmSubscribe} disabled={subscribing}>
+              {subscribing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirm
+            </Button>
+          )}
+        </div>
+        <p className="text-xs text-center text-muted-foreground">
+          ${confirmingTier.price.toFixed(2)} will be deducted from your wallet.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card border rounded-lg p-6 space-y-6">
@@ -282,8 +336,8 @@ export const PaymentRequiredOverlay = ({
                       )}
                     </div>
                   </div>
-                  <Button 
-                    onClick={() => handleSubscribe(tier)}
+                  <Button
+                    onClick={() => handleSubscribeClick(tier)}
                     disabled={subscribing}
                     size="sm"
                   >

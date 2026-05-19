@@ -69,8 +69,18 @@ serve(async (req) => {
         });
       }
       
+      // Admins can create notifications for any user (e.g. notifying a creator on behalf of the platform)
+      const { data: adminRole } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      const isAdmin = !!adminRole;
+
       // Users can create notifications for themselves OR for conversation participants
-      if (userId !== user.id) {
+      // Admins bypass the conversation check entirely
+      if (!isAdmin && userId !== user.id) {
         // Check if the user has a conversation with the target user
         const { data: conversation, error: convError } = await supabaseClient
           .from('conversations')
@@ -78,7 +88,7 @@ serve(async (req) => {
           .or(`and(creator_id.eq.${user.id},customer_id.eq.${userId}),and(creator_id.eq.${userId},customer_id.eq.${user.id})`)
           .limit(1)
           .single();
-        
+
         if (convError || !conversation) {
           console.error("User attempted to create notification for non-conversation participant");
           return new Response(JSON.stringify({ error: "Forbidden" }), {

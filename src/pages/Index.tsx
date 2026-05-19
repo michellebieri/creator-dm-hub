@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Footer } from "@/components/Footer";
@@ -15,6 +16,17 @@ const Index = () => {
   const { user, signOut } = useAuth();
   const { isCreator } = useRoleCheck();
   const unreadCount = useUnreadCount();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen pb-20">
@@ -37,8 +49,8 @@ const Index = () => {
                       </Badge>
                     )}
                   </Button>
-                  <Button variant="ghost" onClick={signOut}>
-                    Sign Out
+                  <Button variant="ghost" onClick={handleSignOut} disabled={isSigningOut}>
+                    {isSigningOut ? 'Signing out…' : 'Sign Out'}
                   </Button>
                 </>
               ) : (

@@ -1,12 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart3, MessageCircle, Plus, Vault, MoreHorizontal, Home, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 import { useRoleCheck } from '@/hooks/useRoleCheck';
 
 export const BottomNavigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { isCreator } = useRoleCheck();
+
+  if (!user) return null;
   
   const isActive = (path: string) => location.pathname === path;
   

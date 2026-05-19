@@ -95,14 +95,6 @@ const Auth = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -160,7 +152,7 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full gradient-primary"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || loading}
                   >
                     {isSubmitting ? (
                       <>
@@ -242,7 +234,7 @@ const Auth = () => {
                   <Button
                     type="submit"
                     className="w-full gradient-primary"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || loading}
                   >
                     {isSubmitting ? (
                       <>

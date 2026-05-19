@@ -29,10 +29,17 @@ const More = () => {
   const { signOut } = useAuth();
   const { isCreator, isAdmin } = useRoleCheck();
   const [showGetApp, setShowGetApp] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate('/auth');
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      navigate('/auth');
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   const MenuItem = ({ 
@@ -155,7 +162,7 @@ const More = () => {
         </Card>
 
         <Card className="m-4 overflow-hidden">
-          <MenuItem title="Sign out" icon={LogOut} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={handleSignOut} />
+          <MenuItem title={isSigningOut ? 'Signing out…' : 'Sign out'} icon={LogOut} iconBg="bg-gray-500/10" iconColor="text-gray-500" onClick={handleSignOut} />
         </Card>
       </div>
 
