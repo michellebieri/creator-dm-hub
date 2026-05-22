@@ -904,6 +904,11 @@ const MessagingInterface = () => {
               <Send className="h-4 w-4" />
             </Button>
           </div>
+          {!isCreator && (
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              Replies may be AI-assisted.
+            </p>
+          )}
         </div>
       </div>
 
