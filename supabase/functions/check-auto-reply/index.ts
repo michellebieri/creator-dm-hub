@@ -123,8 +123,23 @@ serve(async (req) => {
     };
 
     const systemPrompt = buildSystemPrompt(persona, creatorProfile, fanProfile, fanStats);
-    const messages = history.map((m: any) => ({ role: m.sender_id === creatorId ? 'assistant' : 'user', content: m.content }));
-    if (messages.length === 0) messages.push({ role: 'user', content: 'Hey!' });
+
+    // Collapse consecutive same-role messages: Anthropic rejects non-alternating turns.
+    // Common when the creator hasn't replied in a while (all recent messages are fan = 'user').
+    const rawMsgs = history.map((m: any) => ({
+      role: m.sender_id === creatorId ? 'assistant' : 'user',
+      content: m.content as string,
+    }));
+    const merged: { role: string; content: string }[] = [];
+    for (const msg of rawMsgs) {
+      if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
+        merged[merged.length - 1].content += '\n' + msg.content;
+      } else {
+        merged.push({ role: msg.role, content: msg.content });
+      }
+    }
+    if (merged.length > 0 && merged[0].role === 'assistant') merged.shift();
+    const messages = merged.length > 0 ? merged : [{ role: 'user', content: 'Hey!' }];
 
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicKey) {
