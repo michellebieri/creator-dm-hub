@@ -145,11 +145,30 @@ serve(async (req) => {
     if (!aiReply) return new Response(JSON.stringify({ triggered: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     if (persona.mode === 'draft') {
-      await supabase.from('ai_draft_messages').insert({ conversation_id: conversationId, creator_id: creatorId, draft_content: aiReply, trigger_message_id: recentMessages?.[0]?.id ?? null, status: 'pending' });
+      const { error: draftError } = await supabase.from('ai_draft_messages').insert({ conversation_id: conversationId, creator_id: creatorId, draft_content: aiReply, trigger_message_id: recentMessages?.[0]?.id ?? null, status: 'pending' });
+      if (draftError) {
+        console.error('[check-auto-reply] ai_draft_messages insert failed:', draftError);
+        return new Response(JSON.stringify({ triggered: false, reason: 'insert_failed', detail: draftError.message }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       return new Response(JSON.stringify({ triggered: true, mode: 'draft' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: creatorId, content: aiReply, message_type: 'text', is_paid: false });
+    const { error: insertError } = await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: creatorId,
+      content: aiReply,
+      message_type: 'text',
+      is_paid: false,
+    });
+
+    if (insertError) {
+      console.error('[check-auto-reply] messages insert failed:', insertError);
+      return new Response(
+        JSON.stringify({ triggered: false, reason: 'insert_failed', detail: insertError.message }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     return new Response(JSON.stringify({ triggered: true, mode: 'auto' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {
