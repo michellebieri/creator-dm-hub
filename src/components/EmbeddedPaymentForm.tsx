@@ -100,9 +100,15 @@ export const EmbeddedPaymentForm = ({ amount, onSuccess, onCancel }: EmbeddedPay
       <PaymentElement
         options={{ layout: 'tabs' }}
         onReady={() => console.log('PaymentElement ready')}
-        onLoadError={(e) => {
-          console.error('PaymentElement load error:', e);
-          setError('Payment form failed to load: ' + (e as any)?.message);
+        onLoadError={(e: any) => {
+          console.error('PaymentElement load error full:', e);
+          console.error('PaymentElement e.error:', e?.error);
+          const errDetail =
+            e?.error?.message
+            ?? e?.error?.code
+            ?? e?.message
+            ?? (typeof e === 'object' ? JSON.stringify(e, Object.getOwnPropertyNames(e)) : String(e));
+          setError('Payment form failed: ' + errDetail);
         }}
       />
 

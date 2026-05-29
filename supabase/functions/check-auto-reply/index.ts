@@ -59,12 +59,13 @@ WHEN FANS ASK FOR FREE CONTENT:
 ${persona.free_content_response || 'Kindly explain your exclusive content is available for purchase and offer details.'}
 
 RULES:
-- Write ONLY the reply — no labels, no quotes, no explanation
-- Keep it short (1-3 sentences max) — this is texting, not an essay
-- Sound like a real person texting, not an AI
-- Use emojis sparingly and only if it fits your tone
-- Never break character or admit to being an AI
-- Never make up specific prices or content you don't know about`;
+- Write ONLY the reply. No labels, no quotes, no explanation.
+- Keep it short (1-3 sentences max). This is texting, not an essay.
+- Sound like a real person texting, not an AI.
+- Use emojis sparingly and only if they fit your tone.
+- NEVER use em dashes (—) or en dashes (–). Use periods, commas, or new sentences instead. Em dashes are an AI tell and instantly break the illusion. This rule is absolute.
+- Never break character or admit to being an AI.
+- Never make up specific prices or content you don't know about.`;
 }
 
 serve(async (req) => {
@@ -123,8 +124,23 @@ serve(async (req) => {
     };
 
     const systemPrompt = buildSystemPrompt(persona, creatorProfile, fanProfile, fanStats);
-    const messages = history.map((m: any) => ({ role: m.sender_id === creatorId ? 'assistant' : 'user', content: m.content }));
-    if (messages.length === 0) messages.push({ role: 'user', content: 'Hey!' });
+
+    // Collapse consecutive same-role messages: Anthropic rejects non-alternating turns.
+    // Common when the creator hasn't replied in a while (all recent messages are fan = 'user').
+    const rawMsgs = history.map((m: any) => ({
+      role: m.sender_id === creatorId ? 'assistant' : 'user',
+      content: m.content as string,
+    }));
+    const merged: { role: string; content: string }[] = [];
+    for (const msg of rawMsgs) {
+      if (merged.length > 0 && merged[merged.length - 1].role === msg.role) {
+        merged[merged.length - 1].content += '\n' + msg.content;
+      } else {
+        merged.push({ role: msg.role, content: msg.content });
+      }
+    }
+    if (merged.length > 0 && merged[0].role === 'assistant') merged.shift();
+    const messages = merged.length > 0 ? merged : [{ role: 'user', content: 'Hey!' }];
 
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicKey) {
@@ -145,11 +161,30 @@ serve(async (req) => {
     if (!aiReply) return new Response(JSON.stringify({ triggered: false }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
     if (persona.mode === 'draft') {
-      await supabase.from('ai_draft_messages').insert({ conversation_id: conversationId, creator_id: creatorId, draft_content: aiReply, trigger_message_id: recentMessages?.[0]?.id ?? null, status: 'pending' });
+      const { error: draftError } = await supabase.from('ai_draft_messages').insert({ conversation_id: conversationId, creator_id: creatorId, draft_content: aiReply, trigger_message_id: recentMessages?.[0]?.id ?? null, status: 'pending' });
+      if (draftError) {
+        console.error('[check-auto-reply] ai_draft_messages insert failed:', draftError);
+        return new Response(JSON.stringify({ triggered: false, reason: 'insert_failed', detail: draftError.message }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       return new Response(JSON.stringify({ triggered: true, mode: 'draft' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: creatorId, content: aiReply, message_type: 'text', is_paid: false });
+    const { error: insertError } = await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      sender_id: creatorId,
+      content: aiReply,
+      message_type: 'text',
+      is_paid: false,
+    });
+
+    if (insertError) {
+      console.error('[check-auto-reply] messages insert failed:', insertError);
+      return new Response(
+        JSON.stringify({ triggered: false, reason: 'insert_failed', detail: insertError.message }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     return new Response(JSON.stringify({ triggered: true, mode: 'auto' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error) {

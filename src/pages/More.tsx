@@ -18,6 +18,7 @@ import {
   Wallet,
   Crown,
   Bot,
+  MessageSquare,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -134,6 +135,8 @@ const More = () => {
               <MenuItem title="Subscribers" icon={Crown} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/subscribers')} />
               <MenuItem title="Followers" icon={Users} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/lists')} />
               <MenuItem title="AI Assistant" icon={Bot} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/settings/ai-persona')} />
+              <MenuItem title="AI Drafts" icon={Bot} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/ai-drafts')} />
+              <MenuItem title="Messaging" icon={MessageSquare} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/settings/messaging')} />
             </Card>
           </>
         )}

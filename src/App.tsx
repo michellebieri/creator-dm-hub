@@ -50,6 +50,7 @@ import ProfileSettings2 from "./pages/settings/ProfileSettings";
 import GeneralSettings from "./pages/settings/GeneralSettings";
 import AccountManagement from "./pages/settings/AccountManagement";
 import AIPersonaSettings from "./pages/settings/AIPersonaSettings";
+import AiDraftsReview from "./pages/AiDraftsReview";
 import PaymentMethods from "./pages/PaymentMethods";
 import Wallet from "./pages/Wallet";
 import CreatorRevenue from "./pages/CreatorRevenue";
@@ -256,6 +257,11 @@ const App = () => {
             <Route path="/settings/ai-persona" element={
               <ProtectedRoute requireCreator>
                 <AIPersonaSettings />
+              </ProtectedRoute>
+            } />
+            <Route path="/ai-drafts" element={
+              <ProtectedRoute requireCreator>
+                <AiDraftsReview />
               </ProtectedRoute>
             } />
             <Route path="/privacy-settings" element={
