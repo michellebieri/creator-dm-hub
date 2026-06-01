@@ -38,6 +38,28 @@ const CreatorOnboarding = () => {
   const [aiTone, setAiTone] = useState('friendly');
   const [aiMode, setAiMode] = useState('auto');
   const [aiDelay, setAiDelay] = useState('2');
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['English']);
+
+  const LANGUAGE_OPTIONS = [
+    'English',
+    'German (includes Swiss German)',
+    'French',
+    'Italian',
+    'Spanish',
+    'Portuguese',
+    'Dutch',
+    'Arabic',
+    'Turkish',
+    'Other',
+  ];
+
+  const toggleLanguage = (lang: string) => {
+    setSelectedLanguages(prev =>
+      prev.includes(lang)
+        ? prev.filter(l => l !== lang)  // deselect — but keep at least one
+        : [...prev, lang]
+    );
+  };
 
   const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
@@ -195,6 +217,7 @@ const CreatorOnboarding = () => {
           mode: aiMode,
           tone: aiTone,
           auto_reply_delay_minutes: Number(aiDelay) || 2,
+          supported_languages: selectedLanguages.length > 0 ? selectedLanguages : ['English'],
           updated_at: new Date().toISOString(),
         }, { onConflict: 'creator_id' });
 
@@ -450,6 +473,30 @@ const CreatorOnboarding = () => {
 
               {aiEnabled && (
                 <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Languages your AI replies in</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {LANGUAGE_OPTIONS.map(lang => (
+                        <label key={lang} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedLanguages.includes(lang)}
+                            onChange={() => {
+                              // must keep at least one selected
+                              if (selectedLanguages.includes(lang) && selectedLanguages.length === 1) return;
+                              toggleLanguage(lang);
+                            }}
+                            className="h-4 w-4 rounded border-border accent-primary"
+                          />
+                          <span className="text-sm">{lang}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Your AI will only reply in languages you select. Swiss German is included under German.
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>Tone</Label>
                     <Select value={aiTone} onValueChange={setAiTone}>
