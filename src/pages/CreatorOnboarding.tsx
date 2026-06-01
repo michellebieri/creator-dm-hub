@@ -8,7 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, ArrowRight, Check, User, DollarSign, Package, Wallet, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, User, DollarSign, Package, Wallet, ExternalLink, Bot } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
 const STORAGE_KEY = 'creator_onboarding_state';
@@ -30,7 +32,14 @@ const CreatorOnboarding = () => {
 
   const [stripeConnecting, setStripeConnecting] = useState(false);
   const [stripeConnected, setStripeConnected] = useState(false);
-  const totalSteps = 4;
+
+  // Step 5: AI persona
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiTone, setAiTone] = useState('friendly');
+  const [aiMode, setAiMode] = useState('auto');
+  const [aiDelay, setAiDelay] = useState('2');
+
+  const totalSteps = 5;
   const progress = (step / totalSteps) * 100;
 
   // Pre-fill displayName: seed from auth metadata immediately (synchronous),
@@ -177,6 +186,23 @@ const CreatorOnboarding = () => {
         if (packError) throw packError;
       }
 
+      // AI persona (upsert — row auto-created on approval; this updates tone/mode/delay)
+      const { error: personaError } = await supabase
+        .from('creator_ai_personas')
+        .upsert({
+          creator_id: user.id,
+          is_enabled: aiEnabled,
+          mode: aiMode,
+          tone: aiTone,
+          auto_reply_delay_minutes: Number(aiDelay) || 2,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'creator_id' });
+
+      if (personaError) {
+        // Non-fatal: AI can be configured later from Settings
+        console.warn('AI persona setup skipped:', personaError.message);
+      }
+
       toast.success('Welcome to the creator community!');
       navigate('/dashboard');
     } catch (error) {
@@ -194,7 +220,7 @@ const CreatorOnboarding = () => {
           <div className="space-y-2">
             <CardTitle className="text-2xl">Creator Setup</CardTitle>
             <CardDescription>
-              Let's get your creator profile set up in {totalSteps} quick steps
+              Let's get your creator profile set up in {totalSteps} quick steps (step 5 is optional)
             </CardDescription>
           </div>
           <div className="space-y-2">
@@ -398,6 +424,86 @@ const CreatorOnboarding = () => {
             </div>
           )}
 
+          {/* Step 5: AI Assistant Setup (optional) — rendered after step 4 in DOM order */}
+          {step === 5 && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bot className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold">
+                    AI Assistant Setup
+                    <span className="text-xs text-muted-foreground font-normal ml-2">(optional)</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground">Let AI reply to fans while you're away</p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border">
+                <div>
+                  <p className="font-medium">Enable AI auto-replies</p>
+                  <p className="text-sm text-muted-foreground">AI replies to fans on your behalf</p>
+                </div>
+                <Switch checked={aiEnabled} onCheckedChange={setAiEnabled} />
+              </div>
+
+              {aiEnabled && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Tone</Label>
+                    <Select value={aiTone} onValueChange={setAiTone}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="friendly">Friendly — warm and approachable</SelectItem>
+                        <SelectItem value="warm">Warm — caring and intimate</SelectItem>
+                        <SelectItem value="playful">Playful — fun and energetic</SelectItem>
+                        <SelectItem value="flirty">Flirty — playfully teasing</SelectItem>
+                        <SelectItem value="professional">Professional — personable but polished</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Reply mode</Label>
+                    <Select value={aiMode} onValueChange={setAiMode}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto-send — AI replies immediately</SelectItem>
+                        <SelectItem value="draft">Draft for review — you approve before sending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="aiDelay">Reply delay (minutes)</Label>
+                    <Input
+                      id="aiDelay"
+                      type="number"
+                      min="0"
+                      max="60"
+                      value={aiDelay}
+                      onChange={(e) => setAiDelay(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">How long to wait before AI replies (0 = instant)</p>
+                  </div>
+
+                  <Card className="bg-muted/50">
+                    <CardContent className="pt-4 pb-4">
+                      <p className="text-xs text-muted-foreground">
+                        You can fine-tune your AI persona further — personality, selling approach, forbidden topics — from <strong>Settings → AI Assistant</strong> after setup.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Step 4: Stripe Connect */}
           {step === 4 && (
             <div className="space-y-6 animate-fade-in">
@@ -474,14 +580,14 @@ const CreatorOnboarding = () => {
                     'Setting up...'
                   ) : (
                     <>
-                      {stripeConnected ? 'Complete Setup' : 'Skip for Now'}
+                      Complete Setup
                       <Check className="h-4 w-4 ml-2" />
                     </>
                   )}
                 </Button>
-                {!stripeConnected && (
-                  <p className="text-xs text-muted-foreground">Connect Stripe later from Revenue settings</p>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  {aiEnabled ? 'AI will be turned on after setup' : 'AI can be configured any time from Settings'}
+                </p>
               </div>
             )}
           </div>

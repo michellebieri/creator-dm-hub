@@ -47,10 +47,12 @@ const CreatorAuth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [signupSuccess, setSignupSuccess] = useState(false);
+  const [signInEmail, setSignInEmail] = useState('');
+  const [showResend, setShowResend] = useState(false);
 
   // Controlled tabs so we can programmatically switch users to "Apply" if
   // they try to sign in without an existing application.
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signup');
 
   // Step-based signup
   const [step, setStep] = useState<'account' | 'application'>('account');
@@ -189,16 +191,28 @@ const CreatorAuth = () => {
     }
   };
 
+  const handleResendConfirmation = async () => {
+    if (!signInEmail) return;
+    try {
+      await supabase.auth.resend({ type: 'signup', email: signInEmail });
+      toast({ title: 'Confirmation email sent', description: 'Check your inbox for the confirmation link.' });
+    } catch (err: any) {
+      toast({ title: 'Failed to resend', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrors({});
+    setShowResend(false);
 
     const formData = new FormData(e.currentTarget);
     const data = {
       email: formData.get('signin-email') as string,
       password: formData.get('signin-password') as string,
     };
+    setSignInEmail(data.email);
 
     try {
       signInSchema.parse(data);
@@ -275,6 +289,10 @@ const CreatorAuth = () => {
         });
         setErrors(fieldErrors);
       } else {
+        const msg = error.message || '';
+        if (msg.toLowerCase().includes('email not confirmed')) {
+          setShowResend(true);
+        }
         toast({ title: 'Sign in failed', description: error.message, variant: 'destructive' });
       }
     } finally {
@@ -300,7 +318,7 @@ const CreatorAuth = () => {
               <p className="text-sm text-muted-foreground">
                 If you haven't confirmed your email yet, please check your inbox first.
               </p>
-              <Button className="w-full" onClick={() => { setSignupSuccess(false); setStep('account'); }}>
+              <Button className="w-full" onClick={() => { setSignupSuccess(false); setMode('signin'); setStep('account'); }}>
                 Back to Sign In
               </Button>
             </CardContent>
@@ -361,6 +379,14 @@ const CreatorAuth = () => {
                   <div className="text-center text-sm">
                     <Link to="/forgot-password" className="text-primary hover:underline">Forgot password?</Link>
                   </div>
+                  {showResend && (
+                    <div className="text-center space-y-1 pt-1">
+                      <p className="text-sm text-muted-foreground">Email not confirmed yet.</p>
+                      <Button variant="outline" size="sm" type="button" onClick={handleResendConfirmation}>
+                        Resend confirmation email
+                      </Button>
+                    </div>
+                  )}
                 </form>
               </TabsContent>
 

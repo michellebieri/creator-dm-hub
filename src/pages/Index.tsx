@@ -60,7 +60,7 @@ const Index = () => {
                   </Button>
                   <Button 
                     className="gradient-primary text-primary-foreground"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate('/auth?tab=signup')}
                   >
                     Get Started
                   </Button>
@@ -102,7 +102,7 @@ const Index = () => {
                   <Button
                     size="lg"
                     className="gradient-primary text-primary-foreground text-lg px-8"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate('/auth?tab=signup')}
                   >
                     Get Started
                   </Button>
