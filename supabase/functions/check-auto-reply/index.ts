@@ -225,7 +225,7 @@ serve(async (req) => {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, system: systemPrompt, messages }),
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 200, temperature: 0.3, system: systemPrompt, messages }),
     });
 
     if (!aiRes.ok) { console.error('Anthropic error:', await aiRes.text()); return new Response(JSON.stringify({ triggered: false, reason: 'ai_error' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }); }
