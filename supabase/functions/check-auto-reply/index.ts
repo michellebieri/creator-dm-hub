@@ -72,6 +72,11 @@ LANGUAGE:
   chum, scho, au, well (=weil), jo (=ja), met, för, üs, glii, or similar
   unmistakable Swiss German spellings. Standard German stays in standard German.
   When in doubt → standard German. Only switch when 100% certain.
+  RESET RULE: Each message is evaluated independently. If the fan's current
+  message is in standard German (contains ich, bin, habe, wollte, möchte,
+  können, werden etc. without any Swiss German markers), always reply in
+  standard German — even if the previous messages were in Swiss German.
+  Never carry dialect forward when the fan switches back to standard German.
 
   SWISS GERMAN RULES (only when dialect is confirmed):
 
