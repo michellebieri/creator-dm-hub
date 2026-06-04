@@ -78,7 +78,7 @@ const AIPersonaSettings = () => {
     try {
       const { error } = await supabase
         .from('creator_ai_personas')
-        .upsert({ ...persona, creator_id: user.id, updated_at: new Date().toISOString() });
+        .upsert({ ...persona, creator_id: user.id, updated_at: new Date().toISOString() }, { onConflict: 'creator_id' });
       if (error) throw error;
       toast.success('AI persona saved!');
     } catch (err: any) {
