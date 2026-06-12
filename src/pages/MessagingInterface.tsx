@@ -75,6 +75,11 @@ const MessagingInterface = () => {
   
   // Check if user needs to pay - only for non-creators without subscription, credits, or balance
   const needsPayment = !isCreator && !isSubscribed && credits <= 0 && balance < pricePerMessage && pricePerMessage > 0;
+
+  // Messaging is unavailable when the creator has no payment options configured
+  // (no packs, no subscription tiers with pricePerMessage=0 means no Stripe Connect setup).
+  // This mirrors the "Messaging is not available" state in PaymentRequiredOverlay.
+  const messagingUnavailable = !isCreator && !isSubscribed && credits <= 0 && packs.length === 0 && pricePerMessage === 0;
   
   // Find the user's last sent message ID for edit button visibility
   const userLastMessageId = messages
@@ -220,9 +225,15 @@ const MessagingInterface = () => {
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
-    
+
     // Guard against duplicate sends and empty messages
     if (!trimmedMessage || !creatorId || !user || sending || messageSending) return;
+
+    // Messaging not available for this creator (no payment options configured)
+    if (messagingUnavailable) {
+      toast({ title: "Messaging unavailable", description: "This creator hasn't set up paid messaging yet.", variant: "destructive" });
+      return;
+    }
 
     // Creators don't need balance to send messages
     if (!isCreator && balance < pricePerMessage) {
@@ -885,7 +896,7 @@ const MessagingInterface = () => {
                   }
                 }}
                 onBlur={() => stopTyping()}
-                disabled={sending || messageSending}
+                disabled={sending || messageSending || messagingUnavailable}
                 className="min-h-[40px] max-h-[200px] resize-none bg-background text-foreground placeholder:text-muted-foreground overflow-y-auto"
                 rows={1}
               />
@@ -897,7 +908,7 @@ const MessagingInterface = () => {
             </div>
             <Button
               onClick={handleSend}
-              disabled={sending || messageSending || !message.trim() || (balance < (pricePerMessage + tipAmount) && !isCreator)}
+              disabled={sending || messageSending || !message.trim() || messagingUnavailable || (balance < (pricePerMessage + tipAmount) && !isCreator)}
               size="icon"
               className="shrink-0"
             >

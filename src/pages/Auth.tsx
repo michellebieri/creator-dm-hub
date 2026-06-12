@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { MessageCircle, Loader2 } from 'lucide-react';
+import { MessageCircle, Loader2, MailCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,8 @@ const Auth = () => {
   const { user, loading, signUp, signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   // Default to Sign Up tab when coming from a "Get Started" CTA
   const defaultTab = searchParams.get('tab') === 'signup' ? 'signup' : 'signin';
@@ -54,7 +56,15 @@ const Auth = () => {
 
     try {
       signUpSchema.parse(data);
-      await signUp(data.email, data.password, data.username, data.displayName, 'customer');
+      const result = await signUp(data.email, data.password, data.username, data.displayName, 'customer');
+      if (!result.error) {
+        setSignupEmail(data.email);
+        if (!result.data?.session) {
+          // Email confirmation required
+          setSignupSuccess(true);
+        }
+        // If session exists (email confirmation disabled), the useEffect redirect handles it.
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: Record<string, string> = {};
@@ -98,6 +108,42 @@ const Auth = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (signupSuccess) {
+    return (
+      <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <Card className="animate-slide-up">
+            <CardHeader>
+              <div className="flex justify-center mb-3">
+                <MailCheck className="h-12 w-12 text-primary" />
+              </div>
+              <CardTitle>Check your email</CardTitle>
+              <CardDescription>
+                We sent a confirmation link to <strong>{signupEmail}</strong>.
+                Click it to activate your account, then come back here to sign in.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Didn't receive it? Check your spam folder, or{' '}
+                <button
+                  className="text-primary underline"
+                  onClick={() => setSignupSuccess(false)}
+                >
+                  go back
+                </button>{' '}
+                to try again.
+              </p>
+              <Button className="w-full" onClick={() => { setSignupSuccess(false); }}>
+                Back to Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen gradient-hero flex items-center justify-center p-4">

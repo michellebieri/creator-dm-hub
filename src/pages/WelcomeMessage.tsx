@@ -33,7 +33,13 @@ const WelcomeMessage = () => {
         .single();
 
       if (data) {
-        setMessage((data as any)[`welcome_message_${messageNumber}`] || '');
+        const saved = (data as any)[`welcome_message_${messageNumber}`];
+        const defaults: Record<string, string> = {
+          '1': "Hey! 👋 Thanks for reaching out — I'm so glad you're here. I'll get back to you soon!",
+          '2': "Thanks for your message! I read every one. Looking forward to chatting with you 😊",
+          '3': "You're awesome for reaching out! Stay tuned — I'll reply shortly 🙏",
+        };
+        setMessage(saved || (messageNumber ? defaults[messageNumber] || '' : ''));
       }
     } catch (error) {
       console.error('Error fetching welcome message:', error);
@@ -104,6 +110,9 @@ const WelcomeMessage = () => {
                 placeholder={`Enter your ${messageNumber === '1' ? 'first' : messageNumber === '2' ? 'second' : 'third'} welcome message...`}
                 rows={10}
               />
+              <p className="text-xs text-muted-foreground">
+                This message is automatically sent to fans when they start a conversation with you. A warm greeting makes a great first impression!
+              </p>
             </div>
           </CardContent>
         </Card>

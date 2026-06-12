@@ -678,15 +678,17 @@ const CreatorProfile = () => {
             {creatorUserId && (
               <SubscriptionTiersDisplay creatorId={creatorUserId} creatorName={profile.display_name} />
             )}
-            {user?.id && creatorUserId && user.id !== creatorUserId && !isFollowing && (
-              <Button 
-                onClick={toggleFollow} 
+            {user?.id && creatorUserId && user.id !== creatorUserId && (
+              <Button
+                onClick={toggleFollow}
                 disabled={followLoading}
                 size="lg"
-                variant="outline"
+                variant={isFollowing ? "secondary" : "outline"}
               >
                 {followLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isFollowing ? (
+                  <><Check className="h-4 w-4 mr-2" />Following</>
                 ) : (
                   <><UserPlus className="h-4 w-4 mr-2" />Follow</>
                 )}

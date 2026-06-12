@@ -115,7 +115,11 @@ const AIPersonaSettings = () => {
               </div>
               <div>
                 <p className="font-semibold">AI Auto-Reply</p>
-                <p className="text-xs text-muted-foreground">Reply to fans in your voice, even when you're offline</p>
+                <p className="text-xs text-muted-foreground">
+                  {persona.is_enabled
+                    ? 'AI is replying to fans on your behalf using the persona below.'
+                    : 'Off — fans who message you will get no reply until you respond manually. Turn on so fans always get a timely response.'}
+                </p>
               </div>
             </div>
             <Switch checked={persona.is_enabled} onCheckedChange={v => update('is_enabled', v)} />

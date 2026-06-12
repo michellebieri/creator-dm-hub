@@ -233,7 +233,7 @@ export function AddFundsDialog({
               </div>
             </div>
 
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <Elements stripe={stripePromise} options={{ clientSecret, locale: 'auto' }}>
               <EmbeddedPaymentForm 
                 amount={selectedAmount}
                 onSuccess={handlePaymentSuccess}

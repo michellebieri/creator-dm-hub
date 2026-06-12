@@ -52,6 +52,18 @@ const AuthCallback = () => {
 
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       if (error || !data?.session) {
+        // Code already used — check if the user is already confirmed/logged in
+        // in this browser (e.g. they double-clicked the link).
+        const { data: existing } = await supabase.auth.getSession();
+        if (existing?.session) {
+          // Already confirmed and signed in — send them where they need to go.
+          if (intent === 'creator') {
+            navigate('/creator-application-pending', { replace: true });
+          } else {
+            navigate('/dashboard', { replace: true });
+          }
+          return;
+        }
         const msg = encodeURIComponent(error?.message || 'Could not complete email confirmation.');
         navigate(`${authPage}#error=access_denied&error_code=exchange_failed&error_description=${msg}`, { replace: true });
         return;

@@ -115,6 +115,7 @@ const More = () => {
             <>
               <MenuItem title="Wallet" icon={Wallet} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/wallet')} />
               <MenuItem title="My Subscriptions" icon={Crown} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/subscriptions')} />
+              <MenuItem title="Following" icon={Users} iconBg="bg-primary/10" iconColor="text-primary" onClick={() => navigate('/following')} />
             </>
           )}
         </Card>
