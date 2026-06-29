@@ -56,6 +56,7 @@ export function AddFundsDialog({
     }
   }, [open, user, onOpenChange, navigate, toast]);
 
+  const MIN_TOPUP = 20;
   const presetAmounts = [20, 50, 100, 200];
   const shortfall = requiredAmount ? Math.max(0, requiredAmount - currentBalance) : 0;
 
@@ -101,6 +102,14 @@ export function AddFundsDialog({
       toast({
         title: "Invalid amount",
         description: "Please enter a valid amount",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (amount < MIN_TOPUP) {
+      toast({
+        title: "Minimum top-up is $20",
+        description: "Please enter an amount of $20 or more",
         variant: "destructive",
       });
       return;
@@ -186,11 +195,11 @@ export function AddFundsDialog({
                 <Input
                   id="custom-amount"
                   type="number"
-                  placeholder="Enter amount"
+                  placeholder="Min. $20"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
-                  min="1"
-                  step="0.01"
+                  min="20"
+                  step="1"
                   disabled={processing}
                 />
                 <Button 
