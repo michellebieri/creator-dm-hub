@@ -102,6 +102,13 @@ const AuthCallback = () => {
         return;
       }
 
+      // Password recovery flow — redirect to reset form instead of dashboard.
+      const type = params.get('type');
+      if (type === 'recovery') {
+        navigate('/reset-password', { replace: true });
+        return;
+      }
+
       navigate('/dashboard', { replace: true });
     };
 

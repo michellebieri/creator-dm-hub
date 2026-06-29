@@ -25,13 +25,17 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if we have a valid recovery session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        toast.error('Invalid or expired reset link');
-        navigate('/auth');
-      }
-    });
+    // Wait briefly for the session to settle (AuthCallback may have just
+    // exchanged the code a moment ago and the session is being written).
+    const timer = setTimeout(() => {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (!session) {
+          toast.error('Invalid or expired reset link');
+          navigate('/auth');
+        }
+      });
+    }, 500);
+    return () => clearTimeout(timer);
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
