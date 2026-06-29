@@ -9,8 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, Bot, Sparkles, Zap, Clock, MessageCircle, Save } from 'lucide-react';
+import { ChevronLeft, Bot, Sparkles, Zap, Clock, MessageCircle, Save, Brain, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
 
 interface AIPersona {
   is_enabled: boolean;
@@ -28,6 +29,9 @@ interface AIPersona {
   custom_instructions: string;
   proactive_outreach_enabled: boolean;
   proactive_outreach_delay_days: number;
+  weekly_context: string;
+  featured_content: any[];
+  updated_at?: string;
 }
 
 const defaultPersona: AIPersona = {
@@ -46,6 +50,8 @@ const defaultPersona: AIPersona = {
   custom_instructions: '',
   proactive_outreach_enabled: false,
   proactive_outreach_delay_days: 3,
+  weekly_context: '',
+  featured_content: [],
 };
 
 const AIPersonaSettings = () => {
@@ -55,30 +61,71 @@ const AIPersonaSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [step, setStep] = useState<'overview' | 'personality' | 'outreach'>('overview');
+  const [unlockables, setUnlockables] = useState<Array<{ id: string; title: string; price: number }>>([]);
+  const [selectedContentIds, setSelectedContentIds] = useState<string[]>([]);
+  const [fanMemoryCount, setFanMemoryCount] = useState<number>(0);
 
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from('creator_ai_personas')
-      .select('*')
-      .eq('creator_id', user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setPersona({ ...defaultPersona, ...data });
-        setLoading(false);
-      });
+    Promise.all([
+      supabase
+        .from('creator_ai_personas')
+        .select('*')
+        .eq('creator_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('unlockables')
+        .select('id, title, price')
+        .eq('creator_id', user.id)
+        .not('title', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('fan_memories')
+        .select('fan_id')
+        .eq('creator_id', user.id),
+    ]).then(([personaRes, unlockablesRes, memoriesRes]) => {
+      if (personaRes.data) {
+        const p = { ...defaultPersona, ...personaRes.data };
+        setPersona(p);
+        const featuredIds = (p.featured_content || []).map((c: any) => c.id);
+        setSelectedContentIds(featuredIds);
+      }
+      if (unlockablesRes.data) setUnlockables(unlockablesRes.data as any);
+      if (memoriesRes.data) {
+        const unique = new Set((memoriesRes.data as any[]).map((r: any) => r.fan_id));
+        setFanMemoryCount(unique.size);
+      }
+      setLoading(false);
+    });
   }, [user]);
 
   const update = (field: keyof AIPersona, value: any) =>
     setPersona(prev => ({ ...prev, [field]: value }));
 
+  const toggleContent = (item: { id: string; title: string; price: number }) => {
+    setSelectedContentIds(prev => {
+      if (prev.includes(item.id)) return prev.filter(id => id !== item.id);
+      if (prev.length >= 5) return prev;
+      return [...prev, item.id];
+    });
+  };
+
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
     try {
+      const featuredContent = unlockables
+        .filter(u => selectedContentIds.includes(u.id))
+        .map(u => ({ id: u.id, type: 'unlockable', title: u.title, price: u.price }));
       const { error } = await supabase
         .from('creator_ai_personas')
-        .upsert({ ...persona, creator_id: user.id, updated_at: new Date().toISOString() }, { onConflict: 'creator_id' });
+        .upsert({
+          ...persona,
+          creator_id: user.id,
+          featured_content: featuredContent,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'creator_id' });
       if (error) throw error;
       toast.success('AI persona saved!');
     } catch (err: any) {
@@ -105,6 +152,56 @@ const AIPersonaSettings = () => {
       </header>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+
+        {/* This Week */}
+        <Card className="p-4 border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold text-sm">This Week</h2>
+            {persona.updated_at && (
+              <span className="ml-auto text-xs text-muted-foreground">
+                {new Date(persona.updated_at).toDateString() === new Date().toDateString()
+                  ? 'Updated today'
+                  : `Updated ${formatDistanceToNow(new Date(persona.updated_at))} ago`}
+              </span>
+            )}
+          </div>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Where are you? What have you been up to? What might fans ask about? e.g. 'In Bali until Sunday, went snorkeling yesterday, just dropped a beach photo set'"
+              value={persona.weekly_context}
+              onChange={e => update('weekly_context', e.target.value)}
+              rows={3}
+            />
+            {unlockables.length > 0 && (
+              <div className="space-y-2">
+                <Label className="text-xs">Pin content to promote this week (max 5)</Label>
+                <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
+                  {unlockables.map(u => {
+                    const selected = selectedContentIds.includes(u.id);
+                    const disabled = !selected && selectedContentIds.length >= 5;
+                    return (
+                      <label
+                        key={u.id}
+                        className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${selected ? 'bg-primary/10' : 'hover:bg-muted/50'} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          disabled={disabled}
+                          onChange={() => !disabled && toggleContent(u)}
+                          className="h-4 w-4 rounded border-border accent-primary"
+                        />
+                        <span className="text-sm flex-1 truncate">{u.title}</span>
+                        <span className="text-xs text-muted-foreground">${Number(u.price).toFixed(2)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
 
         {/* Master toggle */}
         <Card className="p-4 border-border">
@@ -316,6 +413,20 @@ const AIPersonaSettings = () => {
               </div>
             </div>
           )}
+        </Card>
+
+        {/* Fan Memory */}
+        <Card className="p-4 border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="h-4 w-4 text-primary" />
+            <h2 className="font-semibold text-sm">Fan Memory</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-3">
+            Your AI automatically remembers personal details fans share — interests, life events, and more — so every conversation feels personal.
+          </p>
+          <p className="text-sm font-medium">
+            Currently remembering details for <span className="text-primary">{fanMemoryCount}</span> {fanMemoryCount === 1 ? 'fan' : 'fans'}
+          </p>
         </Card>
 
         <Button onClick={handleSave} disabled={saving} className="w-full" size="lg">

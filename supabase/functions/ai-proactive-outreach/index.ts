@@ -100,6 +100,13 @@ serve(async (req) => {
           supabase.from('transactions').select('amount, transaction_type, created_at').eq('creator_id', creatorId).eq('customer_id', fanId).eq('status', 'completed').order('created_at', { ascending: false }).limit(5),
         ]);
 
+        const { data: fanMemories } = await supabase
+          .from('fan_memories')
+          .select('memory_key, memory_value')
+          .eq('creator_id', creatorId)
+          .eq('fan_id', fanId)
+          .limit(10);
+
         const totalSpent = (fanTxns || []).reduce((s: number, t: any) => s + t.amount, 0);
         const fanName = fanProfile?.display_name || 'there';
 
@@ -123,7 +130,9 @@ ${persona.custom_instructions ? `- Extra notes: ${persona.custom_instructions}` 
 
 FAN CONTEXT:
 ${fanContext}
-
+${fanMemories && fanMemories.length > 0
+  ? `\nWHAT YOU KNOW ABOUT THIS FAN:\n${fanMemories.map((m: any) => `- ${m.memory_key}: ${m.memory_value}`).join('\n')}\n`
+  : ''}
 Write a short, warm re-engagement opener (1-2 sentences max). 
 Sound natural and human — like you're genuinely checking in.
 Do NOT be salesy. Do NOT mention purchases directly.

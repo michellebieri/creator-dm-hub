@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-function buildSystemPrompt(persona: any, creatorProfile: any, fanProfile: any, fanStats: any): string {
+function buildSystemPrompt(persona: any, creatorProfile: any, fanProfile: any, fanStats: any, weeklyContext: string | null, contentToPromote: any[], fanMemories: any[]): string {
   const name = creatorProfile?.display_name || 'the creator';
   const fanName = fanProfile?.display_name || 'this fan';
   const totalSpent = fanStats?.total_spent ?? 0;
@@ -37,7 +37,16 @@ function buildSystemPrompt(persona: any, creatorProfile: any, fanProfile: any, f
     fanContext = `This is a new or first-time fan. Be welcoming and make them feel special.`;
   }
 
-  return `You are ${name}, a content creator chatting with your fan ${fanName} on a private messaging platform.
+  return `${weeklyContext ? `TODAY'S CONTEXT — this overrides everything. If asked where you are or what you're doing, use this:
+${weeklyContext}
+
+` : ''}${contentToPromote.length > 0 ? `CONTENT YOU CAN SELL (mention naturally when it fits — never force it):
+${contentToPromote.map((c: any) => `- "${c.title}" — $${Number(c.price).toFixed(2)}${c.description ? ` (${c.description})` : ''}`).join('\n')}
+
+` : ''}${fanMemories.length > 0 ? `WHAT YOU KNOW ABOUT THIS FAN (weave in naturally, NEVER say "I remember you told me"):
+${fanMemories.map((m: any) => `- ${m.memory_key}: ${m.memory_value}`).join('\n')}
+
+` : ''}You are ${name}, a content creator chatting with your fan ${fanName} on a private messaging platform.
 
 YOUR PERSONALITY:
 - Tone: You are ${toneDesc}
@@ -170,10 +179,18 @@ serve(async (req) => {
 
     const creatorId = recipientId;
 
-    // Check AI persona
-    const { data: persona } = await supabase.from('creator_ai_personas').select('*').eq('creator_id', creatorId).eq('is_enabled', true).maybeSingle();
+    // Check AI persona — query WITHOUT is_enabled filter so we can distinguish
+    // "AI disabled by creator" from "creator has no persona row at all".
+    const { data: persona } = await supabase.from('creator_ai_personas').select('*').eq('creator_id', creatorId).maybeSingle();
 
-    // Fallback to legacy auto-replies
+    // Creator has a persona row but AI is off → silent, no reply at all.
+    // Do NOT fall through to legacy auto-replies: the creator opted into the AI
+    // system and explicitly turned it off. Respect that choice.
+    if (persona && !persona.is_enabled) {
+      return new Response(JSON.stringify({ triggered: false, reason: 'ai_disabled' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // No persona row at all → creator predates the AI system, fall back to legacy auto-replies.
     if (!persona) return await handleLegacyAutoReply(supabase, conversationId, senderId, recipientId, corsHeaders);
 
     // Don't reply if creator already replied recently
@@ -197,7 +214,35 @@ serve(async (req) => {
       message_count: history.filter((m: any) => m.sender_id === senderId).length,
     };
 
-    const systemPrompt = buildSystemPrompt(persona, creatorProfile, fanProfile, fanStats);
+    const [{ data: fanMemories }, { data: rawFeatured }] = await Promise.all([
+      supabase
+        .from('fan_memories')
+        .select('category, memory_key, memory_value')
+        .eq('creator_id', creatorId)
+        .eq('fan_id', senderId)
+        .order('updated_at', { ascending: false })
+        .limit(15),
+      Promise.resolve({ data: (persona.featured_content && persona.featured_content.length > 0)
+        ? persona.featured_content
+        : null }),
+    ]);
+
+    let contentToPromote: any[] = rawFeatured || [];
+    if (contentToPromote.length === 0) {
+      const { data: fallback } = await supabase
+        .from('unlockables')
+        .select('id, title, price, media_type, caption')
+        .eq('creator_id', creatorId)
+        .not('title', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(3);
+      contentToPromote = (fallback || []).map((u: any) => ({
+        id: u.id, type: 'unlockable', title: u.title, price: u.price,
+        description: u.caption || u.media_type,
+      }));
+    }
+
+    const systemPrompt = buildSystemPrompt(persona, creatorProfile, fanProfile, fanStats, persona.weekly_context || null, contentToPromote, fanMemories || []);
 
     // Collapse consecutive same-role messages: Anthropic rejects non-alternating turns.
     // Common when the creator hasn't replied in a while (all recent messages are fan = 'user').
@@ -257,6 +302,29 @@ serve(async (req) => {
         JSON.stringify({ triggered: false, reason: 'insert_failed', detail: insertError.message }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
+    }
+
+    // Extract and store fan memory from the latest fan message
+    const lastFanMessage = history.filter((m: any) => m.sender_id === senderId).pop();
+    if (lastFanMessage?.content) {
+      try {
+        await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/extract-fan-memory`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fanMessage: lastFanMessage.content,
+            fanId: senderId,
+            creatorId,
+            messageId: lastFanMessage.id,
+          }),
+        });
+      } catch (e) {
+        console.error('Memory extraction failed (non-fatal):', e);
+        // Never block the response for this
+      }
     }
 
     return new Response(JSON.stringify({ triggered: true, mode: 'auto' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

@@ -39,6 +39,10 @@ const CreatorOnboarding = () => {
   const [aiMode, setAiMode] = useState('auto');
   const [aiDelay, setAiDelay] = useState('2');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['English']);
+  const [communicationStyle, setCommunicationStyle] = useState('');
+  const [favTopics, setFavTopics] = useState('');
+  const [forbiddenTopics, setForbiddenTopics] = useState('');
+  const [greetingStyle, setGreetingStyle] = useState('');
 
   const LANGUAGE_OPTIONS = [
     'English',
@@ -218,6 +222,10 @@ const CreatorOnboarding = () => {
           tone: aiTone,
           auto_reply_delay_minutes: Number(aiDelay) || 2,
           supported_languages: selectedLanguages.length > 0 ? selectedLanguages : ['English'],
+          communication_style: communicationStyle || null,
+          favorite_topics: favTopics || null,
+          forbidden_topics: forbiddenTopics || null,
+          greeting_style: greetingStyle || null,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'creator_id' });
 
@@ -495,6 +503,46 @@ const CreatorOnboarding = () => {
                     <p className="text-xs text-muted-foreground">
                       Your AI will only reply in languages you select. Swiss German is included under German.
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>How do you write? Describe your texting style</Label>
+                    <Textarea
+                      placeholder="Casual, lots of emojis, short punchy sentences..."
+                      value={communicationStyle}
+                      onChange={e => setCommunicationStyle(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>What do you love talking about with fans?</Label>
+                    <Textarea
+                      placeholder="Your workouts, travel, behind the scenes..."
+                      value={favTopics}
+                      onChange={e => setFavTopics(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Anything the AI should never mention? (optional)</Label>
+                    <Textarea
+                      placeholder="Politics, personal relationships, my location..."
+                      value={forbiddenTopics}
+                      onChange={e => setForbiddenTopics(e.target.value)}
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>How do you usually open a conversation with a fan?</Label>
+                    <Textarea
+                      placeholder="Hey [name]! So happy you're here 🥰"
+                      value={greetingStyle}
+                      onChange={e => setGreetingStyle(e.target.value)}
+                      rows={2}
+                    />
                   </div>
 
                   <div className="space-y-2">

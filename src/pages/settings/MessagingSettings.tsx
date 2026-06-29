@@ -196,6 +196,13 @@ const MessagingSettings = () => {
         <Card>
           <CardContent className="pt-6 space-y-2">
             <button
+              onClick={() => navigate('/settings/ai-persona')}
+              className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              <span>AI Assistant</span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button>
+            <button
               onClick={() => navigate('/welcome-message/1')}
               className="flex items-center justify-between w-full p-3 hover:bg-muted/50 rounded-lg transition-colors"
             >
