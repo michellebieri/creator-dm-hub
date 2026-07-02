@@ -1,0 +1,232 @@
+{
+  "findings": [
+    {
+      "page": "home_loggedin",
+      "path": "/",
+      "finalUrl": "https://creator-dm-hub.vercel.app/",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " DM.meMessagesSign OutConnect with your fansEngage with your audience and share premium content directly.1Create Your ProfileSet up your message packs with custom pricing2Share You"
+    },
+    {
+      "page": "dashboard",
+      "path": "/dashboard",
+      "finalUrl": "https://creator-dm-hub.vercel.app/dashboard",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meDashboardYour profile linkhttps://creator-dm-hub.vercel.app/qacust1778760223721Share this link with your fans so they can message youSummaryToday0New customers$0.00RevenueRev"
+    },
+    {
+      "page": "conversations",
+      "path": "/conversations",
+      "finalUrl": "https://creator-dm-hub.vercel.app/conversations",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meMessagesInboxArchivedMichelle@MichellebieriPlaywright E2E 177877847249738 minutes agoRevenueMessagesVaultMore "
+    },
+    {
+      "page": "wallet",
+      "path": "/wallet",
+      "finalUrl": "https://creator-dm-hub.vercel.app/wallet",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meWalletCurrent Balance$90.00Add FundsPayment HistoryMessage$5.00Message to creatorMay 14, 2026 • 9:07 PMAfter: $90.00Message$5.00Message to creatorMay 14, 2026 • 9:03 PMAfter:"
+    },
+    {
+      "page": "library",
+      "path": "/library",
+      "finalUrl": "https://creator-dm-hub.vercel.app/library",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meMy LibraryTotal Content0Unlocked itemsBundles0Purchased bundlesTotal Spent$$0.00On content & bundlesUnlocked ContentBundlesAll TypesMost RecentNo content yetStart unlocking c"
+    },
+    {
+      "page": "purchase_history",
+      "path": "/purchase-history",
+      "finalUrl": "https://creator-dm-hub.vercel.app/purchase-history",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.mePurchase HistoryPurchase HistoryView all your transactions and purchasesTotal Spent$10.00Total Purchases2Completed2This Month$10.00TransactionsFilter and search your purchase"
+    },
+    {
+      "page": "subscriptions",
+      "path": "/subscriptions",
+      "finalUrl": "https://creator-dm-hub.vercel.app/subscriptions",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meSubscriptionsMy SubscriptionsManage your creator subscriptionsNo Active SubscriptionsYou don't have any active subscriptions yet. Browse creators to find exclusive content!Re"
+    },
+    {
+      "page": "payment_methods",
+      "path": "/payment-methods",
+      "finalUrl": "https://creator-dm-hub.vercel.app/payment-methods",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.mePayment MethodsAdd Payment MethodNo Payment MethodsAdd a payment method to make purchases fasterRevenueMessagesVaultMore "
+    },
+    {
+      "page": "notifications",
+      "path": "/notifications",
+      "finalUrl": "https://creator-dm-hub.vercel.app/notifications",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meNotificationsNotification SettingsEmail NotificationsChoose which emails you'd like to receiveNew MessagesGet notified when you receive a new messageNew PurchasesGet notified"
+    },
+    {
+      "page": "notification_settings",
+      "path": "/notification-settings",
+      "finalUrl": "https://creator-dm-hub.vercel.app/notification-settings",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meNotificationsNotification SettingsEmail NotificationsChoose which emails you'd like to receiveNew MessagesGet notified when you receive a new messageNew PurchasesGet notified"
+    },
+    {
+      "page": "profile_settings",
+      "path": "/profile",
+      "finalUrl": "https://creator-dm-hub.vercel.app/profile",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meProfile SettingsQUpload AvatarPNG, JPG or WEBP (max 5MB)UsernameYour unique username for your profile URLDisplay NameHow your name appears to othersBioBrief description for y"
+    },
+    {
+      "page": "account_settings",
+      "path": "/account-settings",
+      "finalUrl": "https://creator-dm-hub.vercel.app/account-settings",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meSettingsMessagingSubscriptionBundleSocialsRevenueMessagesVaultMore "
+    },
+    {
+      "page": "privacy_settings",
+      "path": "/privacy-settings",
+      "finalUrl": "https://creator-dm-hub.vercel.app/privacy-settings",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.mePrivacy SettingsPrivacy SettingsControl who can see and interact with your contentProfile VisibilityControl who can see your profilePublic ProfileAllow anyone to view your pr"
+    },
+    {
+      "page": "following",
+      "path": "/following",
+      "finalUrl": "https://creator-dm-hub.vercel.app/following",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meFollowersFollowersPeople who follow youNot Following AnyoneStart following creators to see them here!RevenueMessagesVaultMore "
+    },
+    {
+      "page": "vault",
+      "path": "/vault",
+      "finalUrl": "https://creator-dm-hub.vercel.app/vault",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meContent VaultUpload ContentCreate BundlePhotos(0)Videos(0)Bundles(0)All Content(0)Photos (0)Videos (0)Bundles (0)All Content (0)Newest FirstNo content yetUpload your first co"
+    },
+    {
+      "page": "more",
+      "path": "/more",
+      "finalUrl": "https://creator-dm-hub.vercel.app/more",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meMoreProfileVaultNotificationsRevenueContentNudgesSubscribersFollowersAI AssistantGet the appSupportSign outRevenueMessagesVaultMore "
+    },
+    {
+      "page": "michelle_profile",
+      "path": "/Michellebieri",
+      "navError": "page.goto: Timeout 25000ms exceeded.\nCall log:\n  - navigating to \"https://creator-dm-hub.vercel.app/Michellebieri\", waiting until \"networkidle\"\n"
+    },
+    {
+      "page": "chat_with_michelle",
+      "path": "/messages?creator=e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0",
+      "finalUrl": "https://creator-dm-hub.vercel.app/messages?creator=e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meMMichelle@MichellebieriExportStatsPlaywright E2E 17787782093879:03:31 PMYPlaywright E2E 17787784724979:07:54 PMYSend UnlockableBulk UploadRevenueMessagesVaultMore "
+    },
+    {
+      "page": "wishlist",
+      "path": "/wishlist",
+      "finalUrl": "https://creator-dm-hub.vercel.app/wishlist",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meMy WishlistYour Wishlist is EmptyAdd content to your wishlist to keep track of what you want to unlock!RevenueMessagesVaultMore "
+    },
+    {
+      "page": "blocked_users",
+      "path": "/blocked-users",
+      "finalUrl": "https://creator-dm-hub.vercel.app/blocked-users",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meBlocked UsersNo Blocked UsersYou haven't blocked anyone yetRevenueMessagesVaultMore "
+    },
+    {
+      "page": "activity_feed",
+      "path": "/activity-feed",
+      "finalUrl": "https://creator-dm-hub.vercel.app/activity-feed",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meActivity FeedRecent activities and updatesNo Recent ActivityYour activities will appear hereRevenueMessagesVaultMore "
+    },
+    {
+      "page": "search",
+      "path": "/search",
+      "finalUrl": "https://creator-dm-hub.vercel.app/search",
+      "blank": true,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meSearchSearchRevenueMessagesVaultMore "
+    },
+    {
+      "page": "sessions",
+      "path": "/sessions",
+      "finalUrl": "https://creator-dm-hub.vercel.app/sessions",
+      "blank": false,
+      "errToast": null,
+      "errCount": 0,
+      "snippet": " dm.meSession ManagementFor security, we recommend terminating sessions on devices you no longer use.Active Sessions0 active sessionsNo active sessions foundNote: Session tracking "
+    }
+  ],
+  "eventsByPage": {
+    "home_loggedin": [],
+    "dashboard": [],
+    "conversations": [],
+    "wallet": [],
+    "library": [],
+    "purchase_history": [],
+    "subscriptions": [],
+    "payment_methods": [],
+    "notifications": [],
+    "notification_settings": [],
+    "profile_settings": [],
+    "account_settings": [],
+    "privacy_settings": [],
+    "following": [],
+    "vault": [],
+    "more": [],
+    "michelle_profile": [],
+    "chat_with_michelle": [],
+    "wishlist": [],
+    "blocked_users": [],
+    "activity_feed": [],
+    "search": [],
+    "sessions": []
+  }
+}

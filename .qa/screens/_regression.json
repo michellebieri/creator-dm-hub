@@ -1,0 +1,144 @@
+{
+  "flows": [
+    {
+      "name": "A1 — Fresh creator login + dashboard",
+      "status": "PASS",
+      "evidence": {
+        "url": "https://creator-dm-hub.vercel.app/creator-dashboard",
+        "snippet": " dm.meDashboardYour profile linkhttps://creator-dm-hub.vercel.app/qac784621052Share this link with your fans so they can message youSummaryToday0New customers$0.00RevenueRevenue per customer$0.00Subscriptions$0.00Messaging$0.00Message unlockables$0.0",
+        "errors": []
+      }
+    },
+    {
+      "name": "A2 — Fresh creator own public profile shows $5/msg",
+      "status": "PASS",
+      "evidence": {
+        "url": "https://creator-dm-hub.vercel.app/qac784621052",
+        "snippet": " ProfileRevenueMessagesVaultMoreQAQA Fresh Creator 1778784621052@qac784621052$5 / messageChatSubscription tiersAll (0)Photos (0)Videos (0)Bundles (0)This creator hasn't posted any content yet. Check b"
+      }
+    },
+    {
+      "name": "A3 — Anon visitor sees fresh creator profile + price",
+      "status": "PASS",
+      "evidence": {
+        "snippet": " ProfileQAQA Fresh Creator 1778784621052@qac784621052$5 / messageChatAll (0)Photos (0)Videos (0)Bundles (0)This creator hasn't posted any content yet. Check back soon! "
+      }
+    },
+    {
+      "name": "B1 — Fresh customer login + wallet $100",
+      "status": "PASS",
+      "evidence": {
+        "balance": "Balance$100.00"
+      }
+    },
+    {
+      "name": "B2 — Customer opens fresh creator profile",
+      "status": "PASS",
+      "evidence": {
+        "snippet": " ProfileHomeMessagesVaultMoreQAQA Fresh Creator 1778784621052@qac784621052$5 / messageChatFollowAll (0)Photos (0)Videos (0)Bundles (0)This creator hasn't posted any content yet. Check back soon! "
+      }
+    },
+    {
+      "name": "B3 — Find creator user_id (for chat URL)",
+      "status": "PASS",
+      "evidence": {
+        "creatorUserId": "4c6c34bb-075b-4635-9b49-f40896adf32e",
+        "url": "https://creator-dm-hub.vercel.app/messages?creator=4c6c34bb-075b-4635-9b49-f40896adf32e"
+      }
+    },
+    {
+      "name": "B4 — Customer sends message 1: \"Regression msg 1 — 1778784734916\"",
+      "status": "FAIL",
+      "error": "no Message sent toast"
+    },
+    {
+      "name": "B5 — Wallet decremented to $95",
+      "status": "FAIL",
+      "error": "expected $95.00, got Balance$100.00"
+    },
+    {
+      "name": "B6 — Customer inbox shows conversation with msg1",
+      "status": "FAIL",
+      "error": "inbox empty"
+    },
+    {
+      "name": "C1 — Creator inbox shows new conversation",
+      "status": "FAIL",
+      "error": "creator inbox empty"
+    },
+    {
+      "name": "C2 — Creator opens conversation, sees msg1",
+      "status": "FAIL",
+      "error": "msg1 not visible in creator chat. snippet:  dm.meQQA Fresh Creator 1778784621052@qac784621052No messages yet. Send your first message!RevenueMessagesVaultMore "
+    },
+    {
+      "name": "D1 — Refresh customer chat, msg1 still visible",
+      "status": "FAIL",
+      "error": "msg1 missing after customer refresh"
+    },
+    {
+      "name": "D2 — Refresh creator chat, msg1 still visible",
+      "status": "FAIL",
+      "error": "msg1 missing after creator refresh"
+    },
+    {
+      "name": "E1 — Send + refresh msg 2",
+      "status": "PASS",
+      "evidence": {
+        "msg": "Regression msg 2 — 1778784763427"
+      }
+    },
+    {
+      "name": "E2 — Send + refresh msg 3",
+      "status": "PASS",
+      "evidence": {
+        "msg": "Regression msg 3 — 1778784774558"
+      }
+    },
+    {
+      "name": "E3 — Send + refresh msg 4",
+      "status": "PASS",
+      "evidence": {
+        "msg": "Regression msg 4 — 1778784785629"
+      }
+    },
+    {
+      "name": "F — Final wallet balance after 4 messages = $80",
+      "status": "FAIL",
+      "error": "expected $80, got Balance$85.00"
+    },
+    {
+      "name": "G — Customer logs out, logs back in, conversation still there",
+      "status": "FAIL",
+      "error": "locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('input[type=email]').first()\n"
+    },
+    {
+      "name": "H — Exactly 4 customer-sent messages visible (no duplicates)",
+      "status": "FAIL",
+      "error": "message \"Regression msg 1 — 17787847349...\" appears 0 times (expected 1)"
+    },
+    {
+      "name": "I — Old repaired test user still works (regression isolation)",
+      "status": "PASS",
+      "evidence": {
+        "snippet": " dm.meMessagesInboxArchivedMichelle@MichellebieriPlaywright E2E 1778780840791about 1 hour agoRevenueMessagesVaultMore "
+      }
+    }
+  ],
+  "errors": {
+    "creator": [],
+    "customer": [
+      "401 /functions/v1/send-notification :: {\"error\":\"Unauthorized\"}",
+      "403 /functions/v1/create-notification :: {\"error\":\"Forbidden\"}",
+      "401 /functions/v1/send-notification :: {\"error\":\"Unauthorized\"}",
+      "403 /functions/v1/create-notification :: {\"error\":\"Forbidden\"}",
+      "404 /functions/v1/check-auto-reply :: {\"error\":\"Not found\"}",
+      "401 /functions/v1/send-notification :: {\"error\":\"Unauthorized\"}",
+      "404 /functions/v1/check-auto-reply :: {\"error\":\"Not found\"}",
+      "403 /functions/v1/create-notification :: {\"error\":\"Forbidden\"}",
+      "401 /functions/v1/send-notification :: {\"error\":\"Unauthorized\"}",
+      "404 /functions/v1/check-auto-reply :: {\"error\":\"Not found\"}",
+      "403 /functions/v1/create-notification :: {\"error\":\"Forbidden\"}"
+    ]
+  }
+}

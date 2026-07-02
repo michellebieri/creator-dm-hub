@@ -1,0 +1,44 @@
+[
+  {
+    "name": "FLOW 0 — Landing page (anon)",
+    "status": "PASS",
+    "evidence": {
+      "title": "DM.me - Your DM inbox, but extra",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  },
+  {
+    "name": "FLOW 1 — Michelle's public profile (anon visitor)",
+    "status": "FAIL",
+    "error": "Profile page shows \"Creator not found\" to anon visitors. Snippet: \" Creator not foundCould not find a creator matching \"Michellebieri\"DM.meSign InGet StartedConnect with your favorite creatorsGet exclusive access to premium content and direct conversations with creators you love.Get StartedHow It WorksSecure PaymentsDirect MessagingExclusive ContentWhy Choose DM.me\""
+  },
+  {
+    "name": "FLOW 1b — Michelle's public profile lowercase /@michellebieri",
+    "status": "FAIL",
+    "error": "also Creator not found at lowercase URL. Snippet: \" Creator not foundCould not find a creator matching \"michellebieri\"DM.meSign InGet StartedConnect with your favorite creatorsGet exclusive access to premium content and direct conversations with creators you love.Get StartedHow It WorksSecure PaymentsDirect MessagingExclusive ContentWhy Choose DM.me\""
+  },
+  {
+    "name": "FLOW 2 — Customer signup via UI (uses Tabs)",
+    "status": "PASS",
+    "evidence": {
+      "finalUrl": "https://creator-dm-hub.vercel.app/auth",
+      "successSignal": "Account created",
+      "errorSignal": null,
+      "bodySnippet": " Account created!Welcome to DM.me! Check your email to confirm your account.DM.meYour DM inbox, but ✨extra✨WelcomeConnect with your favorite creatorsSign InSign UpUsernameDisplay NameEmailPasswordCreate AccountAre you a creator? Get paid → ",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  },
+  {
+    "name": "FLOW 3 — Customer login attempt with the freshly signed-up creds",
+    "status": "FAIL",
+    "error": "Login did not advance off /auth. Signal: Email not confirmed"
+  }
+]

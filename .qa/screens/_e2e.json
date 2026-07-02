@@ -1,0 +1,63 @@
+[
+  {
+    "name": "login",
+    "status": "PASS",
+    "evidence": {
+      "url": "https://creator-dm-hub.vercel.app/"
+    }
+  },
+  {
+    "name": "payment_methods page loads cleanly",
+    "status": "FAIL",
+    "error": "http errors: 500 /functions/v1/list-payment-methods :: {\"error\":\"An error occurred\"}"
+  },
+  {
+    "name": "wallet shows $100 balance",
+    "status": "PASS",
+    "evidence": {
+      "balance": "Balance$100.00"
+    }
+  },
+  {
+    "name": "SEND PAID MESSAGE end-to-end",
+    "status": "FAIL",
+    "error": "no success indicator. body:  dm.meUpload ContentUpload TypeSingle FilesEach file sold separately at the same priceBundleAll files sold together as one packageSelect Files (up to 20)Max 500 MB for videos · Max 25 MB for images and audioPrice per File ($)Each file is sold individ"
+  },
+  {
+    "name": "wallet balance decremented after send",
+    "status": "PASS",
+    "evidence": {
+      "newBalance": "Balance$100.00",
+      "dropped": "NO (bug?)"
+    }
+  },
+  {
+    "name": "conversation appears in inbox",
+    "status": "FAIL",
+    "error": "inbox empty though message was sent. body:  dm.meMessagesInboxArchivedNo messages yetYour messages will appear hereRevenueMessagesVaultMore "
+  },
+  {
+    "name": "creator dashboard loads",
+    "status": "PASS",
+    "evidence": {
+      "bodySnippet": " dm.meDashboardYour profile linkhttps://creator-dm-hub.vercel.app/qacust1778760223721Share this link with your fans so they can message youSummaryToday0New customers$0.00RevenueRevenue per customer$0.00Subscriptions$0.00Messaging$0.00Message unlockables$0.00Posts$0.00RevenueTotalLast 4 weeksThere's ",
+      "httpErrors": []
+    }
+  },
+  {
+    "name": "creator messaging settings loads",
+    "status": "PASS",
+    "evidence": {
+      "bodySnippet": " dm.meMessagingMessaging SettingsPay per messagePricing per message ($)Bulk message amountBulk message price ($)First 3 messages are always freeUsing AI for messagingGift messages for every unlockNumber of messagesFirst welcome messageSecond welcome messageThird welcome messageSave ChangesRevenueMes",
+      "httpErrors": []
+    }
+  },
+  {
+    "name": "own public creator profile loads",
+    "status": "PASS",
+    "evidence": {
+      "bodySnippet": " ProfileRevenueMessagesVaultMoreQAQA Cust 1778760223721@qacust1778760223721$3 / messageChatSubscription tiersAll (0)Photos (0)Videos (0)Bundles (0)This creator hasn't posted any content yet. Check bac",
+      "httpErrors": []
+    }
+  }
+]

@@ -6,6 +6,7 @@ export const Footer = () => {
     <footer className="border-t bg-card mt-20">
       <div className="container mx-auto max-w-6xl px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
+          {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
               <MessageCircle className="h-6 w-6 text-primary" />
@@ -16,30 +17,22 @@ export const Footer = () => {
             </p>
           </div>
 
+          {/* For Creators */}
           <div>
             <h3 className="font-semibold mb-4">For Creators</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link to="/auth" className="hover:text-foreground transition-colors">
+                <Link to="/creator-auth" className="hover:text-foreground transition-colors">
                   Become a Creator
                 </Link>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Pricing
-                </a>
               </li>
             </ul>
           </div>
 
+          {/* Legal */}
           <div>
-            <h3 className="font-semibold mb-4">Resources</h3>
+            <h3 className="font-semibold mb-4">Legal</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Help Center
-                </a>
-              </li>
               <li>
                 <Link to="/terms-of-service" className="hover:text-foreground transition-colors">
                   Terms of Service
@@ -50,33 +43,44 @@ export const Footer = () => {
                   Privacy Policy
                 </Link>
               </li>
+              <li>
+                <Link to="/refund-policy" className="hover:text-foreground transition-colors">
+                  Refund Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/cookie-policy" className="hover:text-foreground transition-colors">
+                  Cookie Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/acceptable-use" className="hover:text-foreground transition-colors">
+                  Acceptable Use Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/dmca" className="hover:text-foreground transition-colors">
+                  DMCA Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
+          {/* Resources */}
           <div>
-            <h3 className="font-semibold mb-4">Connect</h3>
+            <h3 className="font-semibold mb-4">Resources</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Instagram
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Discord
-                </a>
+                <Link to="/contact" className="hover:text-foreground transition-colors">
+                  Contact
+                </Link>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="border-t mt-8 pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} DM.me. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} DM.me. Operated by Nextchapter AI For Online Selling (Trade License No. 1610274), Future Tower, Business Bay, Dubai, UAE. All rights reserved.</p>
         </div>
       </div>
     </footer>

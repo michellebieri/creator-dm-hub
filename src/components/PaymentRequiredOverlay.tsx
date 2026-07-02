@@ -255,178 +255,90 @@ export const PaymentRequiredOverlay = ({
   }
 
   return (
-    <div className="bg-card border rounded-lg p-6 space-y-6">
-      {/* Header with creator info */}
-      <div className="text-center space-y-4">
-        {creatorProfile && (
-          <Avatar className="h-20 w-20 mx-auto">
-            {creatorProfile.avatar_url && (
-              <img src={creatorProfile.avatar_url} alt={creatorProfile.display_name} className="h-full w-full object-cover" />
-            )}
-            <AvatarFallback className="text-2xl">{creatorProfile.display_name.charAt(0).toUpperCase()}</AvatarFallback>
-          </Avatar>
-        )}
-        <div>
-          <h2 className="text-xl font-semibold">Message {creatorProfile?.display_name}</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Choose a payment option to start chatting
-          </p>
-        </div>
-      </div>
-
-      {/* Balance info */}
-      <div className="flex items-center justify-center gap-4 text-sm">
+    <div className="bg-muted/40 border rounded-lg p-3 space-y-3">
+      {/* Compact header: balance + price inline, no avatar (chat header already shows it) */}
+      <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Wallet className="h-4 w-4" />
-          <span>Balance: ${balance.toFixed(2)}</span>
+          <Wallet className="h-4 w-4 shrink-0" />
+          <span>
+            Balance: <span className="font-medium text-foreground">${balance.toFixed(2)}</span>
+            {pricePerMessage > 0 && (
+              <span className="ml-1 text-muted-foreground">· ${pricePerMessage.toFixed(2)}/msg</span>
+            )}
+          </span>
         </div>
-        {pricePerMessage > 0 && (
-          <Badge variant="outline">
-            ${pricePerMessage.toFixed(2)}/message
-          </Badge>
-        )}
+        <p className="text-xs text-muted-foreground">Add funds to start chatting</p>
       </div>
 
-      {/* Tabs */}
-      {hasTiers && hasPacks && (
-        <div className="flex gap-2 p-1 bg-muted rounded-lg">
-          <Button
-            variant={selectedTab === 'subscribe' ? 'default' : 'ghost'}
-            className="flex-1"
-            onClick={() => setSelectedTab('subscribe')}
-          >
-            <Crown className="h-4 w-4 mr-2" />
-            Subscribe
-          </Button>
-          <Button
-            variant={selectedTab === 'credits' ? 'default' : 'ghost'}
-            className="flex-1"
-            onClick={() => setSelectedTab('credits')}
-          >
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Buy Credits
-          </Button>
-        </div>
+      {/* Primary CTA: Add Funds to Wallet — most common action */}
+      {pricePerMessage > 0 && (
+        <Button
+          className="w-full"
+          onClick={() => navigate('/wallet')}
+        >
+          <Wallet className="h-4 w-4 mr-2" />
+          Add Funds to Wallet
+        </Button>
       )}
 
-      {/* Subscription Tiers */}
-      {(selectedTab === 'subscribe' || !hasPacks) && hasTiers && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Crown className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Subscription Plans</h3>
-          </div>
-          <div className="grid gap-3">
-            {tiers.map((tier) => (
-              <Card key={tier.id} className="p-4 hover:border-primary transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{tier.name}</h4>
-                      {tier.unlimited_messages && (
-                        <Badge variant="secondary" className="text-xs">Unlimited</Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">
-                        ${tier.price}/{tier.billing_interval}
-                      </span>
-                      {tier.free_messages_per_month && !tier.unlimited_messages && (
-                        <span>{tier.free_messages_per_month} messages/month</span>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => handleSubscribeClick(tier)}
-                    disabled={subscribing}
-                    size="sm"
-                  >
-                    {subscribing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : balance >= tier.price ? (
-                      'Subscribe'
-                    ) : (
-                      <>Add Funds</>
+      {/* Message Packs (if available) */}
+      {hasPacks && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {packs.map((pack) => (
+            <Card key={pack.id} className="p-3 hover:border-primary transition-colors">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-bold">{pack.quantity}</span>
+                  <span className="text-xs text-muted-foreground ml-1">msgs</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-semibold">${pack.price.toFixed(2)}</span>
+                    {pack.discount_percentage > 0 && (
+                      <Badge variant="secondary" className="text-xs">-{pack.discount_percentage}%</Badge>
                     )}
-                  </Button>
+                  </div>
                 </div>
-              </Card>
-            ))}
-          </div>
+                <Button onClick={() => handlePurchasePack(pack.id)} disabled={purchasing} size="sm" variant="outline">
+                  {purchasing ? <Loader2 className="h-3 w-3 animate-spin" /> : <><ShoppingCart className="h-3 w-3 mr-1" />Buy</>}
+                </Button>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
 
-      {/* Message Packs */}
-      {(selectedTab === 'credits' || !hasTiers) && hasPacks && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Message Credits</h3>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {packs.map((pack) => (
-              <Card key={pack.id} className="p-4 hover:border-primary transition-colors">
+      {/* Subscription — secondary, collapsed by default */}
+      {hasTiers && (
+        <details className="text-sm">
+          <summary className="flex items-center gap-1.5 text-muted-foreground cursor-pointer hover:text-foreground select-none">
+            <Crown className="h-3.5 w-3.5" />
+            <span>Subscribe for unlimited access</span>
+          </summary>
+          <div className="mt-2 space-y-2">
+            {tiers.map((tier) => (
+              <Card key={tier.id} className="p-3 hover:border-primary transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold">{pack.quantity}</span>
-                      <span className="text-sm text-muted-foreground">messages</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-sm">{tier.name}</span>
+                      {tier.unlimited_messages && <Badge variant="secondary" className="text-xs">Unlimited</Badge>}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">${pack.price.toFixed(2)}</span>
-                      {pack.discount_percentage > 0 && (
-                        <Badge variant="secondary" className="text-xs text-primary">
-                          -{pack.discount_percentage}%
-                        </Badge>
-                      )}
-                    </div>
+                    <span className="text-sm font-semibold">${tier.price}/{tier.billing_interval}</span>
                   </div>
-                  <Button
-                    onClick={() => handlePurchasePack(pack.id)}
-                    disabled={purchasing}
-                    size="sm"
-                    variant="outline"
-                  >
-                    {purchasing ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <ShoppingCart className="h-4 w-4 mr-1" />
-                        Buy
-                      </>
-                    )}
+                  <Button onClick={() => handleSubscribeClick(tier)} disabled={subscribing} size="sm">
+                    {subscribing ? <Loader2 className="h-3 w-3 animate-spin" /> : balance >= tier.price ? 'Subscribe' : 'Add Funds'}
                   </Button>
                 </div>
               </Card>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Add Funds Option */}
-      {pricePerMessage > 0 && (
-        <div className="pt-4 border-t">
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => navigate('/wallet')}
-          >
-            <Wallet className="h-4 w-4 mr-2" />
-            Add Funds to Wallet (Pay per message)
-          </Button>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Add ${pricePerMessage.toFixed(2)} or more to send messages without a subscription
-          </p>
-        </div>
+        </details>
       )}
 
       {/* No options available */}
       {!hasTiers && !hasPacks && pricePerMessage === 0 && (
-        <div className="text-center py-4">
-          <Lock className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-muted-foreground">
-            Messaging is not available for this creator
-          </p>
+        <div className="text-center py-2">
+          <Lock className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
+          <p className="text-sm text-muted-foreground">Messaging is not available for this creator</p>
         </div>
       )}
     </div>

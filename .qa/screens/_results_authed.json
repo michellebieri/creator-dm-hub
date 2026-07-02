@@ -1,0 +1,120 @@
+[
+  {
+    "name": "Login as qa-cust",
+    "status": "PASS",
+    "evidence": {
+      "landedAt": "https://creator-dm-hub.vercel.app/",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  },
+  {
+    "name": "Logged-in customer visits michelle profile",
+    "status": "PASS",
+    "evidence": {
+      "bodySnippet": " ProfileHomeMessagesVaultMoreMichelle@Michellebierihi$5 / messageChatFollowAll (1)Photos (0)Videos (0)Bundles (1)best bundlehiBundle · 3$25.0020% OFF$20.00Locked ",
+      "events": {
+        "console": [
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 400 ()",
+          "Error fetching tiers: {code: 42501, details: null, hint: Grant the required privileges to the current role …CT ON public.subscription_tiers TO authenticated;, message: permission denied for table subscription_tiers}"
+        ],
+        "pageerror": [],
+        "httpErrors": [
+          "403 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%21inner%28*%29&customer_id=eq.1d39d8d5-3179-41c6- :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.creator_subscriptions TO authenticated;\",\"message\":\"permission denied for table creator_subscriptions\"}",
+          "403 /rest/v1/subscription_tiers?select=*&creator_id=eq.e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0&is_active=eq.true&o :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.subscription_tiers TO authenticated;\",\"message\":\"permission denied for table subscription_tiers\"}",
+          "400 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%28*%29&customer_id=eq.1d39d8d5-3179-41c6-9983-406 :: {\"code\":\"42703\",\"details\":null,\"hint\":null,\"message\":\"column creator_subscriptions.creator_id does not exist\"}"
+        ]
+      }
+    }
+  },
+  {
+    "name": "Open chat / Message michelle button",
+    "status": "PASS",
+    "evidence": {
+      "url": "https://creator-dm-hub.vercel.app/messages?creator=e394bb4b-3d73-4c7a-96ff-9ff802e0f5d0",
+      "bodySnippet": " dm.meMMichelle@MichellebieriMMessage MichelleChoose a payment option to start chattingBalance: $0.00Message Credits10messages$45.00-10%BuyMChat with MichelleType your message below to start the conversationHomeMessagesVaultMore ",
+      "events": {
+        "console": [
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Error fetching credits: {code: 42501, details: null, hint: Grant the required privileges to the current role …LECT ON public.customer_credits TO authenticated;, message: permission denied for table customer_credits}",
+          "Failed to load resource: the server responded with a status of 403 ()"
+        ],
+        "pageerror": [],
+        "httpErrors": [
+          "403 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%21inner%28*%29&customer_id=eq.1d39d8d5-3179-41c6- :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.creator_subscriptions TO authenticated;\",\"message\":\"permission denied for table creator_subscriptions\"}",
+          "403 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%21inner%28*%29&customer_id=eq.1d39d8d5-3179-41c6- :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.creator_subscriptions TO authenticated;\",\"message\":\"permission denied for table creator_subscriptions\"}",
+          "403 /rest/v1/customer_credits?select=credits_remaining&customer_id=eq.1d39d8d5-3179-41c6-9983-4065313c94a0&cr :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.customer_credits TO authenticated;\",\"message\":\"permission denied for table customer_credits\"}",
+          "403 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%21inner%28*%29&customer_id=eq.1d39d8d5-3179-41c6- :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.creator_subscriptions TO authenticated;\",\"message\":\"permission denied for table creator_subscriptions\"}",
+          "403 /rest/v1/customer_credits?select=credits_remaining&customer_id=eq.1d39d8d5-3179-41c6-9983-4065313c94a0&cr :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.customer_credits TO authenticated;\",\"message\":\"permission denied for table customer_credits\"}"
+        ]
+      }
+    }
+  },
+  {
+    "name": "Type and send a message",
+    "status": "PASS",
+    "evidence": {
+      "success": null,
+      "fail": null,
+      "bodySnippet": " dm.meMMichelle@MichellebieriExportStatsMMessage MichelleChoose a payment option to start chattingBalance: $0.00Message Credits10messages$45.00-10%BuyMChat with MichelleType your message below to start the conversationHomeMessagesVaultMore ",
+      "events": {
+        "console": [
+          "Failed to load resource: the server responded with a status of 403 ()",
+          "Failed to load resource: the server responded with a status of 401 ()",
+          "Failed to load resource: the server responded with a status of 403 ()"
+        ],
+        "pageerror": [],
+        "httpErrors": [
+          "403 /rest/v1/creator_subscriptions?select=*%2Csubscription_tiers%21inner%28*%29&customer_id=eq.1d39d8d5-3179-41c6- :: {\"code\":\"42501\",\"details\":null,\"hint\":\"Grant the required privileges to the current role with: GRANT SELECT ON public.creator_subscriptions TO authenticated;\",\"message\":\"permission denied for table creator_subscriptions\"}",
+          "401 /functions/v1/send-notification :: {\"error\":\"Unauthorized\"}",
+          "403 /functions/v1/create-notification :: {\"error\":\"Forbidden\"}"
+        ]
+      }
+    }
+  },
+  {
+    "name": "Conversations inbox renders",
+    "status": "PASS",
+    "evidence": {
+      "bodySnippet": " dm.meMessagesInboxArchivedNo messages yetVisit a creator's profile to start a conversationExample: @michelleHomeMessagesVaultMore ",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  },
+  {
+    "name": "Wallet page renders",
+    "status": "PASS",
+    "evidence": {
+      "balance": "Balance$0.00",
+      "bodySnippet": " dm.meWalletCurrent Balance$0.00Add FundsPayment HistoryNo transactions yetYour payment history will appear hereHomeMessagesVaultMore ",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  },
+  {
+    "name": "Logout",
+    "status": "PASS",
+    "evidence": {
+      "url": "https://creator-dm-hub.vercel.app/auth",
+      "events": {
+        "console": [],
+        "pageerror": [],
+        "httpErrors": []
+      }
+    }
+  }
+]

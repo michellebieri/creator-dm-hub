@@ -34,13 +34,10 @@ Last updated: 2026-05-15
 
 ### Critical launch blockers
 
-1. **🟢 LB#4 — PKCE code_verifier not persisted on signup — RESOLVED**
-   - Root cause (two compounding defects):
-     1. `storage: localStorage` (raw global) in `client.ts` bypassed Supabase's `supportsLocalStorage()` write-test; replaced with auto-detection.
-     2. Race condition: any existing session in the browser's localStorage (from a prior login during CoWork testing) has a live auto-refresh ticker. When `signUp()` writes the code_verifier then awaits the HTTP request, the concurrent `_removeSession()` triggered by a failing stale-token refresh wiped the verifier before the callback. Fix: `supabase.auth.signOut()` before every `signUp()` call so no concurrent refresh can race.
-   - Files changed: `src/integrations/supabase/client.ts` (removed `storage: localStorage`), `src/pages/CreatorAuth.tsx` (`handleApplicationSubmit` — signOut before signUp), `src/contexts/AuthContext.tsx` (`signUp` — signOut before signUp).
-   - QA script: `.qa/lb4_pkce_verifier.mjs` — PASS (verifier key `sb-jhzcmdsaajvftjbhdunt-auth-token-code-verifier`, 112-char value).
-   - **Action for CoWork:** Fresh signup at `/creator-auth` Apply with real Gmail → check browser localStorage immediately after submit → confirm `sb-jhzcmdsaajvftjbhdunt-auth-token-code-verifier` present → click confirmation link in SAME browser → lands on `/creator-application-pending` (no AuthErrorBanner).
+1. **🟢 LB#4 — PKCE code_verifier / double-exchange — CLOSED (Round 5 CoWork verified)**
+   - Two commits: `9f69320` (race condition + storage bypass fix) + `5c2a72b` (`detectSessionInUrl: false` — eliminates double-exchange).
+   - CoWork Round 5 (2026-05-17) full pass: signup → code_verifier present (114 chars) → confirmation link in same browser → **`/creator-application-pending`**, no error banner, `email_confirmed_at` set, session valid. Stale-link regression: "Your confirmation link has already been used or expired." + Resend CTA ✅.
+   - See `QA_REPORT_2026-05-17.md` for full evidence.
 
 2. **🟠 LB#2 — Email confirmation: code fix landed, awaiting CoWork re-verification**
    - Round-2 QA report identified two distinct defects (Defect 1: Gmail safelinks pre-fetch consuming the OTP; Defect 2: frontend silently swallowing `#error=` fragments). Both have shipped in commit `45a670d`:
@@ -228,6 +225,8 @@ _None._ The Michelle band-aid INSERT from earlier is now isolated to the QA test
 
 **B14. Supabase email rate limit at 2/hour (default)** — per round-2 report. Will silently break onboarding the moment real volume hits. Bump via custom SMTP (Resend/Postmark/SendGrid) or upgrade Supabase plan. Action: pre-launch config.
 
+~~**B15. Confirmation email template**~~ — RESOLVED 2026-05-17. Subject updated to "Confirm your DM.me account", body replaced with branded HTML (DM.me header, purple button, ignore-footer). Gmail threading/collapse issue eliminated for Resend flow.
+
 ### 🟢 Resolved (kept for reference)
 
 - ~~LB#1 creator approval pipeline~~ (4 defects: invalid SQL, swallowed errors, false reassurance, missing GRANT) → migrations `20260515000003-5` applied + frontend rewritten in commit `80dec72`. Verified by [.qa/lb1_partial.mjs](.qa/lb1_partial.mjs) 3/3 pass; subscription lifecycle regression `subs_lifecycle.mjs` 9/9 pass.
@@ -320,6 +319,14 @@ Run after every fix that touches the relevant area.
 ---
 
 ## Latest CoWork QA Findings
+
+### 2026-05-17 — ROUNDS 4 + 5 — LB#4 verification (see `QA_REPORT_2026-05-17.md`)
+
+**Round 4 Verdict: PARTIAL** — Commit `9f69320` fixed the code_verifier race condition (confirmed present, 114 chars) but a double-exchange bug remained: `detectSessionInUrl: true` caused auth-js to auto-exchange the PKCE code on page load, consuming the code_verifier before `AuthCallback.tsx`'s explicit call ran.
+
+**Round 5 Verdict: ✅ PASS — LB#4 FULLY CLOSED** — Commit `5c2a72b` set `detectSessionInUrl: false`. Full happy path now works: signup → code_verifier present → confirmation link in same browser → `/creator-application-pending` with no error banner. Stale-link regression also passes: spent token shows "Your confirmation link has already been used or expired" + Resend CTA. UID `4bb8d907-ccd7-4ee7-97fa-630167c39fec`, `email_confirmed_at: 2026-05-17T12:37:05.247081Z`.
+
+**New cosmetic finding (B15):** Confirmation email body blank in Gmail — user must click "..." to expand. Likely missing plain-text MIME fallback in the Supabase email template. Not a launch blocker.
 
 ### 2026-05-15 — ROUND 2 — LB#1 admin-side + LB#2 email confirm (see `QA_REPORT_2026-05-15_round2.md`)
 

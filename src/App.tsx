@@ -33,6 +33,11 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import RefundPolicy from "./pages/RefundPolicy";
+import CookiePolicy from "./pages/CookiePolicy";
+import AcceptableUse from "./pages/AcceptableUse";
+import DMCAPolicy from "./pages/DMCAPolicy";
+import Contact from "./pages/Contact";
 import CreatorProfile from "./pages/CreatorProfile";
 import CustomerProfile from "./pages/CustomerProfile";
 import NotFound from "./pages/NotFound";
@@ -114,6 +119,11 @@ const App = () => {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/acceptable-use" element={<AcceptableUse />} />
+          <Route path="/dmca" element={<DMCAPolicy />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/creator-onboarding" element={<CreatorOnboarding />} />
           <Route path="/creator-waitlist" element={<CreatorWaitlist />} />

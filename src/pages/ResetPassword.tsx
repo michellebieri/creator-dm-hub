@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,24 +19,39 @@ const passwordSchema = z
 
 export default function ResetPassword() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Wait briefly for the session to settle (AuthCallback may have just
-    // exchanged the code a moment ago and the session is being written).
-    const timer = setTimeout(() => {
-      supabase.auth.getSession().then(({ data: { session } }) => {
+    const init = async () => {
+      // If we arrived with a ?code= param (direct redirect from Supabase),
+      // exchange it for a session first.
+      const code = params.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          toast.error('Invalid or expired reset link');
+          navigate('/auth');
+          return;
+        }
+      } else {
+        // No code — check for an existing recovery session (came via AuthCallback).
+        await new Promise(r => setTimeout(r, 400));
+        const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           toast.error('Invalid or expired reset link');
           navigate('/auth');
+          return;
         }
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [navigate]);
+      }
+      setReady(true);
+    };
+    init();
+  }, [navigate, params]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +90,14 @@ export default function ResetPassword() {
       setLoading(false);
     }
   };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-background to-muted">
